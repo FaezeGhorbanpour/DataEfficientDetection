@@ -115,7 +115,7 @@ class Embedder:
     #     plt.show()
 
     @staticmethod
-    def cluster_embeddings(self, embeddings, metadata, n_clusters):
+    def cluster_embeddings(embeddings, metadata, n_clusters):
         """
         Cluster embeddings and return clusters with metadata.
         Args:
