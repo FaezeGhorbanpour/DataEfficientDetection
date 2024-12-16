@@ -23,7 +23,11 @@ class Embedder:
         elif self.name.lower() == 'minilm':
             self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
         elif self.name == 'm3':
-            self.model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
+            self.model = SentenceTransformer("BAAI/bge-m3")
+        elif self.name == 'm3-unsupervised':
+            self.model = SentenceTransformer("BAAI/bge-m3-unsupervised")
+        elif self.name == 'm3-retromae':
+            self.model = SentenceTransformer("BAAI/bge-m3-retromae")
         elif self.name.lower() == 'e5-large':
             self.model = SentenceTransformer('intfloat/multilingual-e5-large')
         elif self.name.lower() == 'e5-base':
@@ -35,7 +39,7 @@ class Embedder:
         elif self.name.lower() == 'arctic-large':
             self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-l-v2.0')
         elif self.name.lower() == 'arctic-base':
-            self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-m-v2.0')
+            self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-m', trust_remote_code=True)
         else:
             self.model = SentenceTransformer(model_name)
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
@@ -85,8 +89,10 @@ class Embedder:
         normalized1 = embedding1 / norm1
         normalized2 = embedding2 / norm2
 
-        similarity_matrix = np.dot(normalized1, normalized2.T).diagonal()
-        return np.mean(similarity_matrix)
+        similarity_matrix = np.dot(normalized1, normalized2.T)
+        diagonal = similarity_matrix.diagonal()
+        lower_tri = np.tril(similarity_matrix)
+        return similarity_matrix, np.mean(diagonal) - np.mean(lower_tri)
 
     # @staticmethod
     # def cluster_embeddings(embeddings, num_clusters=5):
@@ -148,7 +154,7 @@ class Embedder:
         if reduction_method == "umap":
             reducer = umap.UMAP(random_state=42)
         elif reduction_method == "tsne":
-            reducer = TSNE(random_state=42, n_iter=300, perplexity=30)
+            reducer = TSNE(random_state=42)#, n_iter=300, perplexity=30
         else:
             raise ValueError("Invalid reduction method. Use 'umap' or 'tsne'.")
 
@@ -162,8 +168,9 @@ class Embedder:
             metadata_df,
             x="x",
             y="y",
-            color="language",  # Adjust this to a relevant metadata field
-            hover_data=metadata,
+            color="language",  # Group by language
+            hover_data=["dataset_name", "language", "id"],  # Include relevant metadata fields
             title=plot_title,
         )
         fig.show()
+
