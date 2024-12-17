@@ -24,7 +24,7 @@ class DataProvider:
                 ds = data[split]
                 # if languages:
                 #     ds = ds.filter(lambda example: example.get("language") in languages)
-                if max_samples:
+                if split=='train' and max_samples:
                     ds = ds.select(range(min(len(ds), max_samples)))
                 datasets.append({
                     "name": dataset_name,

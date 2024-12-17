@@ -2,7 +2,7 @@ import argparse
 from data_provider import DataProvider
 from embedder import Embedder
 from retriever import Retriever
-from fine_tuner import FineTuner
+from finetuner import FineTuner
 from prompter import Prompter
 
 

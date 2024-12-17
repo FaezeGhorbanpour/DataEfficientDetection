@@ -55,17 +55,20 @@ class Embedder:
         embeddings = self.model.encode(sentences, convert_to_tensor=True)
         return embeddings.cpu().detach().numpy()
 
-    def embed_datasets(self, datasets):
+    def embed_datasets(self, datasets, splits=None):
         """
         Embed all instances in multiple datasets.
         Args:
             datasets (list[dict]): Datasets with text to embed.
+            splits (list[str]): What split of Datasets to be embedded.
         Returns:
             np.ndarray, list[dict]: Embeddings and corresponding metadata.
         """
         embeddings = []
         metadata = []
         for dataset in datasets:
+            if splits and dataset["split"] not in splits:
+                continue
             texts = dataset["data"]["text"]
             labels = dataset["data"]["label"]
             ids = dataset["data"]["id"]
@@ -74,6 +77,7 @@ class Embedder:
             metadata += [{"text": texts[i],
                           "label": labels[i],
                           "id": ids[i],
+                          "split": dataset["split"],
                           "dataset_name": dataset["name"],
                           "language": dataset["language"]} for i in range(len(embs))]
         return embeddings, metadata
