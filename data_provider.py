@@ -1,5 +1,5 @@
 from datasets import load_dataset, Dataset
-
+from datasets import DatasetDict, concatenate_datasets
 
 class DataProvider:
 
@@ -26,12 +26,11 @@ class DataProvider:
                 #     ds = ds.filter(lambda example: example.get("language") in languages)
                 if split=='train' and max_samples:
                     ds = ds.select(range(min(len(ds), max_samples)))
-                datasets.append({
-                    "name": dataset_name,
-                    "split": split,
-                    "data": ds,
-                    "language": languages[i]
-                })
+            datasets.append({
+                "name": dataset_name,
+                "data": data,
+                "language": languages[i]
+            })
         return datasets
 
     def convert_to_dataset(self, retrieved_data):
@@ -45,3 +44,11 @@ class DataProvider:
         sentences = [item["metadata"]["text"] for item in retrieved_data]
         labels = [item["metadata"].get("label", None) for item in retrieved_data]
         return Dataset.from_dict({"text": sentences, "label": labels})
+
+
+
+    def aggregate_splits(self, datasets):
+        return DatasetDict({
+            split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
+            for split in {"train", "validation", "test"}
+        })

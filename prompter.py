@@ -20,7 +20,7 @@ class Prompter:
             self.model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    def test(self, test_dataset, prompt_template, batch_size=16, max_length=512):
+    def test(self, test_dataset, prompt_template, batch_size=16, max_length=128):
         """
         Test the instruction-tuned model on a large dataset efficiently.
         Args:
@@ -54,7 +54,12 @@ class Prompter:
             decoded_outputs = [self.tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
             results.extend(decoded_outputs)
 
-        return results
+        return [int(i) if isinstance(i, int) else -1 for i in results]
+
+    def form_prompt_template(self, metadata=None, k=None, ):
+        if metadata is not None:
+            pass
+        return 'Classify the text to hate and non-hate. answer with "1" if it is hate or "0" if it non-hate. text: {input}'
 
     def compute_metrics(self, predictions, labels):
         """

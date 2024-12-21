@@ -55,7 +55,7 @@ class Embedder:
         embeddings = self.model.encode(sentences, convert_to_tensor=True)
         return embeddings.cpu().detach().numpy()
 
-    def embed_datasets(self, datasets, splits=None):
+    def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
         """
         Embed all instances in multiple datasets.
         Args:
@@ -67,20 +67,23 @@ class Embedder:
         embeddings = []
         metadata = []
         for dataset in datasets:
-            if splits and dataset["split"] not in splits:
-                continue
-            texts = dataset["data"]["text"]
-            labels = dataset["data"]["label"]
-            ids = dataset["data"]["id"]
-            embs = self.embed_sentences(texts)
-            embeddings.append(embs)
-            metadata += [{"text": texts[i],
-                          "label": labels[i],
-                          "id": ids[i],
-                          "split": dataset["split"],
-                          "dataset_name": dataset["name"],
-                          "language": dataset["language"]} for i in range(len(embs))]
-        return embeddings, metadata
+            for split in splits:
+                data = dataset["data"][split]
+                texts = data["text"]
+                labels = data["label"]
+                ids = data["id"]
+                embs = self.embed_sentences(texts)
+                embeddings.append(embs)
+                metadata += [{"text": texts[i],
+                              "label": labels[i],
+                              "id": ids[i],
+                              "split": split,
+                              "dataset_name": dataset["name"],
+                              "language": dataset["language"]} for i in range(len(embs))]
+        if stack:
+            return np.vstack(embeddings), metadata
+        else:
+            return embeddings, metadata
 
     @staticmethod
     def calculate_similarity(embedding1, embedding2):

@@ -1,6 +1,9 @@
+import os.path
+
 import faiss
 import numpy as np
 from datasets import Dataset
+import json
 
 
 class Retriever:
@@ -28,7 +31,7 @@ class Retriever:
         if index_type == "FlatL2":
             index = faiss.IndexFlatL2(embedding_dim)
         elif index_type == "HNSW":
-            index = faiss.IndexHNSWFlat(embedding_dim, 32)  # 32 is the number of neighbors
+            index = faiss.IndexHNSWFlat(embedding_dim, 100)  # 32 is the number of neighbors
         else:
             raise ValueError(f"Unknown index_type: {index_type}")
 
@@ -71,11 +74,48 @@ class Retriever:
             results.append({"metadata": data_meta, "score": dist})
         return results[:k]
 
+    def retrieve_multiple_queries(self, query_embeddings, k=5, filters=None):
+        """
+        Retrieve top-k nearest neighbors for multiple query embeddings, ensuring uniqueness in results.
+        Args:
+            query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
+            k (int): Number of nearest neighbors to retrieve for each query.
+            filters (dict): Optional metadata filters.
+        Returns:
+            list[dict]: Combined list of metadata and scores for all queries.
+        """
+        all_results = []
+        seen_metadata = set()  # To ensure unique metadata entries
+
+        for query_embedding in query_embeddings:
+            distances, indices = self.index.search(query_embedding, k)
+
+            for idx, dist in zip(indices[0], distances[0]):
+                if idx == -1:  # No more valid indices
+                    continue
+                data_meta = self.metadata[idx]
+
+                # Filter by metadata if filters are provided
+                if filters:
+                    if not all(data_meta.get(key) == value for key, value in filters.items()):
+                        continue
+
+                # Ensure uniqueness in the results
+                if data_meta not in seen_metadata:
+                    seen_metadata.add(data_meta)
+                    all_results.append({"metadata": data_meta, "score": dist})
+
+        return all_results[:k]  # Limit results to the maximum k
+
     def save_index(self, path):
         """Save the FAISS index to a file."""
-        faiss.write_index(self.index, path)
+        faiss.write_index(self.index, os.path.join(path, 'embedding.index'))
+        with open(os.path.join(path, 'metadata.json'), 'w') as f:
+            json.dump(self.metadata, f, indent=2, ensure_ascii=False)
 
     def load_index(self, path):
         """Load the FAISS index from a file."""
-        self.index = faiss.read_index(path)
+        self.index = faiss.read_index(os.path.join(path, 'embedding.index'))
+        with open(os.path.join(path, 'metadata.json'), 'r') as f:
+            self.metadata = json.load(f)
 
