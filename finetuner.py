@@ -133,7 +133,6 @@ class FineTuner:
         predictions = trainer.predict(test_data)
         # Extract predictions and labels
         logits = predictions.predictions
-        preds = logits.argmax(axis=-1)
         labels = predictions.label_ids
 
         return logits, labels
@@ -143,7 +142,10 @@ class FineTuner:
         Compute classification metrics (accuracy, precision, recall, F1-score).
         """
         logits, labels = eval_pred
-        predictions = logits.argmax(axis=-1)
+        if isinstance(logits, tuple):
+            predictions = logits[0].argmax(axis=-1)
+        else:
+            predictions = logits.argmax(axis=-1)
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted")
         f1_macro = f1_score(labels, predictions, average="macro")
         accuracy = accuracy_score(labels, predictions)

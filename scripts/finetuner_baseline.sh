@@ -11,7 +11,7 @@ MODEL_NAME="FacebookAI/xlm-roberta-base"
 for dataset in "${DATASETS[@]}"; do
     for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for rs in rs1 rs2 rs3 rs4 rs5; do
-            OUTPUT_DIR = "${BASE}/models/finetuner/${dataset}/${split}/${rs}/"
+            OUTPUT_DIR = "${BASE}/models/finetuner/roberta-default/${dataset}-${split}/${rs}/"
             python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
                 --datasets "[\"${dataset}-${split}-${rs}\"]" \
