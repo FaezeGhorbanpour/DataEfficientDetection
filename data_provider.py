@@ -3,7 +3,7 @@ from datasets import DatasetDict, concatenate_datasets
 
 class DataProvider:
 
-    def load_datasets(self, dataset_names, languages=None, max_samples=None):
+    def load_datasets(self, dataset_names, languages=None, max_samples=None, cache_dir=''):
         """
         Load datasets from Hugging Face with optional filtering by language and sample limit.
         Args:
@@ -15,10 +15,10 @@ class DataProvider:
         """
         datasets = []
         for i, dataset_name in enumerate(dataset_names):
-            if '/' in dataset_name:
-                data = load_dataset(dataset_name.split('/')[0], dataset_name.split('/')[1])
-            else:
-                data = load_dataset(dataset_name)
+            try:
+                data = load_dataset(dataset_name, cache_dir=cache_dir)
+            except:
+                data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir)
 
             for split in data.keys():
                 ds = data[split]

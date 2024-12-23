@@ -1,7 +1,11 @@
 import argparse
 import logging
+import sys
+import os
 import wandb
-from transformers import set_seed
+import transformers
+from transformers import set_seed, HfArgumentParser, TrainingArguments
+from transformers.trainer_utils import is_main_process
 from dataclasses import dataclass, field
 from typing import Optional, List
 from data_provider import DataProvider
@@ -9,6 +13,94 @@ from embedder import Embedder
 from retriever import Retriever
 from finetuner import FineTuner
 from prompter import Prompter
+
+os.environ['MKL_THREADING_LAYER'] = 'GNU'
+os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
+os.environ['TRANSFORMERS_CACHE'] = '/mounts/work/faeze/.cache/hf/'
+os.environ['HF_HOME'] = '/mounts/work/faeze/.cache/hf/'
+os.environ['HF_DATASETS_CACHE'] = '/mounts/work/faeze/.cache/hf/'
+#os.environ['HF_DATASETS_OFFLINE'] = '1'
+os.environ['TORCH_HUB'] = '/mounts/work/faeze/.cache/torch/'
+os.environ['TORCH_HOME'] = '/mounts/work/faeze/.cache/torch/'
+os.environ["WANDB_DIR"] = '/mounts/work/faeze/.cache/wandb/'
+
+@dataclass
+class FineTunerArguments(TrainingArguments):
+    """
+    Arguments for FineTuner, extending HuggingFace's TrainingArguments.
+    """
+    finetuner_model_name_or_path: str = field(
+        default="FacebookAI/xlm-roberta-base",
+        metadata={"help": "Pretrained model name or path."}
+    )
+    fine_tune_method: str = field(
+        default="default",
+        metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
+    )
+    batch_size: int = field(
+        default=16,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    num_labels: int = field(
+        default=2,
+        metadata={"help": "Number of labels for classification tasks."}
+    )
+    peft_config: Optional[dict] = field(
+        default_factory=dict,
+        metadata={"help": "Configuration dictionary for PEFT methods like LoRA or prefix tuning."}
+    )
+    use_class_weight: bool = field(
+        default=False,
+        metadata={"help": "Whether to use class weights for loss computation."}
+    )
+    # class_weights: Optional[list] = field(
+    #     default=None,
+    #     metadata={"help": "Class weights for weighted loss computation."}
+    # )
+    metric_for_best_model: str = field(
+        default="f1-macro",
+        metadata={"help": "Metric to use for selecting the best model during training."}
+    )
+    logging_steps: int = field(
+        default=10,
+        metadata={"help": "Number of update steps between two logs."}
+    )
+    eval_strategy: str = field(
+        default="epoch",
+        metadata={"help": "Evaluation strategy to adopt during training."}
+    )
+    save_strategy: str = field(
+        default="epoch",
+        metadata={"help": "Save strategy to adopt during training."}
+    )
+    save_total_limit: int = field(
+        default=1,
+        metadata={"help": "Limit the total number of checkpoints to save."}
+    )
+    max_seq_length: int = field(
+        default=128,
+        metadata={"help": "Limit the total number of checkpoints to save."}
+    )
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+    )
+    overwrite_output_dir: bool = field(
+        default=True,
+        metadata={"help": "Overwrite the content of the output directory."}
+    )
+    do_train: bool = field(
+        default=False,
+        metadata={"help": "Set true to train the FineTuner."}
+    )
+    do_eval: bool = field(
+        default=False,
+        metadata={"help": "Set true to train the FineTuner."}
+    )
+    do_test: bool = field(
+        default=False,
+        metadata={"help": "Set true to test the FineTuner."}
+    )
 
 
 # Define arguments for each module using dataclasses
@@ -23,15 +115,19 @@ class DataArguments:
     datasets: List[str] = field(
         default_factory=list, metadata={"help": "List of dataset names to load."}
     )
+    dataset_cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+    )
 
 
 @dataclass
 class EmbedderArguments:
-    model_name_or_path: str = field(
+    embedder_model_name_or_path: str = field(
         default="bert-base-multilingual-cased",
         metadata={"help": "Pretrained embedding model name or path."},
     )
-    output_dir: Optional[str] = field(
+    embedder_output_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Directory to save the embeddings."},
     )
@@ -58,138 +154,132 @@ class RetrieverArguments:
     )
 
 
-@dataclass
-class FineTunerArguments:
-    model_name_or_path: str = field(
-        default="FacebookAI/xlm-roberta-base", metadata={"help": "Pretrained model name or path."}
-    )
-    fine_tune_type: str = field(
-        default="default", metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
-    )
-    batch_size: int = field(
-        default=16, metadata={"help": "Batch size for fine-tuning."}
-    )
-    learning_rate: float = field(
-        default=5e-5, metadata={"help": "Learning rate for training."}
-    )
-    num_epochs: int = field(
-        default=5, metadata={"help": "Number of training epochs."}
-    )
-    max_length: int = field(
-        default=128,
-        metadata={"help": "Maximum length of the input sequence."},
-    )
-    fp16: bool = field(
-        default=False, metadata={"help": "Enable mixed precision training (fp16)."}
-    )
-    logging_steps: int = field(
-        default=500, metadata={"help": "Number of steps between logging."}
-    )
-    evaluation_strategy: str = field(
-        default="steps",
-        metadata={"help": "Save strategy: 'no', 'steps', or 'epoch'."},
-    )
-    save_strategy: str = field(
-        default="steps",
-        metadata={"help": "Evaluation strategy: 'no', 'steps', or 'epoch'."},
-    )
-    output_dir: str = field(
-        default="./finetune_output",
-        metadata={"help": "Directory to save fine-tuned models."},
-    )
-    do_train: bool = field(
-        default=False, metadata={"help": "Set true to train the fine_tuner"}
-    )
-    do_test: bool = field(
-        default=False, metadata={"help": "Set true to test the fine_tuner"}
-    )
-
 
 @dataclass
 class PrompterArguments:
-    model_name_or_path: str = field(
+    prompter_model_name_or_path: str = field(
         default="google/flan-t5-base", metadata={"help": "Instruction-tuned model name or path."}
     )
-    max_length: int = field(
-        default=128,
-        metadata={"help": "Maximum length of the input sequence for prompting."},
+    # max_length: int = field(
+    #     default=128,
+    #     metadata={"help": "Maximum length of the input sequence for prompting."},
+    # )
+    # fp16: bool = field(
+    #     default=False, metadata={"help": "Enable mixed precision inference (fp16)."}
+    # )
+
+@dataclass
+class MainArguments:
+    wandb_project: str = field(
+        default="DataEfficient",
+        metadata={"help": "Wandb project name."}
     )
-    fp16: bool = field(
-        default=False, metadata={"help": "Enable mixed precision inference (fp16)."}
+    wandb_run_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Wandb run name."}
     )
+    do_embedding: bool = field(
+        default=False,
+        metadata={"help": "Run the embedding step."}
+    )
+    do_retrieving: bool = field(
+        default=False,
+        metadata={"help": "Run the retrieval step."}
+    )
+    do_fine_tuning: bool = field(
+        default=False,
+        metadata={"help": "Run the fine-tuning step."}
+    )
+    do_prompter: bool = field(
+        default=False,
+        metadata={"help": "Run the prompter step."}
+    )
+    # seed: Optional[int] = field(
+    #     default=None,
+    #     metadata={"help": "Random seed!"}
+    # )
 
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Main script for multilingual NLP pipeline.")
-    parser.add_argument("--wandb_project", type=str, default="multilingual_nlp_pipeline",
-                        help="Wandb project name.")
-    parser.add_argument("--run_name", type=str, default=None, help="Wandb run name.")
-    parser.add_argument("--do_embedding", action="store_true", help="Run the embedding step.")
-    parser.add_argument("--do_retrieving", action="store_true", help="Run the retrieval step.")
-    parser.add_argument("--do_fine_tuning", action="store_true", help="Run the fine-tuning step.")
-    parser.add_argument("--do_prompter", action="store_true", help="Run the prompter step.")
-    parser.add_argument("--seed", help="Random seed!")
-    args, remaining_args = parser.parse_known_args()
-
-    # Parse arguments for each module
-    data_args = DataArguments(**vars(parser.parse_args(remaining_args)))
-    embedder_args = EmbedderArguments(**vars(parser.parse_args(remaining_args)))
-    retriever_args = RetrieverArguments(**vars(parser.parse_args(remaining_args)))
-    finetuner_args = FineTunerArguments(**vars(parser.parse_args(remaining_args)))
-    prompter_args = PrompterArguments(**vars(parser.parse_args(remaining_args)))
-
-    return args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args
 
 
 def main():
+
+    parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, FineTunerArguments, PrompterArguments))
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+        # If we pass only one argument to the script and it's the path to a json file,
+        # let's parse it to get our arguments.
+        main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    else:
+        main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
+
+    # Setup logging
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO if is_main_process(finetuner_args.local_rank) else logging.WARN)
+
+    # Log on each process the small summary:
+    logger.warning(
+        f"Process rank: {finetuner_args.local_rank}, device: {finetuner_args.device}, n_gpu: {finetuner_args.n_gpu}"
+        + f"distributed training: {bool(finetuner_args.local_rank != -1)}, 16-bits training: {finetuner_args.fp16}"
+    )
+    # Set the verbosity to info of the Transformers logger (on main process only):
+    if is_main_process(finetuner_args.local_rank):
+        transformers.utils.logging.set_verbosity_info()
+        transformers.utils.logging.enable_default_handler()
+        transformers.utils.logging.enable_explicit_format()
+    logger.info(f"Training/evaluation parameters {finetuner_args}")
+
     # Initialize logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(message)s",
         level=logging.INFO
     )
-    logger = logging.getLogger(__name__)
 
     # Parse arguments
-    args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
+    # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
 
     # Initialize Wandb
     wandb.init(
-        project=args.wandb_project,
-        config=args
+        project=main_args.wandb_project,
+        name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
+        config=main_args
     )
     logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
-    set_seed(args.seed)
+    set_seed(finetuner_args.seed)
 
     # Initialize modules
     data_provider = DataProvider()
-    wandb.config.update(data_args, allow_val_change=True)
+    wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
-    logger.info("Loading datasets...")
+    logger.info(f"Loading datasets: {data_args.datasets} ...")
     datasets = data_provider.load_datasets(
         dataset_names=data_args.datasets,
         languages=data_args.languages,
+        cache_dir=data_args.dataset_cache_dir,
         max_samples=data_args.max_samples
     )
-    dataset = data_provider.aggregate_splits(datasets)
     logger.info("Datasets loaded: %s", [d["name"] for d in datasets])
 
     # Step 2: Embed datasets (optional)
-    if args.do_embedding:
-        embedder = Embedder(embedder_args.model_name_or_path)
-        wandb.config.update(embedder_args, allow_val_change=True)
+    if main_args.do_embedding:
+        embedder = Embedder(embedder_args.embedder_model_name_or_path)
+        wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")
         embeddings, metadatas = embedder.embed_datasets(datasets)
-        logger.info("Datasets embedded with model: %s", embedder_args.model_name_or_path)
+        logger.info("Datasets embedded with model: %s", embedder_args.embedder_model_name_or_path)
 
 
 
     # Step 3: Retrieve similar sentences (optional)
     retrieved_dataset = None
-    if args.do_retrieving:
-        wandb.config.update(retriever_args, allow_val_change=True)
+    if main_args.do_retrieving:
+        wandb.config.update(retriever_args, allow_val_change=False)
         if retriever_args.do_search:
             logger.info("Loading retriever's index...")
             retriever = Retriever()
@@ -208,23 +298,16 @@ def main():
             retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
             retriever.add_embeddings(embeddings, metadatas)
             retriever.save_index(retriever_args.index_path)
+    else:
+        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+
 
 
     # Step 4: Fine-tune the model (optional)
-    if args.do_fine_tuning:
-        wandb.config.update(finetuner_args, allow_val_change=True)
-        config = FineTunerConfig(
-            **finetuner_args
-            # model_name="FacebookAI/xlm-roberta-base",
-            # fine_tune_method="classification_head",
-            # num_labels=2,  # Binary classification (Hate Speech detection)
-            # learning_rate=5e-5,
-            # epochs=5,
-            # batch_size=16,
-            # peft_config={"lora_rank": 4}
-        )
-        finetuner = FineTuner(config)
-        logger.info("Fine-tuning the model: %s", finetuner_args.model_name_or_path)
+    if main_args.do_fine_tuning:
+        wandb.config.update(finetuner_args, allow_val_change=False)
+        fine_tuner = FineTuner(finetuner_args)
+        logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
 
         if finetuner_args.do_train:
             if retrieved_dataset:
@@ -234,7 +317,7 @@ def main():
                 train_dataset = fine_tuner.prepare_data(dataset['train'])
                 eval_dataset = fine_tuner.prepare_data(dataset['validation'])
 
-            finetuner.train(
+            fine_tuner.train(
                 train_dataset, eval_dataset
             )
             logger.info("Fine-tuning completed.")
@@ -242,22 +325,22 @@ def main():
             test_dataset = fine_tuner.prepare_data(dataset['test'])
             predictions = fine_tuner.predict(test_dataset)
             results = fine_tuner.compute_metrics(predictions)
-            results = {'fine_tuner_'+i: j for i, j in results}
+            # results = {'fine_tuner_'+i: j for i, j in results.items()}
             wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
     # Step 5: Prompt-based inference (optional)
-    if args.do_prompter:
-        wandb.config.update(prompter_args, allow_val_change=True)
-        prompter = Prompter(prompter_args.model_name_or_path)
-        logger.info("Running prompt-based inference with model: %s", prompter_args.model_name_or_path)
+    if main_args.do_prompter:
+        wandb.config.update(prompter_args, allow_val_change=False)
+        prompter = Prompter(prompter_args.prompter_model_name_or_path)
+        logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         prompt_template = prompter.form_prompt_template()
         predictions = prompter.test(
             test_dataset=dataset[test],
             prompt_template=prompt_template
         )
         results = prompter_.compute_metrics(predictions, dataset[test]['label'])
-        results = {'prompter_'+i: j for i, j in results}
+        # results = {'prompter_'+i: j for i, j in results.items()}
         wandb.log(results)
         logger.info("Prompt-based inference metrics: %s", results)
 
