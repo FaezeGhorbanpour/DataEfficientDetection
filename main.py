@@ -23,9 +23,6 @@ class DataArguments:
     datasets: List[str] = field(
         default_factory=list, metadata={"help": "List of dataset names to load."}
     )
-    cache_dir: Optional[str] = field(
-        default=None, metadata={"help": "Path to dataset cache directory."}
-    )
 
 
 @dataclass
@@ -67,7 +64,7 @@ class FineTunerArguments:
         default="FacebookAI/xlm-roberta-base", metadata={"help": "Pretrained model name or path."}
     )
     fine_tune_type: str = field(
-        default="lora", metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
+        default="default", metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
     )
     batch_size: int = field(
         default=16, metadata={"help": "Batch size for fine-tuning."}
@@ -76,7 +73,7 @@ class FineTunerArguments:
         default=5e-5, metadata={"help": "Learning rate for training."}
     )
     num_epochs: int = field(
-        default=3, metadata={"help": "Number of training epochs."}
+        default=5, metadata={"help": "Number of training epochs."}
     )
     max_length: int = field(
         default=128,
@@ -89,6 +86,10 @@ class FineTunerArguments:
         default=500, metadata={"help": "Number of steps between logging."}
     )
     evaluation_strategy: str = field(
+        default="steps",
+        metadata={"help": "Save strategy: 'no', 'steps', or 'epoch'."},
+    )
+    save_strategy: str = field(
         default="steps",
         metadata={"help": "Evaluation strategy: 'no', 'steps', or 'epoch'."},
     )
@@ -156,11 +157,6 @@ def main():
         project=args.wandb_project,
         config=args
     )
-    wandb.config.update(data_args, allow_val_change=True)
-    wandb.config.update(embedder_args, allow_val_change=True)
-    wandb.config.update(retriever_args, allow_val_change=True)
-    wandb.config.update(finetuner_args, allow_val_change=True)
-    wandb.config.update(prompter_args, allow_val_change=True)
     logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
@@ -168,6 +164,7 @@ def main():
 
     # Initialize modules
     data_provider = DataProvider()
+    wandb.config.update(data_args, allow_val_change=True)
 
     # Step 1: Load datasets
     logger.info("Loading datasets...")
@@ -182,6 +179,7 @@ def main():
     # Step 2: Embed datasets (optional)
     if args.do_embedding:
         embedder = Embedder(embedder_args.model_name_or_path)
+        wandb.config.update(embedder_args, allow_val_change=True)
         logger.info("Embedding datasets...")
         embeddings, metadatas = embedder.embed_datasets(datasets)
         logger.info("Datasets embedded with model: %s", embedder_args.model_name_or_path)
@@ -191,6 +189,7 @@ def main():
     # Step 3: Retrieve similar sentences (optional)
     retrieved_dataset = None
     if args.do_retrieving:
+        wandb.config.update(retriever_args, allow_val_change=True)
         if retriever_args.do_search:
             logger.info("Loading retriever's index...")
             retriever = Retriever()
@@ -213,13 +212,15 @@ def main():
 
     # Step 4: Fine-tune the model (optional)
     if args.do_fine_tuning:
+        wandb.config.update(finetuner_args, allow_val_change=True)
         config = FineTunerConfig(
-            model_name="FacebookAI/xlm-roberta-base",
-            fine_tune_method="classification_head",
-            num_labels=2,  # Binary classification (Hate Speech detection)
-            learning_rate=5e-5,
-            epochs=5,
-            batch_size=16,
+            **finetuner_args
+            # model_name="FacebookAI/xlm-roberta-base",
+            # fine_tune_method="classification_head",
+            # num_labels=2,  # Binary classification (Hate Speech detection)
+            # learning_rate=5e-5,
+            # epochs=5,
+            # batch_size=16,
             # peft_config={"lora_rank": 4}
         )
         finetuner = FineTuner(config)
@@ -247,6 +248,7 @@ def main():
 
     # Step 5: Prompt-based inference (optional)
     if args.do_prompter:
+        wandb.config.update(prompter_args, allow_val_change=True)
         prompter = Prompter(prompter_args.model_name_or_path)
         logger.info("Running prompt-based inference with model: %s", prompter_args.model_name_or_path)
         prompt_template = prompter.form_prompt_template()

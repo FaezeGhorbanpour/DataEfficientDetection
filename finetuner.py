@@ -26,6 +26,7 @@ class FineTunerConfig:
         self.num_labels = num_labels
         self.fine_tune_method = fine_tune_method  # can be "lora", "prefix_tuning", etc.
         self.learning_rate = learning_rate
+        self.learning_rate = weight_decay
         self.epochs = epochs
         self.batch_size = batch_size
         self.peft_config = peft_config  # default PEFT config (for LoRA, prefix, etc.)
@@ -93,7 +94,7 @@ class FineTuner:
         class_weights = compute_class_weight("balanced", classes=unique_labels, y=labels)
         return torch.tensor(class_weights, dtype=torch.float)
 
-    def train(self, train_data, eval_data, output_dir="./results"):
+    def train(self, train_data, eval_data, output_dir):
         """
         Train the model with weighted loss and metadata considerations.
         """
@@ -114,18 +115,19 @@ class FineTuner:
         # Configure training arguments
         training_args = TrainingArguments(
             output_dir=output_dir,
-            evaluation_strategy="epoch",
-            save_strategy="epoch",
             learning_rate=self.config.learning_rate,
             per_device_train_batch_size=self.config.batch_size,
             per_device_eval_batch_size=self.config.batch_size,
             num_train_epochs=self.config.epochs,
-            weight_decay=0.01,
+            weight_decay=self.config.weight_decay,
             logging_dir=f"{output_dir}/logs",
             logging_steps=10,
-            save_total_limit=2,
-            load_best_model_at_end=True,
-            push_to_hub=False,
+            evaluation_strategy="epoch",
+            save_strategy="epoch",
+            overwrite_output_dir=True,
+            save_total_limit=1,
+            metric_for_best_model="f1-macro",
+
         )
 
         # Create Trainer instance
