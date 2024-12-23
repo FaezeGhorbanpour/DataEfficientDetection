@@ -4,16 +4,24 @@ BASE="/mounts/work/faeze/data_efficient_hate"
 # Configuration
 DATASETS=('dyn21_en' 'fou18_en' 'ken20_en')
 LANGUAGES=('en' 'en' 'en')
-RSS=(rs1 rs2 rs3 rs4 rs5)
 SEEDS=(42 30 0 100 127)
+RSS=(rs1 rs2 rs3 rs4 rs5)
+GPUS=(0 1 2) # Adjust based on available GPUs
 
 MODEL_NAME="FacebookAI/xlm-roberta-base"
 
-for dataset in "${DATASETS[@]}"; do
+# Function to process a single dataset
+run_dataset() {
+    local dataset=$1
+    local lang=$2
+    local gpu=$3
+
+    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
+
     for split in 20000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/finetuner/roberta-default/${dataset}-${split}/${RSS[i]}/"
-            python main.py \
+            CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${LANGUAGES[@]}" \
@@ -31,8 +39,22 @@ for dataset in "${DATASETS[@]}"; do
                 --overwrite_output_dir \
                 --wandb_run_name "fine_tuning_mono"
 
-            # Clean up checkpoint files
-            rm -rf "${OUTPUT_DIR}/check*"
         done
     done
+
+    echo "Finished dataset: ${dataset} on GPU: ${gpu}"
+}
+
+# Launch each dataset on a separate GPU
+for i in "${!DATASETS[@]}"; do
+    dataset=${DATASETS[$i]}
+    lang=${LANGUAGES[$i]}
+    gpu=${GPUS[$i]}
+
+    run_dataset "${dataset}" "${lang}" "${gpu}" &
 done
+
+# Wait for all background processes to finish
+wait
+
+echo "All datasets processed!"
