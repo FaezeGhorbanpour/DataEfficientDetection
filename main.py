@@ -101,6 +101,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Set true to test the FineTuner."}
     )
+    use_class_weights: Optional[str] = field(
+        default=False,
+        metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
+    )
 
 
 # Define arguments for each module using dataclasses
@@ -114,6 +118,12 @@ class DataArguments:
     )
     datasets: List[str] = field(
         default_factory=list, metadata={"help": "List of dataset names to load."}
+    )
+    sizes: List[str] = field(
+        default_factory=list, metadata={"help": "List of dataset sizes to load."}
+    )
+    rss: List[str] = field(
+        default_factory=list, metadata={"help": "List of dataset rss to load."}
     )
     dataset_cache_dir: Optional[str] = field(
         default=None,
@@ -254,6 +264,8 @@ def main():
 
     # Initialize modules
     data_provider = DataProvider()
+    data_args.sizes = [x.split('-')[1] for x in data_args.datasets]
+    data_args.rss = [x.split('-')[2] for x in data_args.datasets]
     wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
@@ -323,8 +335,8 @@ def main():
             logger.info("Fine-tuning completed.")
         if finetuner_args.do_test:
             test_dataset = fine_tuner.prepare_data(dataset['test'])
-            predictions = fine_tuner.predict(test_dataset)
-            results = fine_tuner.compute_metrics(predictions)
+            predictions = fine_tuner.predict(test_dataset, True)
+            results = fine_tuner.evaluate(test_dataset, True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)

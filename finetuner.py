@@ -1,5 +1,8 @@
 import torch
 import logging
+import os, json
+import numpy as np
+import pandas as pd
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -72,7 +75,7 @@ class FineTuner:
         """
         Calculate class weights for imbalanced datasets.
         """
-        unique_labels = list(set(labels))
+        unique_labels = np.array(list(set(labels)))
         class_weights = compute_class_weight("balanced", classes=unique_labels, y=labels)
         return torch.tensor(class_weights, dtype=torch.float)
 
@@ -83,57 +86,82 @@ class FineTuner:
         logger.info("Starting training process.")
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Prepare weighted loss if applicable
-        if self.config.use_class_weight:
-            if self.config.class_weights:
-                class_weights = torch.tensor(self.config.class_weights, dtype=torch.float)
-            else:
-                class_weights = self.calculate_class_weights(self.config.class_weights)
-            class_weights = class_weights.to(device)
-
         # Move weights to the appropriate device
         self.model.to(device)
 
-        # Configure training arguments
-        # training_args = TrainingArguments(
-        #     output_dir=self.config.output_dir,
-        #     learning_rate=self.config.learning_rate,
-        #     per_device_train_batch_size=self.config.batch_size,
-        #     per_device_eval_batch_size=self.config.batch_size,
-        #     num_train_epochs=self.config.epochs,
-        #     weight_decay=self.config.weight_decay,
-        #     logging_dir=f"{self.config.output_dir}/logs",
-        #     logging_steps=10,
-        #     evaluation_strategy="epoch",
-        #     save_strategy="epoch",
-        #     overwrite_output_dir=True,
-        #     save_total_limit=1,
-        #     metric_for_best_model="f1-macro",
-        #
+        if self.config.use_class_weights:
+
+            logger.info("** USING WEIGHTED LOSS**")
+            if len(pd.unique(train_data["label"])) < 2:  # if a small sample only has examples of one class, we cannot do weighting
+                class_weights = self.calculate_class_weights(eval_data["label"])
+            else:
+                class_weights = self.calculate_class_weights(train_data["label"])
+
+            logger.info(f"class weights: {class_weights}")
+            class_weights = class_weights.to(device)
+
+            class WeightedTrainer(Trainer):
+                def compute_loss(self, model, inputs, return_outputs=False):
+                    labels = inputs.get("labels")
+                    # forward pass
+                    outputs = model(**inputs)
+                    logits = outputs.get("logits")
+                    # compute custom loss
+                    weighted_loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
+                    loss = weighted_loss_fct(logits, labels)
+                    return (loss, outputs) if return_outputs else loss
+
+            self.trainer = WeightedTrainer(
+                model=self.model,
+                args=self.config,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
+                compute_metrics=self.compute_metrics
+            )
+
+        else:
+
+            logger.info("** USING STANDARD UNWEIGHTED LOSS**")
+
+            self.trainer = Trainer(
+                model=self.model,
+                args=self.config,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
+                compute_metrics=self.compute_metrics
+            )
+
+        # # Create Trainer instance
+        # self.trainer = Trainer(
+        #     model=self.model,
+        #     args=self.config,
+        #     train_dataset=train_data,
+        #     eval_dataset=eval_data,
+        #     compute_metrics=self.compute_metrics
         # )
 
-        # Create Trainer instance
-        trainer = Trainer(
-            model=self.model,
-            args=self.config,
-            train_dataset=train_data,
-            eval_dataset=eval_data,
-            compute_metrics=self.compute_metrics,
-            data_collator=None,
-        )
+        self.trainer.train()
 
-        trainer.train()
-
-    def predict(self, test_data):
+    def predict(self, test_data, save_prediction=False):
         """
         Predict labels for the test dataset.
         """
         logger.info("Running predictions.")
-        trainer = Trainer(model=self.model)
-        predictions = trainer.predict(test_data)
+        # trainer = Trainer(model=self.model)
+        predictions = self.trainer.predict(test_data)
         # Extract predictions and labels
         logits = predictions.predictions
         labels = predictions.label_ids
+        if save_prediction:
+            # Save predictions
+            output_dir = self.config.output_dir
+            predictions_path = os.path.join(output_dir, "predictions.txt")
+            with open(predictions_path, "w") as f:
+                f.write("Predicted\tTrue\n")
+                predicted_labels = np.argmax(logits, axis=-1)
+                for pred, label in zip(predicted_labels, labels):
+                    f.write(f"{pred}\t{label}\n")
+            logger.info(f"Predictions saved to {predictions_path}")
 
         return logits, labels
 
@@ -151,11 +179,19 @@ class FineTuner:
         accuracy = accuracy_score(labels, predictions)
         return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 
-    def evaluate(self, test_data):
+    def evaluate(self, test_data, save_results=False):
         """
         Evaluate the model on test data.
         """
         logger.info("Evaluating model.")
-        trainer = Trainer(model=self.model)
-        results = trainer.evaluate(test_data)
+        # trainer = Trainer(model=self.model)
+        results = self.trainer.evaluate(test_data)
+        if save_results:
+            # Save evaluation results
+            output_dir = self.config.output_dir
+            results_path = os.path.join(output_dir, "evaluation_results.json")
+            with open(results_path, "w") as f:
+                json.dump(results, f, indent=4)
+            logger.info(f"Evaluation results saved to {results_path}")
         return results
+
