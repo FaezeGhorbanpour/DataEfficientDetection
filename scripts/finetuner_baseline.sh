@@ -15,8 +15,8 @@ for dataset in "${DATASETS[@]}"; do
             OUTPUT_DIR="${BASE}/models/finetuner/roberta-default/${dataset}-${split}/${RSS[i]}/"
             python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-                --datasets "[\"${dataset}-${split}-${RSS[i]}\"]" \
-                --languages "[\"${LANGUAGES[@]}\"]" \
+                --datasets "${dataset}-${split}-${RSS[i]}" \
+                --languages "${LANGUAGES[@]}" \
                 --seed "${SEEDS[i]}" \
                 --do_fine_tuning \
                 --do_train \
@@ -29,7 +29,7 @@ for dataset in "${DATASETS[@]}"; do
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "fine_tuning_baseline"
+                --wandb_run_name "fine_tuning_mono"
 
             # Clean up checkpoint files
             rm -rf "${OUTPUT_DIR}/check*"
