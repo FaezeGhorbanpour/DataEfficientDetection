@@ -33,6 +33,10 @@ class FineTunerArguments(TrainingArguments):
         default="FacebookAI/xlm-roberta-base",
         metadata={"help": "Pretrained model name or path."}
     )
+    finetuner_tokenizer_name_or_path: str = field(
+        default="",
+        metadata={"help": "Pretrained model name or path."}
+    )
     fine_tune_method: str = field(
         default="default",
         metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
