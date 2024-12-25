@@ -58,7 +58,7 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Whether to use class weights for loss computation."}
     )
-    class_weights: Optional[list] = field(
+    class_weights: Optional[dict] = field(
         default_factory=dict,
         metadata={"help": "Class weights for weighted loss computation."}
     )
@@ -197,10 +197,6 @@ class MainArguments:
         default=None,
         metadata={"help": "Wandb run name."}
     )
-    wandb_run_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Wandb run name."}
-    )
     do_embedding: bool = field(
         default=False,
         metadata={"help": "Run the embedding step."}
@@ -225,7 +221,7 @@ class MainArguments:
 
 
 def main():
-
+    print('hi')
     parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, FineTunerArguments, PrompterArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
