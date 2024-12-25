@@ -58,20 +58,20 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Whether to use class weights for loss computation."}
     )
-    # class_weights: Optional[list] = field(
-    #     default=None,
-    #     metadata={"help": "Class weights for weighted loss computation."}
-    # )
+    class_weights: Optional[list] = field(
+        default_factory=dict,
+        metadata={"help": "Class weights for weighted loss computation."}
+    )
     metric_for_best_model: str = field(
         default="f1-macro",
         metadata={"help": "Metric to use for selecting the best model during training."}
     )
     logging_steps: int = field(
-        default=100,
+        default=500,
         metadata={"help": "Number of update steps between two logs."}
     )
     save_steps: int = field(
-        default=500,
+        default=1000,
         metadata={"help": "Number of update steps between two logs."}
     )
     eval_strategy: str = field(
@@ -192,6 +192,10 @@ class MainArguments:
     wandb_project: str = field(
         default="DataEfficient",
         metadata={"help": "Wandb project name."}
+    )
+    wandb_run_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Wandb run name."}
     )
     wandb_run_name: Optional[str] = field(
         default=None,

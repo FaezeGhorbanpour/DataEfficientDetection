@@ -1,0 +1,16 @@
+{
+  "datasets": ["dyn21_en", "fou18_en", "ken20_en", "xdomain_en", "measure_en", "xplain_en"],
+  "languages": ["en", "en", "en", "en", "en", "en"],
+  "seed": 0,
+  "do_embedding": true,
+  "embedder_model_name_or_path": "m3",
+  "do_retrieving": true,
+  "do_search": false,
+  "index_type": "HNSW",
+  "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/english/index/",
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retriever/english/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "overwrite_output_dir": true,
+  "wandb_run_name": "embedding"
+}
