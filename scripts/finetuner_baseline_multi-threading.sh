@@ -3,21 +3,24 @@ BASE="/mounts/work/faeze/data_efficient_hate"
 
 # Configuration
 DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+DATASETS=('gahd24_de' 'xdomain_tr')
 LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-#LANGUAGES=('de' 'tr')
+LANGUAGES=('de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 #RSS=(rs2 rs4 rs5)
-GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
+GPUS=(5 6 7) # Adjust based on available GPUs
 
 #MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 #FOLDER_NAME="twitter-roberta"
 #FOLDER_SUBNAME="default"
 
-MODEL_NAME="microsoft/mdeberta-v3-base"
-FOLDER_NAME="mdeberta"
-FOLDER_SUBNAME="default"
+#MODEL_NAME="microsoft/mdeberta-v3-base"
+#FOLDER_NAME="mdeberta"
+#FOLDER_SUBNAME="default"
 
-#MODEL_NAME="FacebookAI/xlm-roberta-base"
+MODEL_NAME="FacebookAI/xlm-roberta-base"
+FOLDER_NAME="roberta"
+FOLDER_SUBNAME="default"
 
 # Function to process a single dataset
 run_dataset() {
@@ -27,11 +30,12 @@ run_dataset() {
 
     echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 20 40 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
