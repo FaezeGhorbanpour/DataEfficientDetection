@@ -9,9 +9,9 @@ GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 TOKENIZER_NAME="cardiffnlp/twitter-xlm-roberta-base"
 #TOKENIZER_NAME="microsoft/mdeberta-v3-base"
-MODEL_NAME="/mounts/work/faeze/data_efficient_hate/models/finetuner/twitter-roberta-default/dyn21_en-20000/rs4/checkpoint-5000"
+MODEL_NAME="/mounts/work/faeze/data_efficient_hate/models/finetuner/twitter-roberta-default/fou18_en-20000/rs3/checkpoint-6250"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="dyn21"
+FOLDER_SUBNAME="fou18"
 # Function to process a single dataset
 run_dataset() {
     local dataset=$1

@@ -1,0 +1,21 @@
+{
+"finetuner_model_name_or_path": "/mounts/work/faeze/data_efficient_hate/models/finetuner/mdeberta-default/dyn21_en-20000/rs5/checkpoint-11250",
+  "fine_tune_method": "default",
+  "datasets": ["bas19_es-2000-rs1"],
+  "languages": ["en"],
+  "seed": 0,
+  "do_fine_tuning": true,
+  "do_train": true,
+  "do_eval": true,
+  "do_test": true,
+  "per_device_train_batch_size": 16,
+  "per_device_eval_batch_size": 64,
+  "num_train_epochs": 10,
+  "max_seq_length": 128,
+  "use_class_weights": false,
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/finetuner/xlmt-default/bas19_es-2000/rs1/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "overwrite_output_dir": true,
+  "wandb_run_name": "fine_tuning_baseline"
+}

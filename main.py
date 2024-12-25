@@ -23,6 +23,7 @@ os.environ['HF_DATASETS_CACHE'] = '/mounts/work/faeze/.cache/hf/'
 os.environ['TORCH_HUB'] = '/mounts/work/faeze/.cache/torch/'
 os.environ['TORCH_HOME'] = '/mounts/work/faeze/.cache/torch/'
 os.environ["WANDB_DIR"] = '/mounts/work/faeze/.cache/wandb/'
+os.environ["WANDB_START_METHOD"] = 'thread'
 
 @dataclass
 class FineTunerArguments(TrainingArguments):
@@ -66,7 +67,11 @@ class FineTunerArguments(TrainingArguments):
         metadata={"help": "Metric to use for selecting the best model during training."}
     )
     logging_steps: int = field(
-        default=10,
+        default=100,
+        metadata={"help": "Number of update steps between two logs."}
+    )
+    save_steps: int = field(
+        default=500,
         metadata={"help": "Number of update steps between two logs."}
     )
     eval_strategy: str = field(
@@ -138,7 +143,7 @@ class DataArguments:
 @dataclass
 class EmbedderArguments:
     embedder_model_name_or_path: str = field(
-        default="bert-base-multilingual-cased",
+        default="m3",
         metadata={"help": "Pretrained embedding model name or path."},
     )
     embedder_output_dir: Optional[str] = field(
@@ -259,8 +264,11 @@ def main():
     wandb.init(
         project=main_args.wandb_project,
         name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
-        config=main_args
+        config=main_args,
+        settings=wandb.Settings(step_sync=False),  # Avoid syncing steps frequently
     )
+    wandb.config["log_frequency"] = 1000
+    wandb.config["log_model"] = False
     logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
