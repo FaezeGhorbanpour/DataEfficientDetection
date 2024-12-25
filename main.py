@@ -265,7 +265,6 @@ def main():
         project=main_args.wandb_project,
         name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
         config=main_args,
-        settings=wandb.Settings(step_sync=False),  # Avoid syncing steps frequently
     )
     wandb.config["log_frequency"] = 1000
     wandb.config["log_model"] = False
