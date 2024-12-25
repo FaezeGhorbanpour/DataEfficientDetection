@@ -28,7 +28,7 @@ class FineTuner:
         """
         self.config = config
         self.model_name = config.finetuner_model_name_or_path
-        self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path else self.model_name
+        self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
 
         # Load tokenizer
