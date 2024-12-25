@@ -1,7 +1,5 @@
-
-
+import logging
 from FlagEmbedding import BGEM3FlagModel
-
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.cluster import KMeans
@@ -10,6 +8,8 @@ import umap
 import pandas as pd
 import plotly.express as px
 
+logger = logging.getLogger(__name__)
+
 class Embedder:
     def __init__(self, model_name):
         """
@@ -17,6 +17,7 @@ class Embedder:
         Args:
             model_name (str): Name of the Hugging Face model to load.
         """
+        logging.info(f"Initializing Embedder with model: {model_name}")
         self.name = model_name
         if self.name == 'labse':
             self.model = SentenceTransformer('sentence-transformers/LaBSE')
@@ -42,7 +43,9 @@ class Embedder:
             self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-m', trust_remote_code=True)
         else:
             self.model = SentenceTransformer(model_name)
+
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
+        logging.info(f"Model initialized: {model_name} with embedding dimension {self.embedding_dim}")
 
     def embed_sentences(self, sentences):
         """
@@ -52,7 +55,9 @@ class Embedder:
         Returns:
             np.ndarray: Embedding vectors.
         """
+        logging.info(f"Embedding {len(sentences)} sentences")
         embeddings = self.model.encode(sentences, convert_to_tensor=True)
+        logging.info("Sentences embedded successfully")
         return embeddings.cpu().detach().numpy()
 
     def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
@@ -64,14 +69,17 @@ class Embedder:
         Returns:
             np.ndarray, list[dict]: Embeddings and corresponding metadata.
         """
+        logging.info(f"Embedding datasets for splits: {splits}")
         embeddings = []
         metadata = []
         for dataset in datasets:
+            logging.info(f"Processing dataset: {dataset['name']} in language {dataset['language']}")
             for split in splits:
                 data = dataset["data"][split]
                 texts = data["text"]
                 labels = data["label"]
                 ids = data["id"]
+                logging.info(f"Embedding {len(texts)} texts from split: {split}")
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
                 metadata += [{"text": texts[i],
@@ -81,8 +89,10 @@ class Embedder:
                               "dataset_name": dataset["name"],
                               "language": dataset["language"]} for i in range(len(embs))]
         if stack:
+            logging.info("Stacking all embeddings")
             return np.vstack(embeddings), metadata
         else:
+            logging.info("Returning embeddings without stacking")
             return embeddings, metadata
 
     @staticmethod
@@ -90,6 +100,7 @@ class Embedder:
         """
         Calculate cosine similarity between two embeddings.
         """
+        logging.info("Calculating similarity between two embeddings")
         norm1 = np.linalg.norm(embedding1, axis=1, keepdims=True)
         norm2 = np.linalg.norm(embedding2, axis=1, keepdims=True)
 
@@ -99,33 +110,8 @@ class Embedder:
         similarity_matrix = np.dot(normalized1, normalized2.T)
         diagonal = similarity_matrix.diagonal()
         lower_tri = np.tril(similarity_matrix)
+        logging.info("Similarity calculation completed")
         return similarity_matrix, np.mean(diagonal) - np.mean(lower_tri)
-
-    # @staticmethod
-    # def cluster_embeddings(embeddings, num_clusters=5):
-    #     """
-    #     Cluster embeddings using KMeans.
-    #     """
-    #     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-    #     return kmeans.fit_predict(embeddings)
-
-    # @staticmethod
-    # def plot_embeddings(embeddings, metadata, title="UMAP Projection"):
-    #     """
-    #     Plot embeddings with UMAP, colored by language and dataset name.
-    #     """
-    #     reducer = umap.UMAP(n_neighbors=15, min_dist=0.1)
-    #     reduced_embs = reducer.fit_transform(embeddings)
-    #
-    #     languages = [meta.get("language", "unknown") for meta in metadata]
-    #     dataset_names = [meta["dataset_name"] for meta in metadata]
-    #     plt.figure(figsize=(12, 8))
-    #     for lang in set(languages):
-    #         indices = [i for i, l in enumerate(languages) if l == lang]
-    #         plt.scatter(reduced_embs[indices, 0], reduced_embs[indices, 1], label=lang)
-    #     plt.title(title)
-    #     plt.legend()
-    #     plt.show()
 
     @staticmethod
     def cluster_embeddings(embeddings, metadata, n_clusters):
@@ -138,12 +124,14 @@ class Embedder:
         Returns:
             pd.DataFrame: Clustered data with metadata.
         """
+        logging.info(f"Clustering embeddings into {n_clusters} clusters")
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
         cluster_labels = kmeans.fit_predict(embeddings)
 
         # Create DataFrame with clusters and metadata
         data_with_clusters = pd.DataFrame(metadata)
         data_with_clusters["cluster"] = cluster_labels
+        logging.info("Clustering completed")
         return data_with_clusters
 
     @staticmethod
@@ -158,11 +146,13 @@ class Embedder:
         Returns:
             None: Displays the plot.
         """
+        logging.info(f"Visualizing embeddings using {reduction_method}")
         if reduction_method == "umap":
             reducer = umap.UMAP(random_state=42)
         elif reduction_method == "tsne":
-            reducer = TSNE(random_state=42)#, n_iter=300, perplexity=30
+            reducer = TSNE(random_state=42)
         else:
+            logging.error("Invalid reduction method. Use 'umap' or 'tsne'.")
             raise ValueError("Invalid reduction method. Use 'umap' or 'tsne'.")
 
         reduced_embeddings = reducer.fit_transform(embeddings)
@@ -175,9 +165,9 @@ class Embedder:
             metadata_df,
             x="x",
             y="y",
-            color="language",  # Group by language
-            hover_data=["dataset_name", "language", "id"],  # Include relevant metadata fields
+            color="language",
+            hover_data=["dataset_name", "language", "id"],
             title=plot_title,
         )
         fig.show()
-
+        logging.info("Visualization completed")
