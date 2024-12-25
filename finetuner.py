@@ -7,6 +7,7 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     AutoConfig,
+    TrainingArguments,
     Trainer,
 )
 from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig
@@ -14,7 +15,7 @@ from datasets import Dataset
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, f1_score
 
-
+logger = logging.getLogger(__name__)
 
 
 class FineTuner:
