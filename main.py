@@ -241,6 +241,12 @@ def main():
     else:
         main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
 
+    if main_args.do_fine_tuning:
+        file_path = os.path.join(finetuner_args.output_dir, "evaluation_results.json")
+        if os.path.exists(file_path):
+            print(f"Error: The file {file_path} exist. Aborting the run.")
+            sys.exit(1)  # Abort the run
+
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
@@ -286,8 +292,8 @@ def main():
 
     # Initialize modules
     data_provider = DataProvider()
-    data_args.sizes = [x.split('-')[1] if '-' in data_args.datasets else 'full'for x in data_args.datasets]
-    data_args.rss = [x.split('-')[2] if '-' in data_args.datasets else 'full' for x in data_args.datasets]
+    data_args.sizes = [x.split('-')[1] if '-' in x else 'full'for x in data_args.datasets]
+    data_args.rss = [x.split('-')[2] if '-' in x else 'full' for x in data_args.datasets]
     wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
