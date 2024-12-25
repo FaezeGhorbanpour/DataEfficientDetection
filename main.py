@@ -171,6 +171,14 @@ class RetrieverArguments:
         default="./index_path",
         metadata={"help": "Directory to save index path!"},
     )
+    do_search: bool = field(
+        default=False,
+        metadata={"help": "Search."}
+    )
+    do_index: bool = field(
+        default=False,
+        metadata={"help": "Index."}
+    )
 
 
 
@@ -178,6 +186,10 @@ class RetrieverArguments:
 class PrompterArguments:
     prompter_model_name_or_path: str = field(
         default="google/flan-t5-base", metadata={"help": "Instruction-tuned model name or path."}
+    )
+    prompter_output_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Directory to save the embeddings."},
     )
     # max_length: int = field(
     #     default=128,
@@ -221,7 +233,6 @@ class MainArguments:
 
 
 def main():
-    print('hi')
     parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, FineTunerArguments, PrompterArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
@@ -275,8 +286,8 @@ def main():
 
     # Initialize modules
     data_provider = DataProvider()
-    data_args.sizes = [x.split('-')[1] for x in data_args.datasets]
-    data_args.rss = [x.split('-')[2] for x in data_args.datasets]
+    data_args.sizes = [x.split('-')[1] if '-' in data_args.datasets else 'full'for x in data_args.datasets]
+    data_args.rss = [x.split('-')[2] if '-' in data_args.datasets else 'full' for x in data_args.datasets]
     wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets

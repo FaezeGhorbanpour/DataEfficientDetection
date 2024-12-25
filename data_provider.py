@@ -16,7 +16,11 @@ class DataProvider:
         datasets = []
         for i, dataset_name in enumerate(dataset_names):
             try:
-                data = load_dataset(dataset_name, cache_dir=cache_dir)
+                if '/' in dataset_name:
+                    dataset_name_parts = dataset_name.split('/')
+                    data = load_dataset(dataset_name_parts[0], dataset_name_parts[1], cache_dir=cache_dir)
+                else:
+                    data = load_dataset(dataset_name, cache_dir=cache_dir)
             except:
                 data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir)
 

@@ -132,15 +132,6 @@ class FineTuner:
                 compute_metrics=self.compute_metrics
             )
 
-        # # Create Trainer instance
-        # self.trainer = Trainer(
-        #     model=self.model,
-        #     args=self.config,
-        #     train_dataset=train_data,
-        #     eval_dataset=eval_data,
-        #     compute_metrics=self.compute_metrics
-        # )
-
         self.trainer.train()
 
     def predict(self, test_data, save_prediction=False):

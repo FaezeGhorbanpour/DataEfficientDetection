@@ -31,11 +31,14 @@ class Retriever:
         if index_type == "FlatL2":
             index = faiss.IndexFlatL2(embedding_dim)
         elif index_type == "HNSW":
-            index = faiss.IndexHNSWFlat(embedding_dim, 100)  # 32 is the number of neighbors
+            index = faiss.IndexHNSWFlat(embedding_dim, 128)  # 32 is the number of neighbors
+        elif index_type == "IVF":
+            index = faiss.IndexIVFPQ(faiss.IndexFlatL2(embedding_dim), embedding_dim, 100, 32, 32)#IndexIVFPQ
         else:
             raise ValueError(f"Unknown index_type: {index_type}")
 
         if self.device == "cuda" and faiss.get_num_gpus() > 0:
+            print('Using CUDA device')
             return faiss.index_cpu_to_all_gpus(index)
         return index
 
