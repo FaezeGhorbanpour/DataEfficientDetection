@@ -2,17 +2,23 @@
 BASE="/mounts/work/faeze/data_efficient_hate"
 
 # Configuration
-DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
-DATASETS=('gahd24_de' 'xdomain_tr')
-LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it')
-LANGUAGES=('de' 'tr')
-SEEDS=(42 30 0 100 127)
+DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+#LANGUAGES=('de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
-GPUS=(4 5) # Adjust based on available GPUs
+#RSS=(rs2 rs4 rs5)
+GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
-MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
+#MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
+#FOLDER_NAME="twitter-roberta"
+#FOLDER_SUBNAME="default"
+
 MODEL_NAME="microsoft/mdeberta-v3-base"
-MODEL_NAME="FacebookAI/xlm-roberta-base"
+FOLDER_NAME="mdeberta"
+FOLDER_SUBNAME="default"
+
+#MODEL_NAME="FacebookAI/xlm-roberta-base"
+
 # Function to process a single dataset
 run_dataset() {
     local dataset=$1
@@ -23,12 +29,12 @@ run_dataset() {
 
     for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/finetuner/roberta-default/${dataset}-${split}/${RSS[i]}/"
+            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
-                --seed "${SEEDS[i]}" \
+                --seed ${RSS[i]//rs/} \
                 --do_fine_tuning \
                 --do_train \
                 --do_test \
@@ -43,7 +49,7 @@ run_dataset() {
                 --wandb_run_name "fine_tuning_mono"
 
             # Clean up checkpoint files
-            rm -rf "${OUTPUT_DIR}/check*"
+            rm -rf "${OUTPUT_DIR}checkpoint*"
         done
     done
 
