@@ -1,5 +1,5 @@
 {
-"finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
+"finetuner_model_name_or_path": "/mounts/work/faeze/data_efficient_hate/models/finetuner/mdeberta-default/dyn21_en-20000/rs5/checkpoint-11250",
   "fine_tune_method": "default",
   "datasets": ["bas19_es-2000-rs1"],
   "languages": ["en"],
