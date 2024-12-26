@@ -85,48 +85,73 @@ class Retriever:
         logging.info(f"Retrieved {len(results)} results.")
         return results
 
-    def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, filters=None):
+    def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None, exclude_languages=None):
         """
-        Retrieve top-k nearest neighbors for multiple query embeddings, then return the best `max_retrieved` results.
+        Retrieve top-k nearest neighbors for multiple query embeddings, with optional filtering and deduplication.
         Args:
             query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
             k (int): Number of nearest neighbors to retrieve for each query.
             max_retrieved (int): Maximum number of results to return overall across all queries.
             filters (dict): Optional metadata filters.
         Returns:
-            list[dict]: Top results based on shortest distances, and the maximum number retrieved.
+            list[dict]: Top results based on shortest distances, with optional filtering and deduplication.
         """
         logging.info("Starting retrieval for multiple queries.")
-        all_results = []
 
-        for query_embedding in query_embeddings:
-            distances, indices = self.index.search(query_embedding, k)
+        # Perform the search for all queries at once
+        distances, indices = self.index.search(query_embeddings, k)
 
-            for idx, dist in zip(indices[0], distances[0]):
-                if idx == -1:  # No more valid indices
-                    continue
-                data_meta = self.metadata[idx]
+        # Flatten distances and indices for efficient processing
+        num_queries = query_embeddings.shape[0]
+        flattened_distances = distances.flatten()
+        flattened_indices = indices.flatten()
 
-                # Apply filters if provided
-                if filters:
-                    if not all(data_meta.get(key) == value for key, value in filters.items()):
-                        continue
+        # Filter out invalid indices (-1)
+        valid_mask = flattened_indices != -1
+        flattened_distances = flattened_distances[valid_mask]
+        flattened_indices = flattened_indices[valid_mask]
 
-                # Collect results
-                all_results.append({"metadata": data_meta, "score": dist})
+        # Fetch metadata for all valid indices
+        metadata = [self.metadata[idx] for idx in flattened_indices]
 
-        logging.info(f"Total results before sorting: {len(all_results)}")
+        # Apply filters if provided
+        if exclude_languages:
+            filter_mask = [
+                all(meta.get(['language']) == value for value in exclude_languages) for meta in metadata
+            ]
+            flattened_distances = flattened_distances[filter_mask]
+            metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
+        # Apply filters if provided
+        if exclude_datasets:
+            filter_mask = [
+                all(meta.get(['dataset_name']) == value for value in exclude_datasets) for meta in metadata
+            ]
+            flattened_distances = flattened_distances[filter_mask]
+            metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
 
-        if max_retrieved and len(all_results) > max_retrieved:
-            # Sort all results by score (ascending, since shorter distance is better)
-            all_results = sorted(all_results, key=lambda x: x["score"])
+        # Combine distances and metadata into a single structure
+        results = [{"metadata": meta, "score": dist} for meta, dist in zip(metadata, flattened_distances)]
 
-            # Return only the top `max_retrieved` results
-            if max_retrieved is not None:
-                all_results = all_results[:max_retrieved]
+        # Deduplicate results by a unique key in metadata (assumes 'id' is the unique key)
+        seen = set()
+        deduplicated_results = []
+        for result in results:
+            unique_key = result["metadata"].get("dataset_name") + result["metadata"].get("id")  # Adjust to your unique metadata key
+            if unique_key not in seen:
+                seen.add(unique_key)
+                deduplicated_results.append(result)
 
-        logging.info(f"Returning {len(all_results)} results after applying max_retrieved limit.")
-        return all_results
+        logging.info(f"Total unique results after deduplication: {len(deduplicated_results)}")
+
+
+        # Apply max_retrieved limit
+        if max_retrieved is not None:
+            # Sort deduplicated results by score (ascending order)
+            deduplicated_results.sort(key=lambda x: x["score"])
+            deduplicated_results = deduplicated_results[:max_retrieved]
+
+        logging.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
+        return deduplicated_results
 
     def save_index(self, path):
         """

@@ -150,14 +150,18 @@ class EmbedderArguments:
         default=None,
         metadata={"help": "Directory to save the embeddings."},
     )
+    splits: Optional[List[str]] = field(
+        default=None, metadata={"help": "What splits of given datasets must be embedded."}
+    )
+
 
 
 @dataclass
 class RetrieverArguments:
-    top_k: int = field(
+    k: int = field(
         default=10, metadata={"help": "Number of closest embeddings to retrieve."}
     )
-    language_filter: Optional[List[str]] = field(
+    exclude_languages: Optional[List[str]] = field(
         default=None, metadata={"help": "Filter retrieved data by language."}
     )
     exclude_datasets: Optional[List[str]] = field(
@@ -179,6 +183,11 @@ class RetrieverArguments:
         default=False,
         metadata={"help": "Index."}
     )
+    max_retrieved: int = field(
+        default=20000,
+        metadata={"help": "Maximum retrieved instances from the pool."},
+    )
+
 
 
 
@@ -278,14 +287,15 @@ def main():
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
 
     # Initialize Wandb
-    wandb.init(
-        project=main_args.wandb_project,
-        name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
-        config=main_args,
-    )
-    wandb.config["log_frequency"] = 1000
-    wandb.config["log_model"] = False
-    logger.info("Wandb initialized.")
+    if finetuner_args.report_to:
+        wandb.init(
+            project=main_args.wandb_project,
+            name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
+            config=main_args,
+        )
+        wandb.config["log_frequency"] = 1000
+        wandb.config["log_model"] = False
+        logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
     set_seed(finetuner_args.seed)
@@ -294,7 +304,8 @@ def main():
     data_provider = DataProvider()
     data_args.sizes = [x.split('-')[1] if '-' in x else 'full'for x in data_args.datasets]
     data_args.rss = [x.split('-')[2] if '-' in x else 'full' for x in data_args.datasets]
-    wandb.config.update(data_args, allow_val_change=False)
+    if finetuner_args.report_to:
+        wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
     logger.info(f"Loading datasets: {data_args.datasets} ...")
@@ -306,37 +317,44 @@ def main():
     )
     logger.info("Datasets loaded: %s", [d["name"] for d in datasets])
 
-    # Step 2: Embed datasets (optional)
+    # Step 2: Embed datasets
+    embedder = None
+    embeddings, meta_datas = None, []
     if main_args.do_embedding:
         embedder = Embedder(embedder_args.embedder_model_name_or_path)
-        wandb.config.update(embedder_args, allow_val_change=False)
+        if finetuner_args.report_to:
+            wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")
-        embeddings, metadatas = embedder.embed_datasets(datasets)
+
+        embeddings, meta_datas = embedder.embed_datasets(datasets, splits=embedder_args.splits)
         logger.info("Datasets embedded with model: %s", embedder_args.embedder_model_name_or_path)
 
 
 
-    # Step 3: Retrieve similar sentences (optional)
+    # Step 3: Retrieve similar sentences
     retrieved_dataset = None
     if main_args.do_retrieving:
-        wandb.config.update(retriever_args, allow_val_change=False)
+        if finetuner_args.report_to:
+            wandb.config.update(retriever_args, allow_val_change=False)
         if retriever_args.do_search:
             logger.info("Loading retriever's index...")
             retriever = Retriever()
             retriever.load_index(retriever_args.index_path)
             logger.info("Retrieving similar sentences...")
             retrieved_data = retriever.retrieve_multiple_queries(
-                query=embeddings,
-                k=retriever_args.top_k,
-                filters=retriever_args.language_filter
+                query_embeddings=embeddings,
+                k=retriever_args.k,
+                exclude_datasets=retriever_args.exclude_datasets,
+                exclude_languages=retriever_args.exclude_languages,
+                max_retrieved=retriever_args.max_retrieved
             )
-            logger.info("Retrieved %d instances based on query: %s", len(retrieved_data), query)
+            logger.info("Retrieved %d instances based on query.", len(retrieved_data))
 
             # Convert retrieved data to dataset format
             retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
         else:
             retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
-            retriever.add_embeddings(embeddings, metadatas)
+            retriever.add_embeddings(embeddings, meta_datas)
             retriever.save_index(retriever_args.index_path)
     else:
         dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
@@ -345,7 +363,8 @@ def main():
 
     # Step 4: Fine-tune the model (optional)
     if main_args.do_fine_tuning:
-        wandb.config.update(finetuner_args, allow_val_change=False)
+        if finetuner_args.report_to:
+            wandb.config.update(finetuner_args, allow_val_change=False)
         fine_tuner = FineTuner(finetuner_args)
         logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
 
@@ -366,26 +385,30 @@ def main():
             predictions = fine_tuner.predict(test_dataset, True)
             results = fine_tuner.evaluate(test_dataset, True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
-            wandb.log(results)
+            if finetuner_args.report_to:
+                wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
     # Step 5: Prompt-based inference (optional)
     if main_args.do_prompter:
-        wandb.config.update(prompter_args, allow_val_change=False)
+        if finetuner_args.report_to:
+            wandb.config.update(prompter_args, allow_val_change=False)
         prompter = Prompter(prompter_args.prompter_model_name_or_path)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         prompt_template = prompter.form_prompt_template()
         predictions = prompter.test(
-            test_dataset=dataset[test],
+            test_data=dataset['test'],
             prompt_template=prompt_template
         )
-        results = prompter_.compute_metrics(predictions, dataset[test]['label'])
+        results = prompter.compute_metrics(predictions, dataset['test']['label'])
         # results = {'prompter_'+i: j for i, j in results.items()}
-        wandb.log(results)
+        if finetuner_args.report_to:
+            wandb.log(results)
         logger.info("Prompt-based inference metrics: %s", results)
 
     # Finish Wandb
-    wandb.finish()
+    if finetuner_args.report_to:
+        wandb.finish()
     logger.info("Pipeline execution completed.")
 
 
