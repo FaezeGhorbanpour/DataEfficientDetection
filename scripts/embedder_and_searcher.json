@@ -12,5 +12,5 @@
   "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "searching",
-  "report_to": null
+  "main_args.disable_wandb": true
 }
