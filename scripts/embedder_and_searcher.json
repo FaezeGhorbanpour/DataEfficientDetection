@@ -1,5 +1,5 @@
 {
-  "datasets": ["bas19_es"],
+  "datasets": ["bas19_es-10-rs1"],
   "languages": ["es"],
   "seed": 0,
   "do_embedding": true,
@@ -11,6 +11,5 @@
   "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retriever/",
   "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
-  "wandb_run_name": "searching",
-  "main_args.disable_wandb": true
+  "wandb_run_name": "searching"
 }

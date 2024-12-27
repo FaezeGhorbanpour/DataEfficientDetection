@@ -187,3 +187,10 @@ class FineTuner:
             logger.info(f"Evaluation results saved to {results_path}")
         return results
 
+    def save_model(self,):
+        output_dir = self.config.output_dir
+        model_path = os.path.join(output_dir, "pretrained_model")
+        self.model.save_pretrained(model_path)
+        self.tokenizer.save_pretrained(model_path)
+        return model_path
+

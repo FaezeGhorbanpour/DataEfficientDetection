@@ -4,6 +4,7 @@ import sys
 import os
 import copy
 import wandb
+import torch
 import transformers
 from transformers import set_seed, HfArgumentParser, TrainingArguments
 from transformers.trainer_utils import is_main_process
@@ -180,14 +181,6 @@ class RetrieverArguments:
         default="./index_path",
         metadata={"help": "Directory to save index path!"},
     )
-    do_search: bool = field(
-        default=False,
-        metadata={"help": "Search."}
-    )
-    do_index: bool = field(
-        default=False,
-        metadata={"help": "Index."}
-    )
     max_retrieved: int = field(
         default=20000,
         metadata={"help": "Maximum retrieved instances from the pool."},
@@ -283,9 +276,13 @@ class MainArguments:
         default=False,
         metadata={"help": "Run the embedding step."}
     )
-    do_retrieving: bool = field(
+    do_searching: bool = field(
         default=False,
-        metadata={"help": "Run the retrieval step."}
+        metadata={"help": "Search."}
+    )
+    do_indexing: bool = field(
+        default=False,
+        metadata={"help": "Index."}
     )
     do_retrieval_tuning: bool = field(
         default=False,
@@ -320,6 +317,7 @@ def copy_args(retrieval_tuner_args, finetuner_args):
     finetuner_args_copy.do_train = retrieval_tuner_args.retrieval_do_train
     finetuner_args_copy.do_eval = retrieval_tuner_args.retrieval_do_eval
     finetuner_args_copy.do_test = retrieval_tuner_args.retrieval_do_test
+    finetuner_args_copy.report_to = []
     return finetuner_args_copy
 
 
@@ -415,39 +413,45 @@ def main():
 
 
     # Step 3: Retrieve similar sentences
-    retrieved_dataset = None
-    if main_args.do_retrieving:
+    if main_args.do_indexing:
         if main_args.disable_wandb:
             wandb.config.update(retriever_args, allow_val_change=False)
-        if retriever_args.do_search:
-            logger.info("Loading retriever's index...")
-            retriever = Retriever()
-            retriever.load_index(retriever_args.index_path)
-            logger.info("Retrieving similar sentences...")
+        logger.info("Indexing is starting...")
+        retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
+        retriever.add_embeddings(embeddings, meta_datas)
+        retriever.save_index(retriever_args.index_path)
+        logger.info("Indexing is done...")
 
-            if retriever_args.k == 0:
-                k = (retriever_args.max_retrieved // len(embeddings)) * 10
-            else:
-                k = retriever_args.k
+    retrieved_dataset = None
+    if main_args.do_searching:
+        if main_args.disable_wandb:
+            wandb.config.update(retriever_args, allow_val_change=False)
+        logger.info("Loading retriever's index...")
+        retriever = Retriever()
+        retriever.load_index(retriever_args.index_path)
+        logger.info("Retrieving similar sentences...")
 
-            retrieved_data = retriever.retrieve_multiple_queries(
-                query_embeddings=embeddings,
-                k=k,
-                exclude_datasets=retriever_args.exclude_datasets,
-                exclude_languages=retriever_args.exclude_languages,
-                max_retrieved=retriever_args.max_retrieved
-            )
-            logger.info("Retrieved %d instances based on query.", len(retrieved_data))
-
-            # Convert retrieved data to dataset format
-            retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
+        if retriever_args.k == 0:
+            k = (retriever_args.max_retrieved // len(embeddings)) * 100
+            print(k)
         else:
-            retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
-            retriever.add_embeddings(embeddings, meta_datas)
-            retriever.save_index(retriever_args.index_path)
+            k = retriever_args.k
+
+        retrieved_data = retriever.retrieve_multiple_queries(
+            query_embeddings=embeddings,
+            k=k,
+            exclude_datasets=retriever_args.exclude_datasets,
+            exclude_languages=retriever_args.exclude_languages,
+            max_retrieved=retriever_args.max_retrieved
+        )
+        logger.info("Retrieved %d instances based on query.", len(retrieved_data))
+
+        # Convert retrieved data to dataset format
+        retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
 
     dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
 
+    retrieval_tuning_model_path = ''
     retrieval_tuner = None
     if main_args.do_retrieval_tuning:
         if main_args.disable_wandb:
@@ -466,21 +470,27 @@ def main():
             logger.info("Retrieval fine-tuning on retrieved instances completed.")
         if retrieval_tuner_args.do_test:
             test_dataset = retrieval_tuner.prepare_data(dataset['test'])
-            results = retrieval_tuner.evaluate(test_dataset, True)
+            results = retrieval_tuner.evaluate(test_dataset, False)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.disable_wandb:
                 wandb.log(results)
             logger.info("Retrieval finetune based inference metrics: %s", results)
+        # retrieval_tuning_model_path = retrieval_tuner.save_model()
+        # logger.info("First-stage fine-tuned model saved.")
 
+        # Free GPU memory by deleting the model and calling garbage collection
+        # del retrieval_tuner.model
+        # torch.cuda.empty_cache()
+        # logger.info("First-stage model deleted and GPU memory cleared.")
 
     # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:
         if main_args.disable_wandb:
             wandb.config.update(finetuner_args, allow_val_change=False)
         fine_tuner = FineTuner(finetuner_args)
-        if main_args.do_retrieval_tuning and retrieval_tuner:
-            fine_tuner.model = retrieval_tuner.model
-            logger.info("Continuing fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
+        fine_tuner.model = retrieval_tuner.model
+        if main_args.do_retrieval_tuning:
+            logger.info("Continuing fine-tuning the model: %s", retrieval_tuning_model_path)
         else:
             logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
 

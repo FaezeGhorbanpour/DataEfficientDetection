@@ -36,6 +36,9 @@ class Retriever:
             index = faiss.IndexFlatL2(embedding_dim)
         elif index_type == "HNSW":
             index = faiss.IndexHNSWFlat(embedding_dim, 128)
+            hnswpq_index = faiss.downcast_index(index)
+            hnswpq_index.hnsw.efConstruction = 200
+            hnswpq_index.hnsw.efSearch = 128
         elif index_type == "IVF":
             index = faiss.IndexIVFPQ(faiss.IndexFlatL2(embedding_dim), embedding_dim, 100, 32, 32)
         else:
