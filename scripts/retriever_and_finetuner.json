@@ -1,0 +1,31 @@
+{
+  "datasets": ["bas19_es-10-rs1"],
+  "languages": ["es"],
+  "seed": 0,
+  "do_embedding": true,
+  "embedder_model_name_or_path": "m3",
+  "do_retrieving": true,
+  "do_search": true,
+  "splits": ["train"],
+  "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",
+  "max_retrieved": 20000,
+  "k": 0,
+
+  "do_retrieval_tuning": true,
+  "retrieval_num_train_epochs": 5,
+  "retrieval_do_train": true,
+  "retrieval_do_eval": false,
+  "retrieval_do_test": true,
+
+  "do_fine_tuning": true,
+  "num_train_epochs": 10,
+  "do_train": true,
+  "do_eval": true,
+  "do_test": true,
+
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retrieval_finetuner/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "wandb_run_name": "searching",
+  "report_to": null
+}

@@ -166,8 +166,8 @@ class FineTuner:
             predictions = logits[0].argmax(axis=-1)
         else:
             predictions = logits.argmax(axis=-1)
-        precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted")
-        f1_macro = f1_score(labels, predictions, average="macro")
+        precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted", zero_division=0)
+        f1_macro = f1_score(labels, predictions, average="macro", zero_division=0)
         accuracy = accuracy_score(labels, predictions)
         return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 

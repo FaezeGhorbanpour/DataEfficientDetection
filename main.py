@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 import os
+import copy
 import wandb
 import transformers
 from transformers import set_seed, HfArgumentParser, TrainingArguments
@@ -46,6 +47,14 @@ class FineTunerArguments(TrainingArguments):
         default=16,
         metadata={"help": "Batch size for training and evaluation."}
     )
+    per_device_train_batch_size: int = field(
+        default=16,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    per_device_eval_batch_size: int = field(
+        default=64,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
     num_labels: int = field(
         default=2,
         metadata={"help": "Number of labels for classification tasks."}
@@ -53,10 +62,6 @@ class FineTunerArguments(TrainingArguments):
     peft_config: Optional[dict] = field(
         default_factory=dict,
         metadata={"help": "Configuration dictionary for PEFT methods like LoRA or prefix tuning."}
-    )
-    use_class_weight: bool = field(
-        default=False,
-        metadata={"help": "Whether to use class weights for loss computation."}
     )
     class_weights: Optional[dict] = field(
         default_factory=dict,
@@ -150,14 +155,18 @@ class EmbedderArguments:
         default=None,
         metadata={"help": "Directory to save the embeddings."},
     )
+    splits: Optional[List[str]] = field(
+        default=None, metadata={"help": "What splits of given datasets must be embedded."}
+    )
+
 
 
 @dataclass
 class RetrieverArguments:
-    top_k: int = field(
-        default=10, metadata={"help": "Number of closest embeddings to retrieve."}
+    k: int = field(
+        default=0, metadata={"help": "Number of closest embeddings to retrieve."}
     )
-    language_filter: Optional[List[str]] = field(
+    exclude_languages: Optional[List[str]] = field(
         default=None, metadata={"help": "Filter retrieved data by language."}
     )
     exclude_datasets: Optional[List[str]] = field(
@@ -179,6 +188,55 @@ class RetrieverArguments:
         default=False,
         metadata={"help": "Index."}
     )
+    max_retrieved: int = field(
+        default=20000,
+        metadata={"help": "Maximum retrieved instances from the pool."},
+    )
+
+@dataclass
+class RetrievalTunerArguments:
+    retrieval_fine_tune_method: str = field(
+        default="default",
+        metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
+    )
+    retrieval_num_train_epochs: int = field(
+        default=5,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    retrieval_train_batch_size: int = field(
+        default=16,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    retrieval_eval_batch_size: int = field(
+        default=64,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    retrieval_num_labels: int = field(
+        default=2,
+        metadata={"help": "Number of labels for classification tasks."}
+    )
+    retrieval_peft_config: Optional[dict] = field(
+        default_factory=dict,
+        metadata={"help": "Configuration dictionary for PEFT methods like LoRA or prefix tuning."}
+    )
+    retrieval_max_seq_length: int = field(
+        default=128,
+        metadata={"help": "Limit the total number of checkpoints to save."}
+    )
+    retrieval_do_train: bool = field(
+        default=False,
+        metadata={"help": "Set true to train the FineTuner."}
+    )
+    retrieval_do_eval: bool = field(
+        default=False,
+        metadata={"help": "Set true to train the FineTuner."}
+    )
+    retrieval_do_test: bool = field(
+        default=False,
+        metadata={"help": "Set true to test the FineTuner."}
+    )
+
+
 
 
 
@@ -190,6 +248,18 @@ class PrompterArguments:
     prompter_output_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Directory to save the embeddings."},
+    )
+    prompt: Optional[str] = field(
+        default=None,
+        metadata={"help": ""},
+    )
+    prompter_batch_size: int = field(
+        default=64,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
+    prompter_max_length: int = field(
+        default=128,
+        metadata={"help": "Batch size for training and evaluation."}
     )
     # max_length: int = field(
     #     default=128,
@@ -217,11 +287,19 @@ class MainArguments:
         default=False,
         metadata={"help": "Run the retrieval step."}
     )
+    do_retrieval_tuning: bool = field(
+        default=False,
+        metadata={"help": "Run the fine-tuning step on retrieved instances."}
+    )
     do_fine_tuning: bool = field(
         default=False,
         metadata={"help": "Run the fine-tuning step."}
     )
-    do_prompter: bool = field(
+    do_prompting: bool = field(
+        default=False,
+        metadata={"help": "Run the prompter step."}
+    )
+    disable_wandb: bool = field(
         default=False,
         metadata={"help": "Run the prompter step."}
     )
@@ -230,16 +308,30 @@ class MainArguments:
     #     metadata={"help": "Random seed!"}
     # )
 
+def copy_args(retrieval_tuner_args, finetuner_args):
+    finetuner_args_copy = copy.deepcopy(finetuner_args)
+    finetuner_args_copy.retrieval_fine_tune_method = retrieval_tuner_args.retrieval_fine_tune_method
+    finetuner_args_copy.num_train_epochs = retrieval_tuner_args.retrieval_num_train_epochs
+    finetuner_args_copy.per_device_train_batch_size = retrieval_tuner_args.retrieval_train_batch_size
+    finetuner_args_copy.per_device_eval_batch_size = retrieval_tuner_args.retrieval_eval_batch_size
+    finetuner_args_copy.num_labels = retrieval_tuner_args.retrieval_num_labels
+    finetuner_args_copy.peft_config = retrieval_tuner_args.retrieval_peft_config
+    finetuner_args_copy.max_seq_length = retrieval_tuner_args.retrieval_max_seq_length
+    finetuner_args_copy.do_train = retrieval_tuner_args.retrieval_do_train
+    finetuner_args_copy.do_eval = retrieval_tuner_args.retrieval_do_eval
+    finetuner_args_copy.do_test = retrieval_tuner_args.retrieval_do_test
+    return finetuner_args_copy
+
 
 
 def main():
-    parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, FineTunerArguments, PrompterArguments))
+    parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, RetrievalTunerArguments, FineTunerArguments, PrompterArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
+        main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
 
     if main_args.do_fine_tuning:
         file_path = os.path.join(finetuner_args.output_dir, "evaluation_results.json")
@@ -278,14 +370,15 @@ def main():
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
 
     # Initialize Wandb
-    wandb.init(
-        project=main_args.wandb_project,
-        name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
-        config=main_args,
-    )
-    wandb.config["log_frequency"] = 1000
-    wandb.config["log_model"] = False
-    logger.info("Wandb initialized.")
+    if main_args.disable_wandb:
+        wandb.init(
+            project=main_args.wandb_project,
+            name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
+            config=main_args,
+        )
+        wandb.config["log_frequency"] = 1000
+        wandb.config["log_model"] = False
+        logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
     set_seed(finetuner_args.seed)
@@ -294,7 +387,8 @@ def main():
     data_provider = DataProvider()
     data_args.sizes = [x.split('-')[1] if '-' in x else 'full'for x in data_args.datasets]
     data_args.rss = [x.split('-')[2] if '-' in x else 'full' for x in data_args.datasets]
-    wandb.config.update(data_args, allow_val_change=False)
+    if main_args.disable_wandb:
+        wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
     logger.info(f"Loading datasets: {data_args.datasets} ...")
@@ -306,86 +400,132 @@ def main():
     )
     logger.info("Datasets loaded: %s", [d["name"] for d in datasets])
 
-    # Step 2: Embed datasets (optional)
+    # Step 2: Embed datasets
+    embedder = None
+    embeddings, meta_datas = None, []
     if main_args.do_embedding:
         embedder = Embedder(embedder_args.embedder_model_name_or_path)
-        wandb.config.update(embedder_args, allow_val_change=False)
+        if main_args.disable_wandb:
+            wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")
-        embeddings, metadatas = embedder.embed_datasets(datasets)
+
+        embeddings, meta_datas = embedder.embed_datasets(datasets, splits=embedder_args.splits)
         logger.info("Datasets embedded with model: %s", embedder_args.embedder_model_name_or_path)
 
 
 
-    # Step 3: Retrieve similar sentences (optional)
+    # Step 3: Retrieve similar sentences
     retrieved_dataset = None
     if main_args.do_retrieving:
-        wandb.config.update(retriever_args, allow_val_change=False)
+        if main_args.disable_wandb:
+            wandb.config.update(retriever_args, allow_val_change=False)
         if retriever_args.do_search:
             logger.info("Loading retriever's index...")
             retriever = Retriever()
             retriever.load_index(retriever_args.index_path)
             logger.info("Retrieving similar sentences...")
+
+            if retriever_args.k == 0:
+                k = (retriever_args.max_retrieved // len(embeddings)) * 10
+            else:
+                k = retriever_args.k
+
             retrieved_data = retriever.retrieve_multiple_queries(
-                query=embeddings,
-                k=retriever_args.top_k,
-                filters=retriever_args.language_filter
+                query_embeddings=embeddings,
+                k=k,
+                exclude_datasets=retriever_args.exclude_datasets,
+                exclude_languages=retriever_args.exclude_languages,
+                max_retrieved=retriever_args.max_retrieved
             )
-            logger.info("Retrieved %d instances based on query: %s", len(retrieved_data), query)
+            logger.info("Retrieved %d instances based on query.", len(retrieved_data))
 
             # Convert retrieved data to dataset format
             retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
         else:
             retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
-            retriever.add_embeddings(embeddings, metadatas)
+            retriever.add_embeddings(embeddings, meta_datas)
             retriever.save_index(retriever_args.index_path)
-    else:
-        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+
+    dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+
+    retrieval_tuner = None
+    if main_args.do_retrieval_tuning:
+        if main_args.disable_wandb:
+            wandb.config.update(finetuner_args, allow_val_change=False)
+        retrieval_tuner_args = copy_args(retrieval_tuner_args, finetuner_args)
+        retrieval_tuner = FineTuner(retrieval_tuner_args)
+        logger.info("Retrieval fine-tuning the model: %s", retrieval_tuner_args.finetuner_model_name_or_path)
+
+        if retrieval_tuner_args.do_train:
+            train_dataset = retrieval_tuner.prepare_data(retrieved_dataset)
+            eval_dataset = retrieval_tuner.prepare_data(dataset['validation'])
+
+            retrieval_tuner.train(
+                train_dataset, eval_dataset
+            )
+            logger.info("Retrieval fine-tuning on retrieved instances completed.")
+        if retrieval_tuner_args.do_test:
+            test_dataset = retrieval_tuner.prepare_data(dataset['test'])
+            results = retrieval_tuner.evaluate(test_dataset, True)
+            # results = {'fine_tuner_'+i: j for i, j in results.items()}
+            if main_args.disable_wandb:
+                wandb.log(results)
+            logger.info("Retrieval finetune based inference metrics: %s", results)
 
 
-
-    # Step 4: Fine-tune the model (optional)
+    # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:
-        wandb.config.update(finetuner_args, allow_val_change=False)
+        if main_args.disable_wandb:
+            wandb.config.update(finetuner_args, allow_val_change=False)
         fine_tuner = FineTuner(finetuner_args)
-        logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
+        if main_args.do_retrieval_tuning and retrieval_tuner:
+            fine_tuner.model = retrieval_tuner.model
+            logger.info("Continuing fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
+        else:
+            logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)
+
 
         if finetuner_args.do_train:
-            if retrieved_dataset:
-                train_dataset = retrieved_dataset
-                eval_dataset = _ #TODO
-            else:
-                train_dataset = fine_tuner.prepare_data(dataset['train'])
-                eval_dataset = fine_tuner.prepare_data(dataset['validation'])
+            train_dataset = fine_tuner.prepare_data(dataset['train'])
+            eval_dataset = fine_tuner.prepare_data(dataset['validation'])
 
             fine_tuner.train(
                 train_dataset, eval_dataset
             )
+
             logger.info("Fine-tuning completed.")
         if finetuner_args.do_test:
             test_dataset = fine_tuner.prepare_data(dataset['test'])
-            predictions = fine_tuner.predict(test_dataset, True)
             results = fine_tuner.evaluate(test_dataset, True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
-            wandb.log(results)
+            if main_args.disable_wandb:
+                wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
-    # Step 5: Prompt-based inference (optional)
-    if main_args.do_prompter:
-        wandb.config.update(prompter_args, allow_val_change=False)
-        prompter = Prompter(prompter_args.prompter_model_name_or_path)
+    # Step 5: Prompt-based inference
+    if main_args.do_prompting:
+        if main_args.disable_wandb:
+            wandb.config.update(prompter_args, allow_val_change=False)
+        prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
-        prompt_template = prompter.form_prompt_template()
-        predictions = prompter.test(
-            test_dataset=dataset[test],
-            prompt_template=prompt_template
-        )
-        results = prompter_.compute_metrics(predictions, dataset[test]['label'])
-        # results = {'prompter_'+i: j for i, j in results.items()}
-        wandb.log(results)
-        logger.info("Prompt-based inference metrics: %s", results)
+        for i, data in enumerate(datasets):
+            dataset = data['data']
+            if not prompter_args.prompt:
+                prompter_args.prompt = prompter.form_prompt_template(language=data['language'])
+            predictions = prompter.evaluate(
+                test_data=dataset['test'],
+                prompt_template=prompter_args.prompt
+            )
+            results = prompter.compute_metrics(predictions, dataset['test']['label'])
+            prompter.save_results(predictions, dataset, results, name=data['name']+'_with_translated_prompt')
+            # results = {'prompter_'+i: j for i, j in results.items()}
+            if main_args.disable_wandb:
+                wandb.log(results)
+            logger.info("Prompt-based inference metrics for %s is: %s", data['name'],results)
 
     # Finish Wandb
-    wandb.finish()
+    if main_args.disable_wandb:
+        wandb.finish()
     logger.info("Pipeline execution completed.")
 
 

@@ -1,0 +1,16 @@
+{
+  "datasets": ["bas19_es"],
+  "languages": ["es"],
+  "seed": 0,
+  "do_embedding": true,
+  "embedder_model_name_or_path": "m3",
+  "do_retrieving": true,
+  "do_search": true,
+  "splits": ["train"],
+  "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retriever/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "wandb_run_name": "searching",
+  "main_args.disable_wandb": true
+}
