@@ -1,6 +1,6 @@
 {
   "datasets": ["dyn21_en", "fou18_en", "ken20_en", "xplain_en", "implicit_en", "xdomain_en", "bas19_es", "for19_pt", "has21_hi", "ous19_ar", "ous19_fr", "san20_it", "gahd24_de", "xdomain_tr"],
-  "languages": ["en", "en", "en", "en", "en", "en", "es", "pt", "hi", "fr", "it", "de", "tr"],
+  "languages": ["en", "en", "en", "en", "en", "en", "es", "pt", "hi", "ar", "fr", "it", "de", "tr"],
   "seed": 0,
   "do_embedding": true,
   "embedder_model_name_or_path": "m3",
