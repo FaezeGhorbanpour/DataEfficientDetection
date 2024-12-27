@@ -22,10 +22,11 @@
   "do_train": true,
   "do_eval": true,
   "do_test": true,
+  "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
 
-  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retrieval_finetuner/",
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retrieval_finetuner/temp3/",
   "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
-  "wandb_run_name": "searching",
+  "wandb_run_name": "retrieval_fine_tuning",
   "report_to": null
 }
