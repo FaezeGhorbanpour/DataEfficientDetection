@@ -433,7 +433,6 @@ def main():
 
         if retriever_args.k == 0:
             k = (retriever_args.max_retrieved // len(embeddings)) * 100
-            print(k)
         else:
             k = retriever_args.k
 
@@ -470,7 +469,7 @@ def main():
             logger.info("Retrieval fine-tuning on retrieved instances completed.")
         if retrieval_tuner_args.do_test:
             test_dataset = retrieval_tuner.prepare_data(dataset['test'])
-            results = retrieval_tuner.evaluate(test_dataset, False)
+            results = retrieval_tuner.evaluate(test_dataset, save_results=True, key='retrieval_finetuner')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.disable_wandb:
                 wandb.log(results)

@@ -171,7 +171,7 @@ class FineTuner:
         accuracy = accuracy_score(labels, predictions)
         return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 
-    def evaluate(self, test_data, save_results=False):
+    def evaluate(self, test_data, save_results=False, key='evaluation'):
         """
         Evaluate the model on test data.
         """
@@ -181,7 +181,7 @@ class FineTuner:
         if save_results:
             # Save evaluation results
             output_dir = self.config.output_dir
-            results_path = os.path.join(output_dir, "evaluation_results.json")
+            results_path = os.path.join(output_dir, f"{key}_results.json")
             with open(results_path, "w") as f:
                 json.dump(results, f, indent=4)
             logger.info(f"Evaluation results saved to {results_path}")
