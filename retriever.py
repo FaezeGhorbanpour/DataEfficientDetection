@@ -154,7 +154,25 @@ class Retriever:
             deduplicated_results = deduplicated_results[:max_retrieved]
 
         logging.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
+
         return deduplicated_results
+
+    def save_meta_to_file(self, meta, path):
+        """
+        Saves a list of strings to a file, each string on a new line.
+
+        Args:
+            string_list (list): List of strings to save.
+            file_path (str): Path to the file where the list will be saved.
+        """
+
+        try:
+            file_path = os.path.join(path, "retrieved_data.json")
+            with open(file_path, 'w') as json_file:
+                json.dump(meta, json_file, indent=4)
+            logging.info(f"List saved to {file_path}")
+        except Exception as e:
+            logging.info(f"An error occurred: {e}")
 
     def save_index(self, path):
         """
