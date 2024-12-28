@@ -22,7 +22,7 @@ KS=(20 30 40 50 100 200 300 400)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
-    local gpu=$3
+    local gpu=$2
     dataset="bas19_es"
     lang="es"
 
@@ -38,7 +38,7 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-                --splits "\[\"train\"]"\
+                --splits "\['train'\]" \
                 --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
