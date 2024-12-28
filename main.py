@@ -443,6 +443,7 @@ def main():
             exclude_languages=retriever_args.exclude_languages,
             max_retrieved=retriever_args.max_retrieved
         )
+        retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
         logger.info("Retrieved %d instances based on query.", len(retrieved_data))
 
         # Convert retrieved data to dataset format
