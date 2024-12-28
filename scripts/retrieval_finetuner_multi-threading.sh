@@ -3,54 +3,64 @@ BASE="/mounts/work/faeze/data_efficient_hate"
 
 # Configuration
 DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
-DATASETS=('gahd24_de' 'xdomain_tr')
 LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-LANGUAGES=('de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
-#RSS=(rs2 rs4 rs5)
-GPUS=(5 6 7) # Adjust based on available GPUs
+GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
-#MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-#FOLDER_NAME="twitter-roberta"
-#FOLDER_SUBNAME="default"
+MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
+FOLDER_NAME="twitter-roberta"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
-#FOLDER_SUBNAME="default"
 
-MODEL_NAME="FacebookAI/xlm-roberta-base"
-FOLDER_NAME="roberta"
-FOLDER_SUBNAME="default"
+#MODEL_NAME="FacebookAI/xlm-roberta-base"
+#FOLDER_NAME="roberta"
+
+KS=(20 30 40 50 100 200 300 400)
+#KS=(500 1000 2000 3000 4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
-    local dataset=$1
-    local lang=$2
+    local k=$1
     local gpu=$3
+    dataset="bas19_es"
+    lang="es"
 
-    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
+    echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 20 40 1000 2000; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
+            OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
-                --finetuner_model_name_or_path "${MODEL_NAME}" \
-		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
+                --do_embedding \
+                --embedder_model_name_or_path "m3" \
+                --do_searching \
+                --splits "\[\"train\"]"\
+                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --max_retrieved ${k} \
+                --exclude_datasets "\[${dataset}\]" \
+                --do_retrieval_tuning \
+                --retrieval_num_train_epochs 5 \
+                --retrieval_do_train \
+                --retrieval_do_test \
                 --do_fine_tuning \
-                --do_train \
-                --do_test \
+                --num_train_epochs 5 \
+                --do_train\
+                --do_eval\
+                --do_test\
+                --finetuner_model_name_or_path "${MODEL_NAME}" \
+		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
-                --num_train_epochs 10 \
                 --max_seq_length 128 \
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "fine_tuning_mono"
+                --wandb_run_name "retrieval_finetuning"
 
             # Clean up checkpoint files
             rm -rf "${OUTPUT_DIR}checkpoint*"
@@ -61,15 +71,14 @@ run_dataset() {
 }
 
 # Launch each dataset on a separate GPU
-for i in "${!DATASETS[@]}"; do
-    dataset=${DATASETS[$i]}
-    lang=${LANGUAGES[$i]}
+for i in "${!KS[@]}"; do
+    k=${KS[$i]}
     gpu=${GPUS[$i]}
 
-    run_dataset "${dataset}" "${lang}" "${gpu}" &
+    run_dataset "${k}" "${gpu}" &
 done
 
 # Wait for all background processes to finish
 wait
 
-echo "All datasets processed!"
+echo "All K processed!"

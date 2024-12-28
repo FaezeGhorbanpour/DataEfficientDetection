@@ -120,14 +120,14 @@ class Retriever:
         # Apply filters if provided
         if exclude_languages:
             filter_mask = [
-                all(meta.get(['language']) == value for value in exclude_languages) for meta in metadata
+                all(meta.get('language') == value for value in exclude_languages) for meta in metadata
             ]
             flattened_distances = flattened_distances[filter_mask]
             metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
         # Apply filters if provided
         if exclude_datasets:
             filter_mask = [
-                all(meta.get(['dataset_name']) == value for value in exclude_datasets) for meta in metadata
+                all(meta.get('dataset_name') != value for value in exclude_datasets) for meta in metadata
             ]
             flattened_distances = flattened_distances[filter_mask]
             metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
