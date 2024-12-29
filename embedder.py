@@ -17,7 +17,7 @@ class Embedder:
         Args:
             model_name (str): Name of the Hugging Face model to load.
         """
-        logging.info(f"Initializing Embedder with model: {model_name}")
+        logger.info(f"Initializing Embedder with model: {model_name}")
         self.name = model_name
         if self.name == 'labse':
             self.model = SentenceTransformer('sentence-transformers/LaBSE')
@@ -45,7 +45,7 @@ class Embedder:
             self.model = SentenceTransformer(model_name)
 
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
-        logging.info(f"Model initialized: {model_name} with embedding dimension {self.embedding_dim}")
+        logger.info(f"Model initialized: {model_name} with embedding dimension {self.embedding_dim}")
 
     def embed_sentences(self, sentences):
         """
@@ -55,9 +55,9 @@ class Embedder:
         Returns:
             np.ndarray: Embedding vectors.
         """
-        logging.info(f"Embedding {len(sentences)} sentences")
+        logger.info(f"Embedding {len(sentences)} sentences")
         embeddings = self.model.encode(sentences, convert_to_tensor=True)
-        logging.info("Sentences embedded successfully")
+        logger.info("Sentences embedded successfully")
         return embeddings.cpu().detach().numpy()
 
     def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
@@ -69,17 +69,17 @@ class Embedder:
         Returns:
             np.ndarray, list[dict]: Embeddings and corresponding metadata.
         """
-        logging.info(f"Embedding datasets for splits: {splits}")
+        logger.info(f"Embedding datasets for splits: {splits}")
         embeddings = []
         metadata = []
         for dataset in datasets:
-            logging.info(f"Processing dataset: {dataset['name']} in language {dataset['language']}")
+            logger.info(f"Processing dataset: {dataset['name']} in language {dataset['language']}")
             for split in splits:
                 data = dataset["data"][split]
                 texts = data["text"]
                 labels = data["label"]
                 ids = data["id"]
-                logging.info(f"Embedding {len(texts)} texts from split: {split}")
+                logger.info(f"Embedding {len(texts)} texts from split: {split}")
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
                 metadata += [{"text": texts[i],
@@ -89,10 +89,10 @@ class Embedder:
                               "dataset_name": dataset["name"],
                               "language": dataset["language"]} for i in range(len(embs))]
         if stack:
-            logging.info("Stacking all embeddings")
+            logger.info("Stacking all embeddings")
             return np.vstack(embeddings), metadata
         else:
-            logging.info("Returning embeddings without stacking")
+            logger.info("Returning embeddings without stacking")
             return embeddings, metadata
 
     @staticmethod
@@ -100,7 +100,7 @@ class Embedder:
         """
         Calculate cosine similarity between two embeddings.
         """
-        logging.info("Calculating similarity between two embeddings")
+        logger.info("Calculating similarity between two embeddings")
         norm1 = np.linalg.norm(embedding1, axis=1, keepdims=True)
         norm2 = np.linalg.norm(embedding2, axis=1, keepdims=True)
 
@@ -110,7 +110,7 @@ class Embedder:
         similarity_matrix = np.dot(normalized1, normalized2.T)
         diagonal = similarity_matrix.diagonal()
         lower_tri = np.tril(similarity_matrix)
-        logging.info("Similarity calculation completed")
+        logger.info("Similarity calculation completed")
         return similarity_matrix, np.mean(diagonal) - np.mean(lower_tri)
 
     @staticmethod
@@ -124,14 +124,14 @@ class Embedder:
         Returns:
             pd.DataFrame: Clustered data with metadata.
         """
-        logging.info(f"Clustering embeddings into {n_clusters} clusters")
+        logger.info(f"Clustering embeddings into {n_clusters} clusters")
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
         cluster_labels = kmeans.fit_predict(embeddings)
 
         # Create DataFrame with clusters and metadata
         data_with_clusters = pd.DataFrame(metadata)
         data_with_clusters["cluster"] = cluster_labels
-        logging.info("Clustering completed")
+        logger.info("Clustering completed")
         return data_with_clusters
 
     @staticmethod
@@ -146,13 +146,13 @@ class Embedder:
         Returns:
             None: Displays the plot.
         """
-        logging.info(f"Visualizing embeddings using {reduction_method}")
+        logger.info(f"Visualizing embeddings using {reduction_method}")
         if reduction_method == "umap":
             reducer = umap.UMAP(random_state=42)
         elif reduction_method == "tsne":
             reducer = TSNE(random_state=42)
         else:
-            logging.error("Invalid reduction method. Use 'umap' or 'tsne'.")
+            logger.error("Invalid reduction method. Use 'umap' or 'tsne'.")
             raise ValueError("Invalid reduction method. Use 'umap' or 'tsne'.")
 
         reduced_embeddings = reducer.fit_transform(embeddings)
@@ -170,4 +170,4 @@ class Embedder:
             title=plot_title,
         )
         fig.show()
-        logging.info("Visualization completed")
+        logger.info("Visualization completed")

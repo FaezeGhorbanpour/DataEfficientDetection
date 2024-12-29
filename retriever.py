@@ -16,11 +16,11 @@ class Retriever:
             index_type (str): FAISS index type (e.g., "FlatL2", "IVF", "HNSW").
             device (str): Device to use ("cuda" or "cpu").
         """
-        logging.info("Initializing the retriever module...")
+        logger.info("Initializing the retriever module...")
         self.device = device
         self.index = self._initialize_index(embedding_dim, index_type)
         self.metadata = []
-        logging.info(f"Retriever initialized with {index_type} index on {device}")
+        logger.info(f"Retriever initialized with {index_type} index on {device}")
 
     def _initialize_index(self, embedding_dim, index_type):
         """
@@ -31,7 +31,7 @@ class Retriever:
         Returns:
             faiss.Index: Initialized FAISS index.
         """
-        logging.info(f"Creating index of type: {index_type}")
+        logger.info(f"Creating index of type: {index_type}")
         if index_type == "FlatL2":
             index = faiss.IndexFlatL2(embedding_dim)
         elif index_type == "HNSW":
@@ -42,13 +42,13 @@ class Retriever:
         elif index_type == "IVF":
             index = faiss.IndexIVFPQ(faiss.IndexFlatL2(embedding_dim), embedding_dim, 100, 32, 32)
         else:
-            logging.error(f"Unknown index_type: {index_type}")
+            logger.error(f"Unknown index_type: {index_type}")
             raise ValueError(f"Unknown index_type: {index_type}")
 
         if self.device == "cuda" and faiss.get_num_gpus() > 0:
-            logging.info("Using GPU for FAISS index.")
+            logger.info("Using GPU for FAISS index.")
             return faiss.index_cpu_to_all_gpus(index)
-        logging.info("Using CPU for FAISS index.")
+        logger.info("Using CPU for FAISS index.")
         return index
 
     def add_embeddings(self, embeddings, metadata):
@@ -58,10 +58,10 @@ class Retriever:
             embeddings (np.ndarray): Embedding vectors to add (N x embedding_dim).
             metadata (list[dict]): Metadata associated with each embedding.
         """
-        logging.info(f"Adding {len(embeddings)} embeddings to the index.")
+        logger.info(f"Adding {len(embeddings)} embeddings to the index.")
         self.index.add(embeddings)
         self.metadata.extend(metadata)
-        logging.info("Embeddings added successfully.")
+        logger.info("Embeddings added successfully.")
 
     def retrieve(self, query_embedding, k=5, filters=None):
         """
@@ -73,7 +73,7 @@ class Retriever:
         Returns:
             list[dict]: Retrieved metadata and scores.
         """
-        logging.info("Performing retrieval for a single query.")
+        logger.info("Performing retrieval for a single query.")
         distances, indices = self.index.search(query_embedding, k)
 
         results = []
@@ -85,7 +85,7 @@ class Retriever:
                 if not all(data_meta.get(key) == value for key, value in filters.items()):
                     continue
             results.append({"metadata": data_meta, "score": dist})
-        logging.info(f"Retrieved {len(results)} results.")
+        logger.info(f"Retrieved {len(results)} results.")
         return results
 
     def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None, exclude_languages=None):
@@ -99,7 +99,7 @@ class Retriever:
         Returns:
             list[dict]: Top results based on shortest distances, with optional filtering and deduplication.
         """
-        logging.info("Starting retrieval for multiple queries.")
+        logger.info("Starting retrieval for multiple queries.")
 
         # Perform the search for all queries at once
         distances, indices = self.index.search(query_embeddings, k)
@@ -144,7 +144,7 @@ class Retriever:
                 seen.add(unique_key)
                 deduplicated_results.append(result)
 
-        logging.info(f"Total unique results after deduplication: {len(deduplicated_results)}")
+        logger.info(f"Total unique results after deduplication: {len(deduplicated_results)}")
 
 
         # Apply max_retrieved limit
@@ -153,7 +153,7 @@ class Retriever:
             deduplicated_results.sort(key=lambda x: x["score"])
             deduplicated_results = deduplicated_results[:max_retrieved]
 
-        logging.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
+        logger.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
 
         return deduplicated_results
 
@@ -170,9 +170,9 @@ class Retriever:
             file_path = os.path.join(path, "retrieved_data.json")
             with open(file_path, 'w') as json_file:
                 json.dump(meta, json_file, indent=4)
-            logging.info(f"List saved to {file_path}")
+            logger.info(f"List saved to {file_path}")
         except Exception as e:
-            logging.info(f"An error occurred: {e}")
+            logger.info(f"An error occurred: {e}")
 
     def save_index(self, path):
         """
@@ -180,13 +180,13 @@ class Retriever:
         Args:
             path (str): Directory to save the index and metadata.
         """
-        logging.info(f"Saving index to {path}")
+        logger.info(f"Saving index to {path}")
         if not os.path.exists(path):
             os.makedirs(path)
         faiss.write_index(self.index, os.path.join(path, 'embedding.index'))
         with open(os.path.join(path, 'metadata.json'), 'w') as f:
             json.dump(self.metadata, f, indent=2, ensure_ascii=False)
-        logging.info("Index saved successfully is this directory:")
+        logger.info("Index saved successfully is this directory:")
 
     def load_index(self, path):
         """
@@ -194,8 +194,8 @@ class Retriever:
         Args:
             path (str): Directory containing the index and metadata.
         """
-        logging.info(f"Loading index from {path}")
+        logger.info(f"Loading index from {path}")
         self.index = faiss.read_index(os.path.join(path, 'embedding.index'))
         with open(os.path.join(path, 'metadata.json'), 'r') as f:
             self.metadata = json.load(f)
-        logging.info("Index loaded successfully.")
+        logger.info("Index loaded successfully.")
