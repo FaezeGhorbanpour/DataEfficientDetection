@@ -296,8 +296,8 @@ class MainArguments:
         default=False,
         metadata={"help": "Run the prompter step."}
     )
-    disable_wandb: bool = field(
-        default=False,
+    enable_wandb: bool = field(
+        default=True,
         metadata={"help": "Run the prompter step."}
     )
     # seed: Optional[int] = field(
@@ -366,9 +366,10 @@ def main():
 
     # Parse arguments
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
-
+    print(main_args.wandb_project)
+    print(f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}")
     # Initialize Wandb
-    if main_args.disable_wandb:
+    if main_args.enable_wandb:
         wandb.init(
             project=main_args.wandb_project,
             name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
@@ -385,7 +386,7 @@ def main():
     data_provider = DataProvider()
     data_args.sizes = [x.split('-')[1] if '-' in x else 'full'for x in data_args.datasets]
     data_args.rss = [x.split('-')[2] if '-' in x else 'full' for x in data_args.datasets]
-    if main_args.disable_wandb:
+    if main_args.enable_wandb:
         wandb.config.update(data_args, allow_val_change=False)
 
     # Step 1: Load datasets
@@ -403,7 +404,7 @@ def main():
     embeddings, meta_datas = None, []
     if main_args.do_embedding:
         embedder = Embedder(embedder_args.embedder_model_name_or_path)
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")
 
@@ -414,7 +415,7 @@ def main():
 
     # Step 3: Retrieve similar sentences
     if main_args.do_indexing:
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(retriever_args, allow_val_change=False)
         logger.info("Indexing is starting...")
         retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
@@ -424,7 +425,7 @@ def main():
 
     retrieved_dataset = None
     if main_args.do_searching:
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(retriever_args, allow_val_change=False)
         logger.info("Loading retriever's index...")
         retriever = Retriever()
@@ -454,7 +455,7 @@ def main():
     retrieval_tuning_model_path = ''
     retrieval_tuner = None
     if main_args.do_retrieval_tuning:
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(finetuner_args, allow_val_change=False)
         retrieval_tuner_args = copy_args(retrieval_tuner_args, finetuner_args)
         retrieval_tuner = FineTuner(retrieval_tuner_args)
@@ -472,7 +473,7 @@ def main():
             test_dataset = retrieval_tuner.prepare_data(dataset['test'])
             results = retrieval_tuner.evaluate(test_dataset, save_results=True, key='retrieval_finetuner')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
-            if main_args.disable_wandb:
+            if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Retrieval finetune based inference metrics: %s", results)
         # retrieval_tuning_model_path = retrieval_tuner.save_model()
@@ -485,7 +486,7 @@ def main():
 
     # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(finetuner_args, allow_val_change=False)
         fine_tuner = FineTuner(finetuner_args)
         fine_tuner.model = retrieval_tuner.model
@@ -508,13 +509,13 @@ def main():
             test_dataset = fine_tuner.prepare_data(dataset['test'])
             results = fine_tuner.evaluate(test_dataset, True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
-            if main_args.disable_wandb:
+            if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
     # Step 5: Prompt-based inference
     if main_args.do_prompting:
-        if main_args.disable_wandb:
+        if main_args.enable_wandb:
             wandb.config.update(prompter_args, allow_val_change=False)
         prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
@@ -529,12 +530,12 @@ def main():
             results = prompter.compute_metrics(predictions, dataset['test']['label'])
             prompter.save_results(predictions, dataset, results, name=data['name']+'_with_translated_prompt')
             # results = {'prompter_'+i: j for i, j in results.items()}
-            if main_args.disable_wandb:
+            if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Prompt-based inference metrics for %s is: %s", data['name'],results)
 
     # Finish Wandb
-    if main_args.disable_wandb:
+    if main_args.enable_wandb:
         wandb.finish()
     logger.info("Pipeline execution completed.")
 
