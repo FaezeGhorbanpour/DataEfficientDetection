@@ -433,13 +433,11 @@ def main():
         logger.info("Retrieving similar sentences...")
 
         if retriever_args.k == 0:
-            k = (retriever_args.max_retrieved // len(embeddings)) * 100
-        else:
-            k = retriever_args.k
+            retriever_args.k = min((retriever_args.max_retrieved // len(embeddings)) * 100, 100)
 
         retrieved_data = retriever.retrieve_multiple_queries(
             query_embeddings=embeddings,
-            k=k,
+            k=retriever_args.k,
             exclude_datasets=retriever_args.exclude_datasets,
             exclude_languages=retriever_args.exclude_languages,
             max_retrieved=retriever_args.max_retrieved

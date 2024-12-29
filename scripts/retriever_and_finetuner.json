@@ -1,14 +1,13 @@
 {
-  "datasets": ["ous19_ar-2000-rs1"],
-  "languages": ["ar"],
+  "datasets": ["bas19_es-2000-rs1"],
+  "languages": ["es"],
   "seed": 0,
   "do_embedding": true,
   "embedder_model_name_or_path": "m3",
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
-  "max_retrieved": 20000,
-  "k": 0,
+  "max_retrieved": 500,
   "exclude_datasets": ["ous19_ar"],
 
 

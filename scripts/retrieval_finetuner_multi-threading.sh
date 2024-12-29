@@ -38,12 +38,12 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-                --splits "['train']" \
+                --splits ["train"] \
                 --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
                 --do_retrieval_tuning \
-                --retrieval_num_train_epochs 5 \
+                --retrieval_num_train_epochs 3 \
                 --retrieval_do_train \
                 --retrieval_do_test \
                 --do_fine_tuning \
