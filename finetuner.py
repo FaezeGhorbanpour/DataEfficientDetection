@@ -171,13 +171,13 @@ class FineTuner:
         accuracy = accuracy_score(labels, predictions)
         return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 
-    def evaluate(self, test_data, save_results=False, key='evaluation'):
+    def evaluate(self, test_data, save_results=False, key='evaluation', metric_key_prefix='test'):
         """
         Evaluate the model on test data.
         """
         logger.info("Evaluating model.")
         # trainer = Trainer(model=self.model)
-        results = self.trainer.evaluate(test_data)
+        results = self.trainer.evaluate(test_data, metric_key_prefix=metric_key_prefix)
         if save_results:
             # Save evaluation results
             output_dir = self.config.output_dir
@@ -189,7 +189,7 @@ class FineTuner:
 
     def save_model(self,):
         output_dir = self.config.output_dir
-        model_path = os.path.join(output_dir, "pretrained_model")
+        model_path = os.path.join(output_dir, "checkpoint-retrieval-finetuner")
         self.model.save_pretrained(model_path)
         self.tokenizer.save_pretrained(model_path)
         return model_path

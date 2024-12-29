@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 import os
+import gc
 import copy
 import wandb
 import torch
@@ -375,8 +376,8 @@ def main():
             name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
             config=main_args,
         )
-        wandb.config["log_frequency"] = 1000
-        wandb.config["log_model"] = False
+        # wandb.config["log_frequency"] = 1000
+        # wandb.config["log_model"] = False
         logger.info("Wandb initialized.")
 
     # Set seed before initializing model.
@@ -469,26 +470,29 @@ def main():
             logger.info("Retrieval fine-tuning on retrieved instances completed.")
         if retrieval_tuner_args.do_test:
             test_dataset = retrieval_tuner.prepare_data(dataset['test'])
-            results = retrieval_tuner.evaluate(test_dataset, save_results=True, key='retrieval_finetuner')
+            results = retrieval_tuner.evaluate(test_dataset, save_results=True,
+                                               key='retrieval_finetuner', metric_key_prefix='retrieval_finetuner')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Retrieval finetune based inference metrics: %s", results)
-        # retrieval_tuning_model_path = retrieval_tuner.save_model()
+        retrieval_tuning_model_path = retrieval_tuner.save_model()
         # logger.info("First-stage fine-tuned model saved.")
 
         # Free GPU memory by deleting the model and calling garbage collection
-        # del retrieval_tuner.model
-        # torch.cuda.empty_cache()
-        # logger.info("First-stage model deleted and GPU memory cleared.")
+        del retrieval_tuner.model
+        del retrieval_tuner
+        gc.collect()
+        torch.cuda.empty_cache()
+        logger.info("First-stage model deleted and GPU memory cleared.")
 
     # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:
         if main_args.enable_wandb:
             wandb.config.update(finetuner_args, allow_val_change=False)
         fine_tuner = FineTuner(finetuner_args)
-        fine_tuner.model = retrieval_tuner.model
-        if main_args.do_retrieval_tuning:
+        if main_args.do_retrieval_tuning and retrieval_tuning_model_path:
+            fine_tuner.finetuner_model_name_or_path = retrieval_tuning_model_path
             logger.info("Continuing fine-tuning the model: %s", retrieval_tuning_model_path)
         else:
             logger.info("Fine-tuning the model: %s", finetuner_args.finetuner_model_name_or_path)

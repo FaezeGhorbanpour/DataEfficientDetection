@@ -1,5 +1,12 @@
 import logging
-from FlagEmbedding import BGEM3FlagModel
+
+import umap
+import pandas as pd
+import datashader as ds
+import datashader.transfer_functions as tf
+import colorcet as cc
+from datashader.mpl_ext import dsshow
+import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.cluster import KMeans
@@ -171,3 +178,53 @@ class Embedder:
         )
         fig.show()
         logger.info("Visualization completed")
+
+
+    def visualize_embeddings_2(self, embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
+    # Dimensionality reduction with UMAP
+        if reduction_method == "umap":
+            reducer = umap.UMAP(random_state=42)
+        elif reduction_method == "tsne":
+            reducer = TSNE(random_state=42)
+        else:
+            logger.error("Invalid reduction method. Use 'umap' or 'tsne'.")
+            raise ValueError("Invalid reduction method. Use 'umap' or 'tsne'.")
+        reduced_embeddings = reducer.fit_transform(embeddings)
+
+        metadata_df = pd.DataFrame(metadata)
+        metadata_df["x"] = reduced_embeddings[:, 0]
+        metadata_df["y"] = reduced_embeddings[:, 1]
+
+
+        # Map tasks to colors and labels to shapes
+        task_colors = {task: color for task, color in zip(metadata_df["dataset_name"].unique(), cc.glasbey_light)}
+        label_shapes = {label: shape for label, shape in
+                        zip(metadata_df["label"].unique(), ["circle", "square", "triangle", "cross", "hexagon"])}
+
+        # Assign a unique shape for each label
+        metadata_df["shape"] = metadata_df["label"].map(label_shapes)
+
+        # Datashader Canvas
+        canvas = ds.Canvas(plot_width=1000, plot_height=1000)
+
+        # Aggregate data
+        agg = canvas.points(metadata_df, "x", "y", ds.count_cat("dataset_name"))
+        image = tf.shade(agg, color_key=task_colors, how="eq_hist")
+
+        # Overlay shapes for labels
+        fig, ax = plt.subplots(figsize=(10, 10))
+        dsshow(agg, cmap=cc.glasbey_light, ax=ax)
+
+        # Create a custom legend
+        task_legend = [plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=color, markersize=10, label=task) for
+                       task, color in task_colors.items()]
+        shape_legend = [plt.Line2D([0], [0], marker=shape, color="k", markersize=10, label=label) for label, shape in
+                        label_shapes.items()]
+        plt.legend(handles=task_legend + shape_legend, loc="upper right", fontsize=10, title="Tasks & Labels")
+
+        # Add titles
+        plt.title("UMAP Visualization with Datashader", fontsize=14)
+        plt.xlabel("UMAP Dimension 1")
+        plt.ylabel("UMAP Dimension 2")
+        plt.show()
+

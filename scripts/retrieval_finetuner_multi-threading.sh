@@ -85,6 +85,6 @@ for i in "${!KS[@]}"; do
 done
 
 # Wait for all background processes to finish
-wait
+#wait
 
 echo "All K processed!"
