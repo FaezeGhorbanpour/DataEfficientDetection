@@ -366,8 +366,8 @@ def main():
 
     # Parse arguments
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
-    print(main_args.wandb_project)
-    print(f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}")
+    #print(main_args.wandb_project)
+    #print(f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}")
     # Initialize Wandb
     if main_args.enable_wandb:
         wandb.init(
