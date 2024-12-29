@@ -414,6 +414,7 @@ def main():
 
 
 
+
     # Step 3: Retrieve similar sentences
     if main_args.do_indexing:
         if main_args.enable_wandb:
@@ -448,6 +449,14 @@ def main():
 
         # Convert retrieved data to dataset format
         retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
+
+    if embedder:
+        # Free GPU memory by deleting the model and calling garbage collection
+        del embedder.model
+        del embedder
+        gc.collect()
+        torch.cuda.empty_cache()
+        logger.info("Embedding model deleted and GPU memory cleared.")
 
     dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
 
@@ -484,7 +493,7 @@ def main():
         del retrieval_tuner
         gc.collect()
         torch.cuda.empty_cache()
-        logger.info("First-stage model deleted and GPU memory cleared.")
+        logger.info("First-trained model deleted and GPU memory cleared.")
 
     # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:

@@ -1,5 +1,5 @@
 {
-"prompter_model_name_or_path": "google/flan-t5-base",
+"prompter_model_name_or_path": "togethercomputer/Llama-2-7B-32K-Instruct",
   "datasets": ["bas19_es", "for19_pt", "has21_hi", "ous19_ar", "ous19_fr", "san20_it", "gahd24_de", "xdomain_tr"],
   "languages": ["es", "pt", "hi", "ar", "fr", "it", "de", "tr"],
   "seed": 0,

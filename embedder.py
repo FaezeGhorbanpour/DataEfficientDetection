@@ -155,7 +155,7 @@ class Embedder:
         """
         logger.info(f"Visualizing embeddings using {reduction_method}")
         if reduction_method == "umap":
-            reducer = umap.UMAP(random_state=42)
+            reducer = umap.UMAP(random_state=42, metric='cosine')
         elif reduction_method == "tsne":
             reducer = TSNE(random_state=42)
         else:
@@ -179,11 +179,11 @@ class Embedder:
         fig.show()
         logger.info("Visualization completed")
 
-
+    @staticmethod
     def visualize_embeddings_2(self, embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
     # Dimensionality reduction with UMAP
         if reduction_method == "umap":
-            reducer = umap.UMAP(random_state=42)
+            reducer = umap.UMAP(random_state=42, metric='cosine')
         elif reduction_method == "tsne":
             reducer = TSNE(random_state=42)
         else:
@@ -208,6 +208,7 @@ class Embedder:
         canvas = ds.Canvas(plot_width=1000, plot_height=1000)
 
         # Aggregate data
+        metadata_df['dataset_name'] = metadata_df['dataset_name'].astype('category')
         agg = canvas.points(metadata_df, "x", "y", ds.count_cat("dataset_name"))
         image = tf.shade(agg, color_key=task_colors, how="eq_hist")
 
@@ -226,5 +227,7 @@ class Embedder:
         plt.title("UMAP Visualization with Datashader", fontsize=14)
         plt.xlabel("UMAP Dimension 1")
         plt.ylabel("UMAP Dimension 2")
+
+        fig.show()
         plt.show()
 
