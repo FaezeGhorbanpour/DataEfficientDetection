@@ -167,9 +167,11 @@ class Retriever:
         """
 
         try:
+            if not os.path.exists(path):
+                os.makedirs(path)
             file_path = os.path.join(path, "retrieved_data.json")
             with open(file_path, 'w') as json_file:
-                json.dump(meta, json_file, indent=4)
+                json.dump(meta, json_file, indent=4, ensure_ascii=False)
             logger.info(f"List saved to {file_path}")
         except Exception as e:
             logger.info(f"An error occurred: {e}")
@@ -185,7 +187,7 @@ class Retriever:
             os.makedirs(path)
         faiss.write_index(self.index, os.path.join(path, 'embedding.index'))
         with open(os.path.join(path, 'metadata.json'), 'w') as f:
-            json.dump(self.metadata, f, indent=2, ensure_ascii=False)
+            json.dump(self.metadata, f, indent=4, ensure_ascii=False)
         logger.info("Index saved successfully is this directory:")
 
     def load_index(self, path):

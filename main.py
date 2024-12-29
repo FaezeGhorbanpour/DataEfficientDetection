@@ -505,7 +505,7 @@ def main():
             logger.info("Fine-tuning completed.")
         if finetuner_args.do_test:
             test_dataset = fine_tuner.prepare_data(dataset['test'])
-            results = fine_tuner.evaluate(test_dataset, True)
+            results = fine_tuner.evaluate(test_dataset, save_results=True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)

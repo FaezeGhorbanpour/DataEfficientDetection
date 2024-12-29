@@ -63,8 +63,12 @@ run_dataset() {
                 --overwrite_output_dir \
                 --wandb_run_name "retrieval_finetuning"
 
-            # Clean up checkpoint files
-            rm -rf "${OUTPUT_DIR}checkpoint*"
+            for dir in "${OUTPUT_DIR}"check*; do
+                if [ -d "$dir" ]; then # Check if it's a directory
+                    rm -rf "$dir"
+                    echo "Deleted: $dir"
+                fi
+            done
         done
     done
 
