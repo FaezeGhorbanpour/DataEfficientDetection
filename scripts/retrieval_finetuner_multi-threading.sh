@@ -16,15 +16,16 @@ FOLDER_NAME="twitter-roberta"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-KS=(20 30 40 50 100 200 300 400)
-#KS=(500 1000 2000 3000 4000 5000 10000 20000)
-
+#KS=(20 30 40 50 100 200 300 400)
+KS=(500 1000 2000 3000 4000 5000 10000 20000)
+EPOCHS=(5 5 5 5 5 5 3 3)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
-    local gpu=$2
-    dataset="bas19_es"
-    lang="es"
+    local epoch=$2
+    local gpu=$3
+    dataset="ous19_fr"
+    lang="fr"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -38,12 +39,12 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-                --splits ["train"] \
+                --splits "train" \
                 --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
                 --do_retrieval_tuning \
-                --retrieval_num_train_epochs 3 \
+                --retrieval_num_train_epochs ${epoch} \
                 --retrieval_do_train \
                 --retrieval_do_test \
                 --do_fine_tuning \
@@ -73,9 +74,10 @@ run_dataset() {
 # Launch each dataset on a separate GPU
 for i in "${!KS[@]}"; do
     k=${KS[$i]}
+    epoch=${EPOCHS[$i]}
     gpu=${GPUS[$i]}
 
-    run_dataset "${k}" "${gpu}" &
+    run_dataset "${k}" "${epoch}" "${gpu}" &
 done
 
 # Wait for all background processes to finish

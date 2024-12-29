@@ -9,9 +9,9 @@ GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 TOKENIZER_NAME="cardiffnlp/twitter-xlm-roberta-base"
 #TOKENIZER_NAME="microsoft/mdeberta-v3-base"
-MODEL_NAME="/mounts/work/faeze/data_efficient_hate/models/finetuner/twitter-roberta-default/fou18_en-20000/rs3/checkpoint-6250"
+MODEL_NAME="/mounts/work/faeze/data_efficient_hate/models/finetuner/twitter-roberta-default/ken20_en-20000/rs1/checkpoint-1250"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="fou18"
+FOLDER_SUBNAME="ken20"
 # Function to process a single dataset
 run_dataset() {
     local dataset=$1
@@ -20,7 +20,7 @@ run_dataset() {
 
     echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 2000 30 40 50 200; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
