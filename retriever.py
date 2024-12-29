@@ -133,7 +133,7 @@ class Retriever:
             metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
 
         # Combine distances and metadata into a single structure
-        results = [{"metadata": meta, "score": dist} for meta, dist in zip(metadata, flattened_distances)]
+        results = [{"metadata": meta, "score": float(dist)} for meta, dist in zip(metadata, flattened_distances)]
 
         # Deduplicate results by a unique key in metadata (assumes 'id' is the unique key)
         seen = set()
