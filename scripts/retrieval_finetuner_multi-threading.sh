@@ -53,7 +53,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
