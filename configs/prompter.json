@@ -1,0 +1,13 @@
+{
+"prompter_model_name_or_path": "meta-llama/Llama-2-7b-chat-hf",
+  "datasets": ["bas19_es", "for19_pt", "has21_hi", "ous19_ar", "ous19_fr", "san20_it", "gahd24_de", "xdomain_tr"],
+  "languages": ["es", "pt", "hi", "ar", "fr", "it", "de", "tr"],
+  "seed": 0,
+  "do_prompting": true,
+  "prompter_output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/llama2-7b/",
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/llama2-7b/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "overwrite_output_dir": true,
+  "wandb_run_name": "prompter_baseline"
+}

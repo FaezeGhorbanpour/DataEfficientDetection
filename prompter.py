@@ -6,7 +6,6 @@ from tqdm import tqdm
 import os
 import json
 import logging
-from deep_translator import GoogleTranslator
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +70,8 @@ class Prompter:
         if metadata is not None:
             pass
         prompt = 'Classify the text to hate and non-hate. answer with "1" if it is hate or "0" if it non-hate. text:'
-        if language is not None:
-            prompt = GoogleTranslator(target=language).translate(prompt)
+        # if language is not None:
+        #     prompt = GoogleTranslator(target=language).translate(prompt)
 
         return prompt + ' {input}'
 

@@ -1,4 +1,5 @@
 import logging
+import os.path
 
 import umap
 import pandas as pd
@@ -142,7 +143,7 @@ class Embedder:
         return data_with_clusters
 
     @staticmethod
-    def visualize_embeddings(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
+    def visualize_embeddings(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization", output_dir=None):
         """
         Visualize embeddings in 2D with Plotly and metadata as hypertext.
         Args:
@@ -178,9 +179,11 @@ class Embedder:
         )
         fig.show()
         logger.info("Visualization completed")
+        if output_dir:
+            fig.write_html(os.path.join(output_dir, f"{reduction_method}-{plot_title}-visualization.html"))
 
     @staticmethod
-    def visualize_embeddings_2(self, embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
+    def visualize_embeddings_2(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
     # Dimensionality reduction with UMAP
         if reduction_method == "umap":
             reducer = umap.UMAP(random_state=42, metric='cosine')

@@ -2,8 +2,8 @@
 BASE="/mounts/work/faeze/data_efficient_hate"
 
 # Configuration
-DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
-LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
@@ -18,12 +18,20 @@ FOLDER_NAME="twitter-roberta"
 
 #KS=(20 30 40 50 100 200 300 400)
 KS=(500 1000 2000 3000 4000 5000 10000 20000)
-EPOCHS=(5 5 5 5 5 5 3 3)
+
 # Function to process a single dataset
 run_dataset() {
     local k=$1
-    local epoch=$2
-    local gpu=$3
+    local gpu=$2
+
+    # Determine epoch based on k
+    local epoch
+    if [ "$k" -lt 10000 ]; then
+        epoch=5
+    else
+        epoch=3
+    fi
+
     dataset="ous19_fr"
     lang="fr"
 
@@ -78,10 +86,9 @@ run_dataset() {
 # Launch each dataset on a separate GPU
 for i in "${!KS[@]}"; do
     k=${KS[$i]}
-    epoch=${EPOCHS[$i]}
     gpu=${GPUS[$i]}
 
-    run_dataset "${k}" "${epoch}" "${gpu}" &
+    run_dataset "${k}" "${gpu}" &
 done
 
 # Wait for all background processes to finish

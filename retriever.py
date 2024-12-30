@@ -1,4 +1,6 @@
 import os
+import random
+
 import faiss
 import numpy as np
 from datasets import Dataset
@@ -156,6 +158,45 @@ class Retriever:
         logger.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
 
         return deduplicated_results
+
+    import random
+
+    def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None):
+        """
+        Retrieve a random selection of metadata, with optional filtering.
+
+        Args:
+            num_results (int): Number of random metadata entries to retrieve.
+            exclude_datasets (list[str]): List of dataset names to exclude from results.
+            exclude_languages (list[str]): List of languages to exclude from results.
+
+        Returns:
+            list[dict]: Randomly selected metadata entries after applying optional filters.
+        """
+        logger.info("Starting random metadata retrieval.")
+
+        # Filter metadata based on exclusion criteria
+        filtered_metadata = self.metadata
+
+        if exclude_languages:
+            filtered_metadata = [
+                meta for meta in filtered_metadata
+                if meta.get('language') not in exclude_languages
+            ]
+
+        if exclude_datasets:
+            filtered_metadata = [
+                meta for meta in filtered_metadata
+                if meta.get('dataset_name') not in exclude_datasets
+            ]
+
+        # Randomly sample the desired number of results
+        num_results = min(max_retrieved, len(filtered_metadata))
+        random_metadata = random.sample(filtered_metadata, num_results)
+
+        logger.info(f"Returning {len(random_metadata)} random metadata entries.")
+
+        return random_metadata
 
     def save_meta_to_file(self, meta, path):
         """

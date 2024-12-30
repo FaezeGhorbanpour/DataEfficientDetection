@@ -56,3 +56,20 @@ class DataProvider:
             split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
             for split in {"train", "validation", "test"}
         })
+
+    def combine_new_dataset(self, dataset, new_dataset):
+        # Add IDs to the new dataset
+        new_dataset = new_dataset.map(
+            lambda example, idx: {"id": idx},
+            with_indices=True
+        )
+
+        new_dataset = new_dataset.cast(dataset["train"].features)
+
+        # Combine the `train` subset with the new dataset
+        combined_train = concatenate_datasets([dataset["train"], new_dataset])
+
+        # Replace the `train` subset in the existing dataset with the combined dataset
+        dataset['train'] = combined_train
+
+        return dataset

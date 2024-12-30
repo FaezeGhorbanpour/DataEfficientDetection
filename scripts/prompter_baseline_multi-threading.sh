@@ -32,7 +32,7 @@ run_dataset() {
 
     for split in 20 40 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}/${dataset}-${split}/${RSS[i]}/"
+            OUTPUT_DIR="${BASE}/models/prompter/${FOLDER_NAME}/${dataset}-${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\

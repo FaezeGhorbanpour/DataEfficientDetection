@@ -1,0 +1,22 @@
+{
+"prompter_model_name_or_path": "google/flan-t5-base",
+  "datasets": ["bas19_es"],
+  "languages": ["es"],
+  "seed": 0,
+
+  "do_embedding": true,
+  "embedder_model_name_or_path": "m3",
+  "do_searching": true,
+  "splits": ["test"],
+  "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
+  "max_retrieved": 10,
+  "exclude_datasets": ["bas19_es"],
+
+  "do_prompting": true,
+  "prompter_output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/bloomz/",
+  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/",
+  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "overwrite_output_dir": true,
+  "wandb_run_name": "prompter_baseline"
+}

@@ -289,6 +289,10 @@ class MainArguments:
         default=False,
         metadata={"help": "Run the fine-tuning step on retrieved instances."}
     )
+    combine_train_set: bool = field(
+        default=False,
+        metadata={"help": "Combine retrieved data with training set."}
+    )
     do_fine_tuning: bool = field(
         default=False,
         metadata={"help": "Run the fine-tuning step."}
@@ -459,9 +463,10 @@ def main():
         logger.info("Embedding model deleted and GPU memory cleared.")
 
     dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+    if main_args.combine_train_set:
+        dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset)
 
     retrieval_tuning_model_path = ''
-    retrieval_tuner = None
     if main_args.do_retrieval_tuning:
         if main_args.enable_wandb:
             wandb.config.update(finetuner_args, allow_val_change=False)
@@ -516,6 +521,7 @@ def main():
             )
 
             logger.info("Fine-tuning completed.")
+
         if finetuner_args.do_test:
             test_dataset = fine_tuner.prepare_data(dataset['test'])
             results = fine_tuner.evaluate(test_dataset, save_results=True)
