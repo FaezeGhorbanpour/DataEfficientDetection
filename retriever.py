@@ -159,7 +159,6 @@ class Retriever:
 
         return deduplicated_results
 
-    import random
 
     def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None):
         """
@@ -192,7 +191,8 @@ class Retriever:
 
         # Randomly sample the desired number of results
         num_results = min(max_retrieved, len(filtered_metadata))
-        random_metadata = random.sample(filtered_metadata, num_results)
+        random_metadata = dict()
+        random_metadata['metadata'] = random.sample(filtered_metadata, num_results)
 
         logger.info(f"Returning {len(random_metadata)} random metadata entries.")
 
