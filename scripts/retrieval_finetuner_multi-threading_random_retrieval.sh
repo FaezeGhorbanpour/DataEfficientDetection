@@ -1,0 +1,98 @@
+#!/bin/bash
+BASE="/mounts/work/faeze/data_efficient_hate"
+
+# Configuration
+#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+RSS=(rs1 rs2 rs3 rs4 rs5)
+GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
+
+MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
+FOLDER_NAME="random_retrieval"
+
+#MODEL_NAME="microsoft/mdeberta-v3-base"
+#FOLDER_NAME="mdeberta"
+
+#MODEL_NAME="FacebookAI/xlm-roberta-base"
+#FOLDER_NAME="roberta"
+
+#KS=(20 30 40 50 100 200 300 400)
+KS=(500 1000 2000 3000 4000 5000 10000 20000)
+
+# Function to process a single dataset
+run_dataset() {
+    local k=$1
+    local gpu=$2
+
+    # Determine epoch based on k
+    local epoch
+    if [ "$k" -lt 10000 ]; then
+        epoch=5
+    else
+        epoch=3
+    fi
+
+    dataset="ous19_fr"
+    lang="fr"
+
+    echo "Starting k: ${k} on GPU: ${gpu}"
+
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+        for ((i=0; i<${#RSS[@]}; i++)); do
+            OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
+            CUDA_VISIBLE_DEVICES=${gpu} python main.py \
+                --datasets "${dataset}-${split}-${RSS[i]}" \
+                --languages "${lang}" \
+                --seed ${RSS[i]//rs/} \
+                --do_embedding \
+                --embedder_model_name_or_path "m3" \
+                --do_searching \
+                --splits "train" \
+                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --max_retrieved ${k} \
+                --exclude_datasets "\[${dataset}\]" \
+                --do_retrieval_tuning \
+                --random_retrieve \
+                --retrieval_num_train_epochs ${epoch} \
+                --retrieval_do_train \
+                --retrieval_do_test \
+                --do_fine_tuning \
+                --num_train_epochs 5 \
+                --do_train\
+                --do_eval\
+                --do_test\
+                --finetuner_model_name_or_path "${MODEL_NAME}" \
+		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+                --per_device_train_batch_size 16 \
+                --per_device_eval_batch_size 64 \
+                --max_seq_length 128 \
+                --output_dir $OUTPUT_DIR \
+                --cache_dir "${BASE}/cache/" \
+                --logging_dir "${BASE}/logs/" \
+                --overwrite_output_dir \
+                --wandb_run_name "retrieval_finetuning"
+
+            for dir in "${OUTPUT_DIR}"check*; do
+                if [ -d "$dir" ]; then # Check if it's a directory
+                    rm -rf "$dir"
+                    echo "Deleted: $dir"
+                fi
+            done
+        done
+    done
+
+    echo "Finished dataset: ${dataset} on GPU: ${gpu}"
+}
+
+# Launch each dataset on a separate GPU
+for i in "${!KS[@]}"; do
+    k=${KS[$i]}
+    gpu=${GPUS[$i]}
+
+    run_dataset "${k}" "${gpu}" &
+done
+
+# Wait for all background processes to finish
+wait
+
+echo "All K processed!"

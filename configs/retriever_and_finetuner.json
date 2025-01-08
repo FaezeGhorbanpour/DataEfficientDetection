@@ -10,7 +10,13 @@
   "max_retrieved": 500,
   "exclude_datasets": ["bas19_es"],
 
-  "combine_train_set": true,
+  "random_retrieve": true,
+
+  "do_retrieval_tuning": true,
+  "retrieval_num_train_epochs": 5,
+  "retrieval_do_train": true,
+  "retrieval_do_eval": false,
+  "retrieval_do_test": true,
 
   "do_fine_tuning": true,
   "num_train_epochs": 10,

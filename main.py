@@ -229,6 +229,14 @@ class RetrievalTunerArguments:
         default=False,
         metadata={"help": "Set true to test the FineTuner."}
     )
+    combine_train_set: bool = field(
+        default=False,
+        metadata={"help": "Combine retrieved data with training set."}
+    )
+    random_retrieve: bool = field(
+        default=False,
+        metadata={"help": "Combine retrieved data with training set."}
+    )
 
 
 
@@ -288,10 +296,6 @@ class MainArguments:
     do_retrieval_tuning: bool = field(
         default=False,
         metadata={"help": "Run the fine-tuning step on retrieved instances."}
-    )
-    combine_train_set: bool = field(
-        default=False,
-        metadata={"help": "Combine retrieved data with training set."}
     )
     do_fine_tuning: bool = field(
         default=False,
@@ -440,14 +444,18 @@ def main():
 
         if retriever_args.k == 0:
             retriever_args.k = max((retriever_args.max_retrieved // len(embeddings)), 1) * 100
-
-        retrieved_data = retriever.retrieve_multiple_queries(
-            query_embeddings=embeddings,
-            k=retriever_args.k,
-            exclude_datasets=retriever_args.exclude_datasets,
-            exclude_languages=retriever_args.exclude_languages,
-            max_retrieved=retriever_args.max_retrieved
-        )
+        if retrieval_tuner_args.random_retrieve:
+            retrieved_data = retriever.retrieve_random_metadata(max_retrieved=retriever_args.max_retrieved,
+                                                                exclude_datasets=retriever_args.exclude_datasets,
+                                                                exclude_languages=retriever_args.exclude_languages)
+        else:
+            retrieved_data = retriever.retrieve_multiple_queries(
+                query_embeddings=embeddings,
+                k=retriever_args.k,
+                exclude_datasets=retriever_args.exclude_datasets,
+                exclude_languages=retriever_args.exclude_languages,
+                max_retrieved=retriever_args.max_retrieved
+            )
         retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
         logger.info("Retrieved %d instances based on query.", len(retrieved_data))
 
@@ -463,7 +471,7 @@ def main():
         logger.info("Embedding model deleted and GPU memory cleared.")
 
     dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
-    if main_args.combine_train_set:
+    if retrieval_tuner_args.combine_train_set:
         dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset)
 
     retrieval_tuning_model_path = ''
