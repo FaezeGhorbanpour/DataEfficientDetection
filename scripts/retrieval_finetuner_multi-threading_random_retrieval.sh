@@ -67,7 +67,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --report_to None \
+                --report_to "[]" \
                 --wandb_run_name "combine_train_random_retrieval"
 
             for dir in "${OUTPUT_DIR}"check*; do
