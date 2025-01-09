@@ -51,10 +51,7 @@ run_dataset() {
                 --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/six_english_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
-                --do_retrieval_tuning \
-                --retrieval_num_train_epochs ${epoch} \
-                --retrieval_do_train \
-                --retrieval_do_test \
+                --combine_train_set\
                 --do_fine_tuning \
                 --num_train_epochs 5 \
                 --do_train\
@@ -69,7 +66,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "retrieval_finetuning"
+                --wandb_run_name "combine_train_only_english"
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory

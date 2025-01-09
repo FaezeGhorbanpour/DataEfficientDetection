@@ -8,7 +8,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="random_retrieval"
+FOLDER_NAME="twitter-roberta"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -51,23 +51,11 @@ run_dataset() {
                 --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
-                --random_retrieve \
-                --combine_train_set\
-                --do_fine_tuning \
-                --num_train_epochs 5 \
-                --do_train\
-                --do_eval\
-                --do_test\
-                --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                --per_device_train_batch_size 16 \
-                --per_device_eval_batch_size 64 \
-                --max_seq_length 128 \
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "combine_train_random_retrieval"
+                --wandb_run_name "retrieval_finetuning"
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
@@ -81,15 +69,27 @@ run_dataset() {
     echo "Finished dataset: ${dataset} on GPU: ${gpu}"
 }
 
-# Launch each dataset on a separate GPU
-for i in "${!KS[@]}"; do
-    k=${KS[$i]}
-    gpu=${GPUS[$i]}
 
-    run_dataset "${k}" "${gpu}" &
+wait_for_free_gpu() {
+    local required_memory=5000 # Memory in MB
+    while true; do
+        for gpu in "${GPUS[@]}"; do
+            free_memory=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | awk "NR==${gpu}+1")
+            if [ "$free_memory" -gt "$required_memory" ]; then
+                echo "GPU $gpu has enough free memory: ${free_memory}MB"
+                echo $gpu
+                return
+            fi
+        done
+        echo "Waiting for available GPU..."
+        sleep 30
+    done
+}
+
+# Main Execution Loop
+for k in "${KS[@]}"; do
+    gpu=$(wait_for_free_gpu) # Wait for a GPU with sufficient free memory
+    run_dataset "${k}" "${gpu}"
 done
-
-# Wait for all background processes to finish
-wait
 
 echo "All K processed!"
