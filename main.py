@@ -388,7 +388,7 @@ def main():
         # wandb.config["log_model"] = False
         logger.info("Wandb initialized.")
 
-    if finetuner_args.report_to == 'None':
+    if finetuner_args.report_to is None or finetuner_args.report_to == 'None' or 'None' in finetuner_args.report_to:
         finetuner_args.report_to = []
 
     # Set seed before initializing model.
