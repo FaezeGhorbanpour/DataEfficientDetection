@@ -16,8 +16,8 @@ FOLDER_NAME="twitter-roberta"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
-KS=(500 1000 2000 3000 4000 5000 10000 20000)
+#KS=()
+KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -100,13 +100,40 @@ wait_for_free_gpu() {
 }
 
 
+# Minimum GPU memory required (in MiB)
+MIN_MEM=5000
+# Time to wait before rechecking (in seconds)
+WAIT_TIME=200
 
-# Main Execution Loop
+# Function to check available memory on a GPU
+check_gpu_memory() {
+    local gpu_id=$1
+    local available_mem=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits -i $gpu_id)
+
+    if [ "$available_mem" -ge "$MIN_MEM" ]; then
+        echo $gpu_id
+    else
+        echo -1
+    fi
+}
+
+# Main loop
 for k in "${KS[@]}"; do
-    gpu=$(wait_for_free_gpu) # Wait for a GPU with sufficient free memory
-    run_dataset "${k}" "${gpu}" &
+    num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+        available_gpu=$(check_gpu_memory $gpu_id)
+
+        if [ "$available_gpu" -ge 0 ]; then
+            echo "GPU $available_gpu has enough memory. Starting Python script..."
+            run_dataset "${k}" "${available_gpu}" &
+        fi
+    done
+
+    echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+    sleep $WAIT_TIME
+
 done
 
-wait
 
 echo "All K processed!"
