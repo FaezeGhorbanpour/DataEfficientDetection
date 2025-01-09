@@ -32,8 +32,8 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
+    dataset="bas19_es"
+    lang="es"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -82,9 +82,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=11000
+MIN_MEM=12000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=120
+WAIT_TIME=300
 
 # Function to check available memory on a GPU
 check_gpu_memory() {

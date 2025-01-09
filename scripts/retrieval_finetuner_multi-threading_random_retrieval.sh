@@ -16,8 +16,8 @@ FOLDER_NAME="random_retrieval"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=()
-KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
+KS=(400 300 200 100 50 40 30 20 20000 10000 5000 4000 3000 2000 1000 500)
+#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -83,9 +83,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=11000
+MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=120
+WAIT_TIME=28800
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
