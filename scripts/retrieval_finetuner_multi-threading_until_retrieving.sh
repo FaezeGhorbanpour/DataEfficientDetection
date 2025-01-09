@@ -85,7 +85,8 @@ check_gpu_memory() {
 }
 
 # Main loop
-for k in "${KS[@]}"; do
+K=0
+while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
@@ -93,7 +94,11 @@ for k in "${KS[@]}"; do
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
-            run_dataset "${k}" "${available_gpu}" &
+            run_dataset "${KS[$K]}" "$available_gpu" &
+            K=$((K + 1)) # Increment K only when a GPU is assigned
+            if [ "$K" -ge "${#KS[@]}" ]; then
+                break # Exit the loop when all datasets have been processed
+            fi
         fi
     done
 

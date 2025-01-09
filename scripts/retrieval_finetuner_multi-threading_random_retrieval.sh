@@ -16,8 +16,8 @@ FOLDER_NAME="random_retrieval"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
-KS=(500 1000 2000 3000 4000 5000 10000 20000)
+#KS=()
+KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -67,6 +67,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
+                --report_to None \
                 --wandb_run_name "combine_train_random_retrieval"
 
             for dir in "${OUTPUT_DIR}"check*; do
@@ -81,15 +82,46 @@ run_dataset() {
     echo "Finished dataset: ${dataset} on GPU: ${gpu}"
 }
 
-# Launch each dataset on a separate GPU
-for i in "${!KS[@]}"; do
-    k=${KS[$i]}
-    gpu=${GPUS[$i]}
+# Minimum GPU memory required (in MiB)
+MIN_MEM=11000
+# Time to wait before rechecking (in seconds)
+WAIT_TIME=120
 
-    run_dataset "${k}" "${gpu}" &
+# Function to check available memory on a GPU
+check_gpu_memory() {
+    local gpu_id=$1
+    local available_mem=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits -i $gpu_id)
+
+    if [ "$available_mem" -ge "$MIN_MEM" ]; then
+        echo $gpu_id
+    else
+        echo -1
+    fi
+}
+
+# Main loop
+K=0
+while [ "$K" -lt "${#KS[@]}" ]; do
+    num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+        available_gpu=$(check_gpu_memory $gpu_id)
+
+        if [ "$available_gpu" -ge 0 ]; then
+            echo "GPU $available_gpu has enough memory. Starting Python script..."
+            run_dataset "${KS[$K]}" "$available_gpu" &
+            K=$((K + 1)) # Increment K only when a GPU is assigned
+            if [ "$K" -ge "${#KS[@]}" ]; then
+                break # Exit the loop when all datasets have been processed
+            fi
+        fi
+    done
+
+    echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+    sleep $WAIT_TIME
+
 done
 
-# Wait for all background processes to finish
-wait
+
 
 echo "All K processed!"
