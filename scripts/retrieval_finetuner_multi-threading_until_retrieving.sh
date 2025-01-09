@@ -8,13 +8,8 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="twitter-roberta"
+FOLDER_NAME="default"
 
-#MODEL_NAME="microsoft/mdeberta-v3-base"
-#FOLDER_NAME="mdeberta"
-
-#MODEL_NAME="FacebookAI/xlm-roberta-base"
-#FOLDER_NAME="roberta"
 
 #KS=()
 KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
@@ -55,6 +50,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
+                --report_to None \
                 --wandb_run_name "retrieval_finetuning"
 
             for dir in "${OUTPUT_DIR}"check*; do
@@ -72,8 +68,9 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=5000
+MIN_MEM=3000
 # Time to wait before rechecking (in seconds)
+WAIT_TIME=120
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
