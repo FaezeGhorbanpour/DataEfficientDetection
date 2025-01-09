@@ -191,8 +191,9 @@ class Retriever:
 
         # Randomly sample the desired number of results
         num_results = min(max_retrieved, len(filtered_metadata))
-        random_metadata = dict()
-        random_metadata['metadata'] = random.sample(filtered_metadata, num_results)
+        metadata = random.sample(filtered_metadata, num_results)
+        # Combine distances and metadata into a single structure
+        random_metadata = [{"metadata": meta} for meta in metadata]
 
         logger.info(f"Returning {len(random_metadata)} random metadata entries.")
 
