@@ -95,6 +95,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${KS[$K]}" "$available_gpu" &
+            sleep 10
             K=$((K + 1)) # Increment K only when a GPU is assigned
             if [ "$K" -ge "${#KS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
