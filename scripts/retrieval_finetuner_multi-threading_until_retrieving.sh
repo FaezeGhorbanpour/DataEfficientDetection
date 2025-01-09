@@ -8,7 +8,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="default"
+FOLDER_NAME="combine_train_set"
 
 
 #KS=()
