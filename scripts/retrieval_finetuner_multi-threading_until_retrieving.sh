@@ -70,26 +70,43 @@ run_dataset() {
 }
 
 
+# Keep track of the last GPU used
+LAST_GPU=-1
+
 wait_for_free_gpu() {
     local required_memory=5000 # Memory in MB
+    local total_gpus=${#GPUS[@]}
+
     while true; do
-        for gpu in "${GPUS[@]}"; do
+        # Start iterating from the next GPU after the last used one
+        for ((offset=1; offset<=total_gpus; offset++)); do
+            gpu_index=$(( (LAST_GPU + offset) % total_gpus ))
+            gpu=${GPUS[$gpu_index]}
+
+            # Check free memory for the current GPU
             free_memory=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | awk "NR==${gpu}+1")
             if [ "$free_memory" -gt "$required_memory" ]; then
                 echo "GPU $gpu has enough free memory: ${free_memory}MB"
+                LAST_GPU=$gpu_index
                 echo $gpu
                 return
             fi
         done
-        echo "Waiting for available GPU..."
-        sleep 30
+
+        # If no GPU is available, wait for 2 minutes and retry from GPU 0
+        echo "No GPU available. Waiting for 2 minutes before retrying..."
+        sleep 120
     done
 }
+
+
 
 # Main Execution Loop
 for k in "${KS[@]}"; do
     gpu=$(wait_for_free_gpu) # Wait for a GPU with sufficient free memory
-    run_dataset "${k}" "${gpu}"
+    run_dataset "${k}" "${gpu}" &
 done
+
+wait
 
 echo "All K processed!"
