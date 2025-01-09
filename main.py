@@ -45,6 +45,10 @@ class FineTunerArguments(TrainingArguments):
         default="default",
         metadata={"help": "Fine-tuning method (e.g., lora, prefix)."}
     )
+    dataloader_num_workers: int = field(
+        default=2,
+        metadata={"help": "Batch size for training and evaluation."}
+    )
     batch_size: int = field(
         default=16,
         metadata={"help": "Batch size for training and evaluation."}
