@@ -207,14 +207,17 @@ class Retriever:
             string_list (list): List of strings to save.
             file_path (str): Path to the file where the list will be saved.
         """
-
         if not os.path.exists(path):
             os.makedirs(path)
         file_path = os.path.join(path, "retrieved_data.json")
-        logger.info(f"Retrieved Metadata is going to be saved at {file_path}")
-        with open(file_path, 'w') as json_file:
-            json.dump(meta, json_file, indent=4, ensure_ascii=False)
-        logger.info(f"List saved to {file_path}")
+        try:
+            logger.info(f"Retrieved Metadata is going to be saved at {file_path}")
+            with open(file_path, 'w') as json_file:
+                json.dump(meta, json_file, indent=4, ensure_ascii=False)
+            logger.info(f"List saved to {file_path}")
+        except Exception as e:
+            logger.info(f"Error List saved to {file_path}")
+
 
     def save_index(self, path):
         """
