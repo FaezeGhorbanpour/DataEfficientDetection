@@ -83,9 +83,9 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=11000
+MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=120
+WAIT_TIME=22800
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -123,6 +123,6 @@ while [ "$K" -lt "${#KS[@]}" ]; do
 
 done
 
-
+wait
 
 echo "All K processed!"

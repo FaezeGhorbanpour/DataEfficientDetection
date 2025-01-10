@@ -27,7 +27,7 @@ os.environ['TORCH_HUB'] = '/mounts/work/faeze/.cache/torch/'
 os.environ['TORCH_HOME'] = '/mounts/work/faeze/.cache/torch/'
 os.environ["WANDB_DIR"] = '/mounts/work/faeze/.cache/wandb/'
 os.environ["WANDB_START_METHOD"] = 'thread'
-os.environ["TOKENIZERS_PARALLELISM"] = 'true'
+os.environ["TOKENIZERS_PARALLELISM"] = 'false'
 
 @dataclass
 class FineTunerArguments(TrainingArguments):

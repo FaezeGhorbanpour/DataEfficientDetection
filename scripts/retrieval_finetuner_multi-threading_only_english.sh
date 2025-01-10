@@ -4,7 +4,7 @@ BASE="/mounts/work/faeze/data_efficient_hate"
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-RSS=(rs1 rs2 rs3 rs4 rs5)
+RSS=(rs5 rs4 rs3 rs2 rs1)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
@@ -17,8 +17,8 @@ FOLDER_NAME="only_english"
 #FOLDER_NAME="roberta"
 
 #KS=(20 30 40 50 100 200 300 400)
-KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-
+KS=(500 1000 2000 3000 4000 5000 10000 20000 20 30 40 50 100 200 300 400)
+KS=(10000 20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -32,12 +32,12 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="bas19_es"
-    lang="es"
+    dataset="ous19_fr"
+    lang="fr"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -53,12 +53,12 @@ run_dataset() {
                 --exclude_datasets "\[${dataset}\]" \
                 --combine_train_set\
                 --do_fine_tuning \
-                --num_train_epochs 5 \
+                --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\
                 --do_test\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -82,9 +82,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=12000
+MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=300
+WAIT_TIME=800
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -101,7 +101,8 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+    num_gpus=8
+     #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
@@ -113,6 +114,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
             if [ "$K" -ge "${#KS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
             fi
+            sleep 37
         fi
     done
 
@@ -121,7 +123,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
 
 done
 
-
+wait
 
 echo "All K processed!"
 
