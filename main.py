@@ -122,6 +122,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Set true to test the FineTuner."}
     )
+    do_hate_check: bool = field(
+        default=False,
+        metadata={"help": "Run the hate check evaluation."}
+    )
     use_class_weights: Optional[str] = field(
         default=False,
         metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
@@ -541,6 +545,14 @@ def main():
         if finetuner_args.do_test:
             test_dataset = fine_tuner.prepare_data(dataset['test'])
             results = fine_tuner.evaluate(test_dataset, save_results=True)
+            # results = {'fine_tuner_'+i: j for i, j in results.items()}
+            if main_args.enable_wandb:
+                wandb.log(results)
+            logger.info("Finetune-based inference metrics: %s", results)
+
+        if finetuner_args.do_hate_check:
+            test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
+            results = fine_tuner.evaluate(test_dataset, save_results=True, key='hate_check', metric_key_prefix='hate_check')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
