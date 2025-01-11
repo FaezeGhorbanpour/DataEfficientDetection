@@ -61,7 +61,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -84,9 +84,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=10000
+MIN_MEM=13000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=10000
+WAIT_TIME=100
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -103,16 +103,16 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=4
+    num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=3; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${KS[$K]}" "$available_gpu" &
-            sleep 60
+            #sleep 60
             K=$((K + 1)) # Increment K only when a GPU is assigned
             if [ "$K" -ge "${#KS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
