@@ -16,9 +16,9 @@ FOLDER_NAME="random_retrieval"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(400 300 200 100 50 40 30 20 20000 10000 5000 4000 3000 2000 1000 500)
-KS=(4000 3000 2000 1000 20000 10000 5000 500 400 300 200 100 50 40 30 20)
-#KS=(500 5000 10000 20000 4000)
+KS=(20 30 40 50 100 200 300 400 20000 10000 5000 4000 3000 2000 1000 500)
+#KS=(4000 3000 2000 1000 20000 10000 5000 500 400 300 200 100 50 40 30 20)
+KS=(20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -83,9 +83,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=14000
+MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=500
+WAIT_TIME=10000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -105,7 +105,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=3; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

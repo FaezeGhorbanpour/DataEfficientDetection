@@ -17,8 +17,8 @@ FOLDER_NAME="only_english"
 #FOLDER_NAME="roberta"
 
 #KS=(20 30 40 50 100 200 300 400)
-KS=(500 1000 2000 3000 4000 5000 10000 20000 20 30 40 50 100 200 300 400)
-KS=(10000 20000)
+KS=(2000 3000 4000 5000 10000 20000 500 1000 20 30 40 50 100 200 300 400)
+KS=(10000 5000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -32,8 +32,8 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
+    dataset="bas19_es"
+    lang="es"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -84,7 +84,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=800
+WAIT_TIME=0
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -101,10 +101,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=4
      #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=3; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
