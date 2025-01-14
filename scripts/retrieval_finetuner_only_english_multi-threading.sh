@@ -69,7 +69,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "retrieval_finetuning"
+                --wandb_run_name $FOLDER_NAME
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
@@ -84,7 +84,7 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=13000
+MIN_MEM=7000
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=100
 

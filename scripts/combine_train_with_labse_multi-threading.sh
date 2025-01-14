@@ -8,7 +8,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="combine_train_set"
+FOLDER_NAME="labse_combine"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -16,8 +16,9 @@ FOLDER_NAME="combine_train_set"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
-KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
+KS=(20 30 40 50 100 200 300 400 500)
+# 1000 2000 3000 4000 5000 10000 20000)
+#KS=(500 1000 2000 3000 4000 5000 10000 20000 20 30 40 50 100 200 300 400)
 
 # Function to process a single dataset
 run_dataset() {
@@ -32,8 +33,8 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="xdomain_tr"
-    lang="tr"
+    dataset="bas19_es"
+    lang="es"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -45,10 +46,10 @@ run_dataset() {
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
                 --do_embedding \
-                --embedder_model_name_or_path "m3" \
+                --embedder_model_name_or_path "labse" \
                 --do_searching \
                 --splits "train" \
-                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
                 --combine_train_set\
@@ -58,7 +59,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -67,7 +68,7 @@ run_dataset() {
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
                 --report_to None \
-                --wandb_run_name "retrieval_finetuning"
+                --wandb_run_name "labse-combine-train"
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
@@ -85,7 +86,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=22800
+WAIT_TIME=500
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
