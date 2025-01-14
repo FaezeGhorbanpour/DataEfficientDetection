@@ -550,7 +550,7 @@ def main():
                 wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
-        if finetuner_args.do_hate_check:
+        if finetuner_args.do_hate_check and 'hate_check' in dataset:
             test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
             results = fine_tuner.evaluate(test_dataset, save_results=True, key='hate_check', metric_key_prefix='hate_check')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
