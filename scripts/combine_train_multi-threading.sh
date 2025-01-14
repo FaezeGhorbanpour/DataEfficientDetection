@@ -16,8 +16,8 @@ FOLDER_NAME="combine_train_set"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
-KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
+KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
+#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -26,18 +26,18 @@ run_dataset() {
 
     # Determine epoch based on k
     local epoch
-    if [ "$k" -lt 10000 ]; then
+    if [ "$k" -lt 9999 ]; then
         epoch=5
     else
         epoch=3
     fi
 
-    dataset="xdomain_tr"
-    lang="tr"
+    dataset="san20_it"
+    lang="it"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -57,6 +57,7 @@ run_dataset() {
                 --do_train\
                 --do_eval\
                 --do_test\
+                --do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -67,7 +68,7 @@ run_dataset() {
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
                 --report_to None \
-                --wandb_run_name "retrieval_finetuning"
+                --wandb_run_name ${FOLDER_NAME}
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
@@ -85,7 +86,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=22800
+WAIT_TIME=500
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
