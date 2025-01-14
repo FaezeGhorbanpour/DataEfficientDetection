@@ -52,9 +52,10 @@ class DataProvider:
 
 
     def aggregate_splits(self, datasets):
+        splits = [split for ds in datasets for split in ds ]
         return DatasetDict({
             split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
-            for split in {"train", "validation", "test"}
+            for split in splits
         })
 
     def combine_new_dataset(self, dataset, new_dataset):
