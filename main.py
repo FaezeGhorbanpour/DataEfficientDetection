@@ -130,6 +130,9 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
     )
+    report_to: List[str] = field(
+        default_factory=list, metadata={"help": "List of dataset sizes to load."}
+    )
 
 
 # Define arguments for each module using dataclasses
