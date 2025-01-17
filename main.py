@@ -19,13 +19,13 @@ from prompter import Prompter
 
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
-os.environ['TRANSFORMERS_CACHE'] = '/mounts/work/faeze/.cache/hf/'
-os.environ['HF_HOME'] = '/mounts/work/faeze/.cache/hf/'
-os.environ['HF_DATASETS_CACHE'] = '/mounts/work/faeze/.cache/hf/'
+os.environ['TRANSFORMERS_CACHE'] = '/mounts/data/proj/faeze/.cache/hf/'
+os.environ['HF_HOME'] = '/mounts/data/proj/faeze/.cache/hf/'
+os.environ['HF_DATASETS_CACHE'] = '/mounts/data/proj/faeze/.cache/hf/'
 #os.environ['HF_DATASETS_OFFLINE'] = '1'
-os.environ['TORCH_HUB'] = '/mounts/work/faeze/.cache/torch/'
-os.environ['TORCH_HOME'] = '/mounts/work/faeze/.cache/torch/'
-os.environ["WANDB_DIR"] = '/mounts/work/faeze/.cache/wandb/'
+os.environ['TORCH_HUB'] = '/mounts/data/proj/faeze/.cache/torch/'
+os.environ['TORCH_HOME'] = '/mounts/data/proj/faeze/.cache/torch/'
+os.environ["WANDB_DIR"] = '/mounts/data/proj/faeze/.cache/wandb/'
 os.environ["WANDB_START_METHOD"] = 'thread'
 os.environ["TOKENIZERS_PARALLELISM"] = 'false'
 
@@ -482,8 +482,12 @@ def main():
         torch.cuda.empty_cache()
         logger.info("Embedding model deleted and GPU memory cleared.")
 
-    dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
-    if retrieval_tuner_args.combine_train_set:
+    if not main_args.do_searching and retrieval_tuner_args.combine_train_set:
+        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets], just_aggregate=['train'])
+    else:
+        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+
+    if main_args.do_searching and retrieval_tuner_args.combine_train_set:
         dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset)
 
     retrieval_tuning_model_path = ''

@@ -1,11 +1,10 @@
 #!/bin/bash
-BASE="/mounts/work/faeze/data_efficient_hate"
+BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
-GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="combine_train_set"
@@ -48,7 +47,7 @@ run_dataset() {
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
                 --splits "train" \
-                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
                 --combine_train_set\

@@ -49,14 +49,20 @@ class DataProvider:
         labels = [item["metadata"].get("label", None) for item in retrieved_data]
         return Dataset.from_dict({"text": sentences, "label": labels})
 
+    def aggregate_splits(self, datasets, just_aggregate=[]):
+        splits = set([split for ds in datasets for split in ds])
 
-
-    def aggregate_splits(self, datasets):
-        splits = [split for ds in datasets for split in ds ]
-        return DatasetDict({
-            split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
-            for split in splits
-        })
+        if just_aggregate:
+            return DatasetDict({
+                split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
+                if split in just_aggregate else datasets[-1][split]
+                for split in splits
+            })
+        else:
+            return DatasetDict({
+                split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
+                for split in splits
+            })
 
     def combine_new_dataset(self, dataset, new_dataset):
         # Add IDs to the new dataset

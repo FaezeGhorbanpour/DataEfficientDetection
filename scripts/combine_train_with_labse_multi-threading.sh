@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE="/mounts/work/faeze/data_efficient_hate"
+BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
@@ -49,7 +49,7 @@ run_dataset() {
                 --embedder_model_name_or_path "labse" \
                 --do_searching \
                 --splits "train" \
-                --index_path "/mounts/work/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "\[${dataset}\]" \
                 --combine_train_set\

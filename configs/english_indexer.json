@@ -7,9 +7,9 @@
   "do_indexing": true,
   "index_type": "HNSW",
   "splits": ["train", "validation", "test"],
-  "index_path": "/mounts/work/faeze/data_efficient_hate/models/retriever/six_english_with_labse/",
-  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/retriever/six_english_with_labse/",
-  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
-  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_labse/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_labse/",
+  "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "embedding"
 }

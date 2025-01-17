@@ -4,10 +4,10 @@
   "languages": ["es", "pt", "hi", "ar", "fr", "it", "de", "tr"],
   "seed": 0,
   "do_prompting": true,
-  "prompter_output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/llama2-7b/",
-  "output_dir": "/mounts/work/faeze/data_efficient_hate/models/prompter/llama2-7b/",
-  "cache_dir": "/mounts/work/faeze/data_efficient_hate/cache/",
-  "logging_dir": "/mounts/work/faeze/data_efficient_hate/logs/",
+  "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama2-7b/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama2-7b/",
+  "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
+  "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "overwrite_output_dir": true,
   "wandb_run_name": "prompter_baseline"
 }

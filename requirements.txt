@@ -1,0 +1,14 @@
+torch
+transformers
+datasets
+sentence-transformers
+peft
+faiss
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+plotly
+jupyter
+notebook

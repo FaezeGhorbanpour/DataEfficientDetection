@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE="/mounts/work/faeze/data_efficient_hate"
+BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
 DATASETS=('dyn21_en' 'fou18_en' 'ken20_en')

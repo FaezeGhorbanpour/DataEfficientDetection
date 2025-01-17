@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE="/mounts/work/faeze/data_efficient_hate"
+BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
 DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'xdomain_tr' 'gahd24_de')
@@ -9,9 +9,9 @@ GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 TOKENIZER_NAME="cardiffnlp/twitter-xlm-roberta-base"
 #TOKENIZER_NAME="microsoft/mdeberta-v3-base"
-MODEL_NAME="/mounts/work/faeze/data_efficient_hate/models/finetuner/twitter-roberta-default/ken20_en-20000/rs1/checkpoint-1250"
-FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="ken20"
+MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
+FOLDER_NAME="combine_train"
+FOLDER_SUBNAME="dyn21_en"
 # Function to process a single dataset
 run_dataset() {
     local dataset=$1
@@ -25,13 +25,14 @@ run_dataset() {
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		--finetuner_tokenizer_name_or_path "${TOKENIZER_NAME}" \
+		            --finetuner_tokenizer_name_or_path "${TOKENIZER_NAME}" \
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
                 --do_fine_tuning \
                 --do_train \
                 --do_test \
+                --do_hate_check\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --num_train_epochs 10 \
@@ -40,7 +41,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "fine_tuning_${FOLDER_SUBNAME}"
+                --wandb_run_name "${FOLDER_SUBNAME}"
 
             # Clean up checkpoint files
             rm -rf "${OUTPUT_DIR}checkpoint*"
