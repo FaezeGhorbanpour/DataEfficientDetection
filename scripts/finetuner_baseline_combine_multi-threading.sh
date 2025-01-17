@@ -10,7 +10,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="combine_dyn21"
+FOLDER_SUBNAME="combine_ken20"
 
 # Function to process a single dataset
 run_dataset() {
@@ -23,12 +23,12 @@ run_dataset() {
 
     for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            datas=("dyn21_en-20000-${RSS[i]}" "${dataset}-${split}-${RSS[i]}")
+            datas=("ken20_en-20000-${RSS[i]}" "${dataset}-${split}-${RSS[i]}")
             langs=("en" "${lang}")
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${datas[@]}" \
                 --languages "${langs[@]}" \
                 --seed ${RSS[i]//rs/} \
@@ -45,7 +45,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "fine_tuning_combine_dyn21"
+                --wandb_run_name "fine_tuning_combine"
 
             # Clean up checkpoint files
             for dir in "${OUTPUT_DIR}"check*; do
@@ -64,7 +64,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=500
+WAIT_TIME=180
 # Function to check available memory on a GPU
 check_gpu_memory() {
     local gpu_id=$1
@@ -80,9 +80,10 @@ check_gpu_memory() {
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}
-    num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+    num_gpus=4
+#$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=3; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
