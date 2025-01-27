@@ -50,7 +50,7 @@ run_dataset() {
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/" \
                 --max_retrieved ${k} \
-                --exclude_datasets "\[${dataset}\]" \
+                --exclude_datasets "${dataset}"\
                 --combine_train_set\
                 --do_fine_tuning \
                 --num_train_epochs ${epoch} \
