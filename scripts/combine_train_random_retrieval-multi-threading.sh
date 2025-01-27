@@ -16,9 +16,9 @@ FOLDER_NAME="random_retrieval"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-KS=(20 30 40 50 100 200 300 400 20000 10000 5000 4000 3000 2000 1000 500)
-#KS=(4000 3000 2000 1000 20000 10000 5000 500 400 300 200 100 50 40 30 20)
-KS=(20000)
+#KS=(20 30 40 50 100 200 300 400 20000 10000 5000 4000 3000 2000 1000 500)
+KS=(4000 3000 2000 1000 20000 10000 5000 500 400 300 200 100 50 40 30 20)
+#KS=(20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -32,12 +32,12 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="bas19_es"
-    lang="es"
+    dataset="has21_hi"
+    lang="hi"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -58,6 +58,7 @@ run_dataset() {
                 --do_train\
                 --do_eval\
                 --do_test\
+		--do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -85,7 +86,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=10000
+WAIT_TIME=20
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -102,16 +103,16 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=4
+    num_gpus=3
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=3; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${KS[$K]}" "$available_gpu" &
-            sleep 60
+            #sleep 60
             K=$((K + 1)) # Increment K only when a GPU is assigned
             if [ "$K" -ge "${#KS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed

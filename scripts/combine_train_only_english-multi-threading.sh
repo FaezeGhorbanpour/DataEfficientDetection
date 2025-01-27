@@ -32,12 +32,12 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
+    dataset="has21_hi"
+    lang="hi"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -57,6 +57,7 @@ run_dataset() {
                 --do_train\
                 --do_eval\
                 --do_test\
+		--do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -84,7 +85,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=10000
+WAIT_TIME=25500
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -114,7 +115,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
             if [ "$K" -ge "${#KS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
             fi
-            sleep 37
+            sleep 1
         fi
     done
 

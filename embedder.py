@@ -3,10 +3,10 @@ import os.path
 
 import umap
 import pandas as pd
-import datashader as ds
-import datashader.transfer_functions as tf
+#import datashader as ds
+#import datashader.transfer_functions as tf
 import colorcet as cc
-from datashader.mpl_ext import dsshow
+#from datashader.mpl_ext import dsshow
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 import numpy as np
