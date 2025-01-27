@@ -2,10 +2,10 @@
 BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
-DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
-#DATASETS=('gahd24_de' 'xdomain_tr')
-LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-#LANGUAGES=('de' 'tr')
+#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
+DATASETS=('gahd24_de' 'xdomain_tr')
+#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+LANGUAGES=('de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
@@ -22,10 +22,10 @@ run_dataset() {
 
     for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}-${split}/${RSS[i]}/"
+            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		 --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
@@ -41,7 +41,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --wandb_run_name "fine_tuning_mono"
+                --wandb_run_name "fine_tuning_mono_baseline"
 
             # Clean up checkpoint files
             for dir in "${OUTPUT_DIR}"check*; do
@@ -73,23 +73,26 @@ check_gpu_memory() {
     fi
 }
 # Main loop
+num_gpus=8
+start_gpu=0
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}
-    num_gpus=$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
-
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+#$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+    for ((gpu_id=start_gpu; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
-            run_dataset "$dataset" "lang" "$available_gpu" &
+            run_dataset "$dataset" "$lang" "$available_gpu" &
+            start_gpu=$((start_gpu + 1))
+            break 1
         fi
     done
-
-    echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
-    sleep $WAIT_TIME
-
+    if [ $start_gpu -ge $num_gpus ]; then
+        echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+        sleep $WAIT_TIME
+    fi
 done
 # Wait for all background processes to finish
 wait
