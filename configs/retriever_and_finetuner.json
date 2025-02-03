@@ -7,7 +7,7 @@
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/",
-  "num_retrieved": 20000,
+  "max_retrieved": 20000,
   "exclude_datasets": ["xdomain_tr"],
 
   "cluster_criteria_weight": 0.2,

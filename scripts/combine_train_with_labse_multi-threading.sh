@@ -50,7 +50,7 @@ run_dataset() {
                 --do_searching \
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/" \
-                --num_retrieved ${k} \
+                --max_retrieved ${k} \
                 --exclude_datasets "${dataset}"\
                 --combine_train_set\
                 --do_fine_tuning \

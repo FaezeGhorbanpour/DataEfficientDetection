@@ -16,13 +16,13 @@ class MultilingualRetriever:
         self.index = index
         self.metadata = metadata
 
-    def retrieve_multiple_queries(self, query_embeddings, k=500, num_retrieved=None, exclude_datasets=None, exclude_languages=None, alpha=0.5, beta=0.3, gamma=0.2):
+    def retrieve_multiple_queries(self, query_embeddings, k=500, max_retrieved=None, exclude_datasets=None, exclude_languages=None, alpha=0.5, beta=0.3, gamma=0.2):
         """
         Retrieve top-k nearest neighbors for multiple query embeddings with multi-criteria filtering and scoring.
         Args:
             query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
             k (int): Number of nearest neighbors to retrieve for each query.
-            num_retrieved (int): Maximum number of results to return overall across all queries.
+            max_retrieved (int): Maximum number of results to return overall across all queries.
             exclude_datasets (list): Datasets to exclude.
             exclude_languages (list): Languages to exclude.
             alpha (float): Weight for similarity.
@@ -69,9 +69,9 @@ class MultilingualRetriever:
         # Sort by final score
         results.sort(key=lambda x: x["final_score"], reverse=True)
 
-        # Apply num_retrieved limit
-        if num_retrieved is not None:
-            results = results[:num_retrieved]
+        # Apply max_retrieved limit
+        if max_retrieved is not None:
+            results = results[:max_retrieved]
 
         logger.info(f"Returning {len(results)} results after applying multi-criteria scoring and deduplication.")
         return results
@@ -243,14 +243,14 @@ class MultilingualRetriever:
 
         return deduplicated_results
 
-    def retrieve_multiple_queries(self, query_embeddings, k=500, num_retrieved=None, exclude_languages=None):
+    def retrieve_multiple_queries(self, query_embeddings, k=500, max_retrieved=None, exclude_languages=None):
         """
         Retrieve top-k nearest neighbors for multiple query embeddings, enforcing diversity and informativeness.
 
         Args:
             query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
             k (int): Number of nearest neighbors to retrieve for each query.
-            num_retrieved (int): Maximum number of results to return overall across all queries.
+            max_retrieved (int): Maximum number of results to return overall across all queries.
             exclude_languages (list[str]): Languages to exclude from results.
 
         Returns:
@@ -289,7 +289,7 @@ class MultilingualRetriever:
         selected_embeddings = []
         final_results = []
 
-        while all_results and (num_retrieved is None or len(final_results) < num_retrieved):
+        while all_results and (max_retrieved is None or len(final_results) < max_retrieved):
             all_results = self._apply_multi_criteria_scoring(all_results, selected_embeddings)
             best_result = all_results.pop(0)
 

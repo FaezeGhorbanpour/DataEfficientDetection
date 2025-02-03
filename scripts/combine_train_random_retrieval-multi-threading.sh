@@ -51,7 +51,7 @@ run_dataset() {
                 --do_searching \
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
-                --num_retrieved ${k} \
+                --max_retrieved ${k} \
                 --exclude_datasets "${dataset}"\
                 --random_retrieve \
                 --combine_train_set\

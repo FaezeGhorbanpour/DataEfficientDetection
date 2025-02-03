@@ -123,7 +123,7 @@ class Retriever:
             vectors[i] = self.index.reconstruct(int(idx))
         return vectors
 
-    def retrieve_multiple_queries(self, query_embeddings, k=5, num_retrieved=None, exclude_datasets=None,
+    def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None,
                                   exclude_languages=None, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
                                   balance_labels=False):
         """
@@ -131,7 +131,7 @@ class Retriever:
         Args:
             query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
             k (int): Number of nearest neighbors to retrieve for each query.
-            num_retrieved (int): Maximum number of results to return overall across all queries.
+            max_retrieved (int): Maximum number of results to return overall across all queries.
             filters (dict): Optional metadata filters.
         Returns:
             list[dict]: Top results based on shortest distances, with optional filtering and deduplication.
@@ -184,7 +184,7 @@ class Retriever:
         if cluster_criteria_weight:
             remained_indices = [result["index"] for result in results]
             all_embeddings = self._retrieve_vectors(remained_indices)
-            cluster_scores = self._compute_cluster_scores(all_embeddings, remained_indices, num_clusters=int(min(num_retrieved/4, 100)))
+            cluster_scores = self._compute_cluster_scores(all_embeddings, remained_indices, num_clusters=int(min(max_retrieved/4, 100)))
             norm_cluster_scores = self._min_max_scale(cluster_scores)
 
         # Compute final scores with proper weighting
@@ -206,11 +206,11 @@ class Retriever:
 
         # Balance labels if required
         if balance_labels:
-            results = self._balance_labels(results, num_retrieved)
+            results = self._balance_labels(results, max_retrieved)
         else:
-            results = results[:num_retrieved]
+            results = results[:max_retrieved]
 
-        logger.info(f"Returning {len(results)} results after applying num_retrieved limit.")
+        logger.info(f"Returning {len(results)} results after applying max_retrieved limit.")
 
         return results
 
@@ -284,13 +284,13 @@ class Retriever:
                 deduplicated_results.append(result)
         return deduplicated_results
 
-    def retrieve_random_metadata(self, num_retrieved=None, exclude_datasets=None, exclude_languages=None,
+    def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None,
                                  cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0, balance_labels=False):
         """
         Retrieve a random selection of metadata, with optional filtering.
 
         Args:
-            num_retrieved (int): Number of random metadata entries to retrieve.
+            max_retrieved (int): Number of random metadata entries to retrieve.
             exclude_datasets (list[str]): List of dataset names to exclude from results.
             exclude_languages (list[str]): List of languages to exclude from results.
 
@@ -315,7 +315,7 @@ class Retriever:
             ]
 
         # Randomly sample the desired number of results
-        num_results = min(num_retrieved, len(filtered_metadata))
+        num_results = min(max_retrieved, len(filtered_metadata))
         metadata = random.sample(filtered_metadata, num_results)
         # Combine distances and metadata into a single structure
         random_metadata = [{"metadata": meta} for meta in metadata]
