@@ -173,14 +173,14 @@ class Retriever:
         logger.info(f"Total unique results after deduplication: {len(results)}")
 
         # Compute feature scores
-        norm_word_counts = np.zeros((len(results), self.index.d), dtype=np.float32)
+        norm_word_counts = np.zeros(len(results), dtype=np.float32)
         if unique_word_criteria_weight:
             word_counts = np.array([self._compute_unique_word_count(result['metadata']["text"]) for result in results])
             norm_word_counts = self._min_max_scale(word_counts)
 
 
         # Compute clustering scores if not computed before
-        norm_cluster_scores = np.zeros((len(results), self.index.d), dtype=np.float32)
+        norm_cluster_scores = np.zeros(len(results), dtype=np.float32)
         if cluster_criteria_weight:
             remained_indices = [result["index"] for result in results]
             all_embeddings = self._retrieve_vectors(remained_indices)
