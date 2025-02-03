@@ -30,6 +30,7 @@ class FineTuner:
         self.model_name = config.finetuner_model_name_or_path
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
+        self.shuffle = config.shuffle
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
@@ -86,6 +87,9 @@ class FineTuner:
         """
         logger.info("Starting training process.")
         device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        if self.shuffle:
+            train_data = train_data.shuffle(seed=42)
 
         # Move weights to the appropriate device
         self.model.to(device)

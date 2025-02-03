@@ -133,6 +133,10 @@ class FineTunerArguments(TrainingArguments):
     report_to: List[str] = field(
         default_factory=list, metadata={"help": "List of dataset sizes to load."}
     )
+    shuffle: bool = field(
+        default=False,
+        metadata={"help": "Shuffle the train dataset."}
+    )
 
 
 # Define arguments for each module using dataclasses

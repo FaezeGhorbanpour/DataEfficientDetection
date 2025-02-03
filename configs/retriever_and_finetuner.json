@@ -17,6 +17,7 @@
   "combine_train_set": true,
 
   "do_fine_tuning": true,
+  "shuffle": true,
   "num_train_epochs": 5,
   "do_train": true,
   "do_eval": true,
