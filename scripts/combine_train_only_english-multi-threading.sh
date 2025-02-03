@@ -18,7 +18,8 @@ FOLDER_NAME="only_english"
 
 #KS=(20 30 40 50 100 200 300 400)
 KS=(2000 3000 4000 5000 10000 20000 500 1000 20 30 40 50 100 200 300 400)
-#KS=(10000 5000)
+KS=(20 200 2000 20000)
+
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -32,8 +33,9 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="has21_hi"
-    lang="hi"
+    dataset="gahd24_de"
+    lang="de"
+    excluded_datasets=("gahd24_de" "dyn21_en")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -49,17 +51,17 @@ run_dataset() {
                 --do_searching \
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/" \
-                --num_retrieved ${k} \
-                --exclude_datasets "${dataset}"\
+                --max_retrieved ${k} \
+                --exclude_datasets ${excluded_datasets[@]}\
                 --combine_train_set\
                 --do_fine_tuning \
                 --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\
                 --do_test\
-		--do_hate_check\
+		            --do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -83,9 +85,9 @@ run_dataset() {
 }
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=8000
+MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=25500
+WAIT_TIME=30
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -102,10 +104,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=3
      #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=2; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
