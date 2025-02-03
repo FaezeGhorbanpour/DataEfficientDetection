@@ -6,6 +6,7 @@
   "embedder_model_name_or_path": "m3",
   "do_indexing": true,
   "index_type": "HNSW",
+  "normalize_index": true,
   "splits": ["train", "validation", "test"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",

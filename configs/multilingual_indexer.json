@@ -5,10 +5,10 @@
   "do_embedding": true,
   "embedder_model_name_or_path": "m3",
   "do_indexing": true,
-  "index_type": "HNSW",
+  "index_type": "FlatIP",
   "splits": ["train", "validation", "test"],
-  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3_FlatIP/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3_FlatIP/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "embedding"

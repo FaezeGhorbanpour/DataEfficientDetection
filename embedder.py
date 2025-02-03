@@ -1,6 +1,7 @@
 import logging
 import os.path
 
+import torch
 import umap
 import pandas as pd
 # import datashader as ds
@@ -15,58 +16,119 @@ from sklearn.manifold import TSNE
 import umap
 import pandas as pd
 import plotly.express as px
+from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModel
+
+from preplixity_calculator import PerplexityCalculator
+
+logger = logging.getLogger(__name__)
+
+from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModel
+import logging
 
 logger = logging.getLogger(__name__)
 
 class Embedder:
-    def __init__(self, model_name):
+    def __init__(self, model_name, device="cuda", batch_size=256, add_perplexity=False):
         """
         Initialize the Embedder with a multilingual model.
         Args:
             model_name (str): Name of the Hugging Face model to load.
+            device (str): The device to run the model on ('cuda' or 'cpu').
+            batch_size (int): Batch size for embeddings.
         """
         logger.info(f"Initializing Embedder with model: {model_name}")
-        self.name = model_name
-        if self.name == 'labse':
-            self.model = SentenceTransformer('sentence-transformers/LaBSE')
-        elif self.name.lower() == 'minilm':
-            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-        elif self.name == 'm3':
-            self.model = SentenceTransformer("BAAI/bge-m3")
-        elif self.name == 'm3-unsupervised':
-            self.model = SentenceTransformer("BAAI/bge-m3-unsupervised")
-        elif self.name == 'm3-retromae':
-            self.model = SentenceTransformer("BAAI/bge-m3-retromae")
-        elif self.name.lower() == 'e5-large':
-            self.model = SentenceTransformer('intfloat/multilingual-e5-large')
-        elif self.name.lower() == 'e5-base':
-            self.model = SentenceTransformer('intfloat/multilingual-e5-base')
-        elif self.name.lower() == 'xlmr-large':
-            self.model = SentenceTransformer('FacebookAI/xlm-roberta-large')
-        elif self.name.lower() == 'xlmr-base':
-            self.model = SentenceTransformer('FacebookAI/xlm-roberta-base')
-        elif self.name.lower() == 'arctic-large':
-            self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-l-v2.0')
-        elif self.name.lower() == 'arctic-base':
-            self.model = SentenceTransformer('Snowflake/snowflake-arctic-embed-m', trust_remote_code=True)
+        self.name = model_name.lower()
+        self.device = device
+        self.batch_size = batch_size
+
+        # Default model initialization
+        self.model = None
+        self.tokenizer = None
+        self.type = "sentence_transformers"
+
+        self.add_perplexity = add_perplexity
+        if add_perplexity:
+            self.perplexity_calculator = PerplexityCalculator(model_name="facebook/xglm-564M", batch_size=2, device=device)
+
+        model_mapping = {
+            'labse': 'sentence-transformers/LaBSE',
+            'minilm': "paraphrase-multilingual-MiniLM-L12-v2",
+            'm3': "BAAI/bge-m3",
+            'm3-unsupervised': "BAAI/bge-m3-unsupervised",
+            'm3-retromae': "BAAI/bge-m3-retromae",
+            'e5-large': 'intfloat/multilingual-e5-large',
+            'e5-base': 'intfloat/multilingual-e5-base',
+            'arctic-large': 'Snowflake/snowflake-arctic-embed-l-v2.0',
+            'arctic-base': 'Snowflake/snowflake-arctic-embed-m',
+            'mpnet': 'paraphrase-multilingual-mpnet-base-v2',
+            'distiluse': 'distiluse-base-multilingual-cased-v2',
+        }
+
+        if self.name in model_mapping:
+            self.model = SentenceTransformer(model_mapping[self.name], trust_remote_code=True)
+        elif self.name == 'xlmr-large':
+            self._initialize_transformer_model("FacebookAI/xlm-roberta-large")
+        elif self.name == 'xlmr-base':
+            self._initialize_transformer_model("FacebookAI/xlm-roberta-base")
+        elif self.name == 'sonar':
+            self._initialize_transformer_model("facebook/sonar")
         else:
+            # Load the model as a custom SentenceTransformer
             self.model = SentenceTransformer(model_name)
 
-        self.embedding_dim = self.model.get_sentence_embedding_dimension()
+
+        if self.type == 'sentence_transformers':
+            self.embedding_dim = self.model.get_sentence_embedding_dimension()
+        else:
+            self.embedding_dim = self.model.config.hidden_size
+            self.model = self.model.to(device)
         logger.info(f"Model initialized: {model_name} with embedding dimension {self.embedding_dim}")
+
+
+    def _initialize_transformer_model(self, model_name):
+        """
+        Helper method to initialize a transformer model and tokenizer.
+        Args:
+            model_name (str): Name of the transformer model.
+        """
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+        self.type = "transformers"
 
     def embed_sentences(self, sentences):
         """
-        Embed a list of sentences.
+        Efficiently embed a list of sentences using batch processing.
         Args:
             sentences (list[str]): Sentences to embed.
         Returns:
             np.ndarray: Embedding vectors.
         """
         logger.info(f"Embedding {len(sentences)} sentences")
-        embeddings = self.model.encode(sentences, convert_to_tensor=True)
+
+        # Process in batches
+        embeddings = []
+        for i in tqdm(range(0, len(sentences), self.batch_size), desc="Embedding sentences"):
+            batch = sentences[i:i + self.batch_size]
+
+            if self.type == 'transformers':
+                # Tokenize and pass through SONAR in batches
+                inputs = self.tokenizer(batch, padding=True, truncation=True, return_tensors="pt", max_length=512).to(
+                    self.device)
+                with torch.no_grad():
+                    outputs = self.model(**inputs)
+                batch_embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()  # CLS token
+            else:
+                batch_embeddings = self.model.encode(batch, convert_to_tensor=True, show_progress_bar=False)
+                batch_embeddings = batch_embeddings.cpu().detach().numpy()
+
+            embeddings.append(batch_embeddings)
+
+        # Stack all embeddings
+        embeddings = np.vstack(embeddings)
         logger.info("Sentences embedded successfully")
-        return embeddings.cpu().detach().numpy()
+        return embeddings
 
     def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
         """
@@ -90,10 +152,13 @@ class Embedder:
                 logger.info(f"Embedding {len(texts)} texts from split: {split}")
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
+                if self.add_perplexity:
+                    perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
                 metadata += [{"text": texts[i],
                               "label": labels[i],
                               "id": ids[i],
                               "split": split,
+                              "perplexity": perplexities[i] if self.add_perplexity else None,
                               "dataset_name": dataset["name"],
                               "language": dataset["language"]} for i in range(len(embs))]
         if stack:

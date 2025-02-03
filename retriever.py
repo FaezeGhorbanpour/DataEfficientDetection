@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Retriever:
-    def __init__(self, embedding_dim=768, index_type="FlatL2", device="cuda"):
+    def __init__(self, embedding_dim=768, index_type="FlatL2", device="cuda", normalize_index=False):
         """
         Initialize the Retriever with an FAISS index.
         Args:
@@ -20,6 +20,10 @@ class Retriever:
         """
         logger.info("Initializing the retriever module...")
         self.device = device
+        self.index_type = index_type
+        self.embedding_dim = embedding_dim
+        self.normalize_index = normalize_index
+
         self.index = self._initialize_index(embedding_dim, index_type)
         self.metadata = []
         logger.info(f"Retriever initialized with {index_type} index on {device}")
@@ -36,20 +40,24 @@ class Retriever:
         logger.info(f"Creating index of type: {index_type}")
         if index_type == "FlatL2":
             index = faiss.IndexFlatL2(embedding_dim)
+        elif index_type == "FlatIP":
+            index = faiss.IndexFlatIP(embedding_dim)
         elif index_type == "HNSW":
-            index = faiss.IndexHNSWFlat(embedding_dim, 128)
-            hnswpq_index = faiss.downcast_index(index)
-            hnswpq_index.hnsw.efConstruction = 200
-            hnswpq_index.hnsw.efSearch = 128
+            index = faiss.IndexHNSWFlat(embedding_dim, 128)#, faiss.METRIC_INNER_PRODUCT)
+            index.hnsw.efConstruction = 200  # Set parameter for construction
+            index.hnsw.efSearch = 128  # Set parameter for search
         elif index_type == "IVF":
-            index = faiss.IndexIVFPQ(faiss.IndexFlatL2(embedding_dim), embedding_dim, 100, 32, 32)
+            index = faiss.IndexIVFPQ(faiss.IndexFlatL2(embedding_dim), 100, 32,
+                                     32)  # Number of centroids and PQ settings
         else:
             logger.error(f"Unknown index_type: {index_type}")
             raise ValueError(f"Unknown index_type: {index_type}")
 
+        # Move the index to GPU if needed
         if self.device == "cuda" and faiss.get_num_gpus() > 0:
             logger.info("Using GPU for FAISS index.")
             return faiss.index_cpu_to_all_gpus(index)
+
         logger.info("Using CPU for FAISS index.")
         return index
 
@@ -61,8 +69,17 @@ class Retriever:
             metadata (list[dict]): Metadata associated with each embedding.
         """
         logger.info(f"Adding {len(embeddings)} embeddings to the index.")
+
+        # Normalize embeddings if required
+        if self.normalize_index:
+            faiss.normalize_L2(embeddings)
+
+        # Add embeddings to the FAISS index
         self.index.add(embeddings)
+
+        # Add metadata corresponding to embeddings
         self.metadata.extend(metadata)
+
         logger.info("Embeddings added successfully.")
 
     def retrieve(self, query_embedding, k=5, filters=None):
@@ -76,6 +93,11 @@ class Retriever:
             list[dict]: Retrieved metadata and scores.
         """
         logger.info("Performing retrieval for a single query.")
+
+        # Normalize embeddings if required
+        if self.normalize_index:
+            faiss.normalize_L2(query_embedding)
+
         distances, indices = self.index.search(query_embedding, k)
 
         results = []
@@ -103,6 +125,10 @@ class Retriever:
         """
         logger.info("Starting retrieval for multiple queries.")
 
+        # Normalize embeddings if required
+        if self.normalize_index:
+            faiss.normalize_L2(query_embeddings)
+
         # Perform the search for all queries at once
         distances, indices = self.index.search(query_embeddings, k)
 
@@ -119,46 +145,48 @@ class Retriever:
         # Fetch metadata for all valid indices
         metadata = [self.metadata[idx] for idx in flattened_indices]
 
-        # Apply filters if provided
+        # Apply filters
         if exclude_languages:
-            filter_mask = [
-                all(meta.get('language') == value for value in exclude_languages) for meta in metadata
-            ]
-            flattened_distances = flattened_distances[filter_mask]
-            metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
-        # Apply filters if provided
+            metadata, flattened_distances = self._filter_metadata(metadata, flattened_distances, 'language', exclude_languages)
         if exclude_datasets:
-            filter_mask = [
-                all(meta.get('dataset_name') != value for value in exclude_datasets) for meta in metadata
-            ]
-            flattened_distances = flattened_distances[filter_mask]
-            metadata = [meta for meta, keep in zip(metadata, filter_mask) if keep]
+            metadata, flattened_distances = self._filter_metadata(metadata, flattened_distances, 'dataset_name', exclude_datasets)
 
         # Combine distances and metadata into a single structure
         results = [{"metadata": meta, "score": float(dist)} for meta, dist in zip(metadata, flattened_distances)]
 
-        # Deduplicate results by a unique key in metadata (assumes 'id' is the unique key)
-        seen = set()
-        deduplicated_results = []
-        for result in results:
-            unique_key = result["metadata"].get("dataset_name") + result["metadata"].get("id")  # Adjust to your unique metadata key
-            if unique_key not in seen:
-                seen.add(unique_key)
-                deduplicated_results.append(result)
+        # Deduplicate results
+        results = self._deduplicate_results(results)
 
-        logger.info(f"Total unique results after deduplication: {len(deduplicated_results)}")
+        logger.info(f"Total unique results after deduplication: {len(results)}")
 
 
         # Apply max_retrieved limit
         if max_retrieved is not None:
             # Sort deduplicated results by score (ascending order)
-            deduplicated_results.sort(key=lambda x: x["score"])
-            deduplicated_results = deduplicated_results[:max_retrieved]
+            results.sort(key=lambda x: x["score"])
+            results = results[:max_retrieved]
 
-        logger.info(f"Returning {len(deduplicated_results)} results after applying max_retrieved limit.")
+        logger.info(f"Returning {len(results)} results after applying max_retrieved limit.")
 
+        return results
+
+    def _filter_metadata(self, metadata, distances, key, exclude_values):
+        """Filter metadata based on exclude values."""
+        mask = [meta.get(key) not in exclude_values for meta in metadata]
+        filtered_metadata = [meta for meta, keep in zip(metadata, mask) if keep]
+        filtered_distances = distances[mask]
+        return filtered_metadata, filtered_distances
+
+    def _deduplicate_results(self, results):
+        """Deduplicate results by a unique key."""
+        seen = set()
+        deduplicated_results = []
+        for result in results:
+            unique_key = result["metadata"].get("dataset_name") + result["metadata"].get("id")
+            if unique_key not in seen:
+                seen.add(unique_key)
+                deduplicated_results.append(result)
         return deduplicated_results
-
 
     def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None):
         """

@@ -49,11 +49,6 @@ class MultilingualRetriever:
         # Fetch metadata for valid indices
         metadata = [self.metadata[idx] for idx in flattened_indices]
 
-        # Apply filters
-        if exclude_languages:
-            metadata, flattened_distances = self._filter_metadata(metadata, flattened_distances, 'language', exclude_languages)
-        if exclude_datasets:
-            metadata, flattened_distances = self._filter_metadata(metadata, flattened_distances, 'dataset_name', exclude_datasets)
 
         # Create initial results structure
         results = [
@@ -81,12 +76,7 @@ class MultilingualRetriever:
         logger.info(f"Returning {len(results)} results after applying multi-criteria scoring and deduplication.")
         return results
 
-    def _filter_metadata(self, metadata, distances, key, exclude_values):
-        """Filter metadata based on exclude values."""
-        mask = [meta.get(key) not in exclude_values for meta in metadata]
-        filtered_metadata = [meta for meta, keep in zip(metadata, mask) if keep]
-        filtered_distances = distances[mask]
-        return filtered_metadata, filtered_distances
+
 
     def _apply_multi_criteria_scoring(self, results, query_embeddings, alpha, beta, gamma):
         """Apply multi-criteria scoring to results."""

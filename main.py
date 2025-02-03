@@ -198,6 +198,10 @@ class RetrieverArguments:
         default=20000,
         metadata={"help": "Maximum retrieved instances from the pool."},
     )
+    normalize_index: bool = field(
+        default=False,
+        metadata={"help": "Normalize the saved and retrieved embeddings."},
+    )
 
 @dataclass
 class RetrievalTunerArguments:
@@ -444,7 +448,8 @@ def main():
         if main_args.enable_wandb:
             wandb.config.update(retriever_args, allow_val_change=False)
         logger.info("Indexing is starting...")
-        retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type)
+        retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type,
+                              normalize_index=retriever_args.normalize_index)
         retriever.add_embeddings(embeddings, meta_datas)
         retriever.save_index(retriever_args.index_path)
         logger.info("Indexing is done...")
