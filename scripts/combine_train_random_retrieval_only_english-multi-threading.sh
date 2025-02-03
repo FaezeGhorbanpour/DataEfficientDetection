@@ -8,7 +8,7 @@ RSS=(rs5 rs4 rs3 rs2 rs1)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="random_retrieval"
+FOLDER_NAME="random_retrieval_only_english"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -16,9 +16,9 @@ FOLDER_NAME="random_retrieval"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
+KS=(20 30 40 50 100 200 300 400)
 # 500 20000 10000 5000 4000 3000 2000 1000 500)
-KS=(4000 3000 2000 1000 20000 10000 5000 500)
+#KS=(4000 3000 2000 1000 20000 10000 5000 500)
 # 400 300 200 100 50 40 30 20)
 #KS=(20000)
 # Function to process a single dataset
@@ -34,8 +34,8 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="bas19_es"
-    lang="es"
+    dataset="ous19_ar"
+    lang="ar"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -50,7 +50,7 @@ run_dataset() {
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
                 --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets "${dataset}"\
                 --random_retrieve \
@@ -105,10 +105,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=3
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

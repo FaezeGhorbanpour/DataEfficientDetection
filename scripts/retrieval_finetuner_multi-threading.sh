@@ -5,10 +5,10 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
-GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
+GPUS=(0 1 2) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="twitter-roberta"
+FOLDER_NAME="two-phases"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -16,8 +16,8 @@ FOLDER_NAME="twitter-roberta"
 #MODEL_NAME="FacebookAI/xlm-roberta-base"
 #FOLDER_NAME="roberta"
 
-#KS=(20 30 40 50 100 200 300 400)
-KS=(500 1000 2000 3000 4000 5000 10000 20000)
+KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
+#KS=(4000 5000 10000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -32,12 +32,12 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
+    dataset="ous19_ar"
+    lang="ar"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -60,6 +60,7 @@ run_dataset() {
                 --do_train\
                 --do_eval\
                 --do_test\
+		--do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -83,15 +84,48 @@ run_dataset() {
     echo "Finished dataset: ${dataset} on GPU: ${gpu}"
 }
 
-# Launch each dataset on a separate GPU
-for i in "${!KS[@]}"; do
-    k=${KS[$i]}
-    gpu=${GPUS[$i]}
 
-    run_dataset "${k}" "${gpu}" &
+MIN_MEM=8000
+# Time to wait before rechecking (in seconds)
+WAIT_TIME=30
+
+# Function to check available memory on a GPU
+check_gpu_memory() {
+    local gpu_id=$1
+    local available_mem=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits -i $gpu_id)
+
+    if [ "$available_mem" -ge "$MIN_MEM" ]; then
+        echo $gpu_id
+    else
+        echo -1
+    fi
+}
+
+# Main loop
+K=0
+while [ "$K" -lt "${#KS[@]}" ]; do
+    num_gpus=5
+#$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+        available_gpu=$(check_gpu_memory $gpu_id)
+
+        if [ "$available_gpu" -ge 0 ]; then
+            echo "GPU $available_gpu has enough memory. Starting Python script..."
+            run_dataset "${KS[$K]}" "$available_gpu" &
+            sleep 30
+            K=$((K + 1)) # Increment K only when a GPU is assigned
+            if [ "$K" -ge "${#KS[@]}" ]; then
+                break # Exit the loop when all datasets have been processed
+            fi
+        fi
+    done
+
+    echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+    sleep $WAIT_TIME
+
 done
 
-# Wait for all background processes to finish
 wait
 
 echo "All K processed!"
