@@ -1,14 +1,18 @@
 {
-  "datasets": ["xdomain_tr-2000-rs1"],
+  "datasets": ["xdomain_tr-20-rs5"],
   "languages": ["tr"],
   "seed": 0,
   "do_embedding": true,
-  "embedder_model_name_or_path": "m3",
+  "embedder_model_name_or_path": "labse",
   "do_searching": true,
   "splits": ["train"],
-  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
-  "max_retrieved": 500,
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_labse/",
+  "num_retrieved": 20000,
   "exclude_datasets": ["xdomain_tr"],
+
+  "cluster_criteria_weight": 0.2,
+  "unique_word_criteria_weight": 0.2,
+  "balance_labels": true,
 
   "combine_train_set": true,
 

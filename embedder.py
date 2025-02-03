@@ -152,15 +152,21 @@ class Embedder:
                 logger.info(f"Embedding {len(texts)} texts from split: {split}")
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
-                if self.add_perplexity:
-                    perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
                 metadata += [{"text": texts[i],
                               "label": labels[i],
                               "id": ids[i],
                               "split": split,
-                              "perplexity": perplexities[i] if self.add_perplexity else None,
                               "dataset_name": dataset["name"],
                               "language": dataset["language"]} for i in range(len(embs))]
+
+                if self.add_perplexity:
+                    perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
+                    metadata = [
+                        {**meta,
+                         "perplexity": perplexities[i],
+                         }
+                        for i, meta in enumerate(metadata)
+                    ]
         if stack:
             logger.info("Stacking all embeddings")
             return np.vstack(embeddings), metadata

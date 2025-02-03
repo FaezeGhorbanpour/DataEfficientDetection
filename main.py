@@ -194,7 +194,7 @@ class RetrieverArguments:
         default="./index_path",
         metadata={"help": "Directory to save index path!"},
     )
-    max_retrieved: int = field(
+    num_retrieved: int = field(
         default=20000,
         metadata={"help": "Maximum retrieved instances from the pool."},
     )
@@ -202,6 +202,20 @@ class RetrieverArguments:
         default=False,
         metadata={"help": "Normalize the saved and retrieved embeddings."},
     )
+    cluster_criteria_weight: float = field(
+        default=0.0,
+        metadata={"help": "Weight for diversity criteria to score retrieved embeddings."},
+    )
+    unique_word_criteria_weight: float = field(
+        default=0.0,
+        metadata={"help": "Weight for number of unique words criteria to score retrieved embeddings."},
+    )
+    balance_labels: bool = field(
+        default=False,
+        metadata={"help": "Balance the retrieved embeddings."},
+    )
+
+
 
 @dataclass
 class RetrievalTunerArguments:
@@ -464,18 +478,24 @@ def main():
         logger.info("Retrieving similar sentences...")
 
         if retriever_args.k == 0:
-            retriever_args.k = max((retriever_args.max_retrieved // len(embeddings)), 1) * 100
+            retriever_args.k = max((retriever_args.num_retrieved // len(embeddings)), 1) * 50
         if retrieval_tuner_args.random_retrieve:
-            retrieved_data = retriever.retrieve_random_metadata(max_retrieved=retriever_args.max_retrieved,
-                                                                exclude_datasets=retriever_args.exclude_datasets,
-                                                                exclude_languages=retriever_args.exclude_languages)
+            retrieved_data = retriever.retrieve_random_metadata(num_retrieved=retriever_args.num_retrieved,
+                                                exclude_datasets=retriever_args.exclude_datasets,
+                                                exclude_languages=retriever_args.exclude_languages,
+                                                unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
+                                                cluster_criteria_weight=retriever_args.cluster_criteria_weight,
+                                                balance_labels=retriever_args.balance_labels,)
         else:
             retrieved_data = retriever.retrieve_multiple_queries(
                 query_embeddings=embeddings,
                 k=retriever_args.k,
+                num_retrieved=retriever_args.num_retrieved,
                 exclude_datasets=retriever_args.exclude_datasets,
                 exclude_languages=retriever_args.exclude_languages,
-                max_retrieved=retriever_args.max_retrieved
+                unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
+                cluster_criteria_weight=retriever_args.cluster_criteria_weight,
+                balance_labels=retriever_args.balance_labels,
             )
         retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
         logger.info("Retrieved %d instances based on query.", len(retrieved_data))
