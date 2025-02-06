@@ -64,17 +64,23 @@ class DataProvider:
                 for split in splits
             })
 
-    def combine_new_dataset(self, dataset, new_dataset):
+    def combine_new_dataset(self, dataset, retrieved_data, repeat=1):
         # Add IDs to the new dataset
-        new_dataset = new_dataset.map(
+        retrieved_data = retrieved_data.map(
             lambda example, idx: {"id": idx},
             with_indices=True
         )
 
-        new_dataset = new_dataset.cast(dataset["train"].features)
+        retrieved_data = retrieved_data.cast(dataset["train"].features)
+
+        if repeat > 1:
+            # Repeat the `train` dataset
+            train = concatenate_datasets([dataset["train"]] * repeat)
+        else:
+            train = dataset["train"]
 
         # Combine the `train` subset with the new dataset
-        combined_train = concatenate_datasets([dataset["train"], new_dataset])
+        combined_train = concatenate_datasets([train, retrieved_data])
 
         # Replace the `train` subset in the existing dataset with the combined dataset
         dataset['train'] = combined_train

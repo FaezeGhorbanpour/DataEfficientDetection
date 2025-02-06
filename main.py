@@ -137,6 +137,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Shuffle the train dataset."}
     )
+    repeat_target_train_set: int = field(
+        default=1,
+        metadata={"help": "Repeat target train set."}
+    )
 
 
 # Define arguments for each module using dataclasses
@@ -521,7 +525,8 @@ def main():
         dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
 
     if main_args.do_searching and retrieval_tuner_args.combine_train_set:
-        dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset)
+        dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset,
+                                                 repeat=finetuner_args.repeat_target_train_set)
 
     retrieval_tuning_model_path = ''
     if main_args.do_retrieval_tuning:
