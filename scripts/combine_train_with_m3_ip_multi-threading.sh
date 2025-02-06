@@ -19,7 +19,7 @@ FOLDER_NAME="m3_flatip"
 #KS=(20 30 40 50 100 200 300 400 500)
 # 1000 2000 3000 4000 5000 10000 20000)
 #KS=(500 1000 2000 3000 4000 5000 10000 20000 20 30 40 50 100 200 300 400)
-KS=(20 200 2000 20000)
+KS=(20000 2000 200 20)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -38,7 +38,7 @@ run_dataset() {
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -86,7 +86,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=20000
+MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=10
 
@@ -108,7 +108,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
