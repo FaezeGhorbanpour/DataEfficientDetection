@@ -1,4 +1,5 @@
-from sklearn.metrics import precision_recall_fscore_support, f1_score, accuracy_score
+from sklearn.metrics import precision_recall_fscore_support, f1_score, accuracy_score, average_precision_score, \
+    recall_score
 from transformers import AutoModelForCausalLM, AutoTokenizer, T5ForConditionalGeneration, T5Tokenizer
 from torch.utils.data import DataLoader
 import torch
@@ -46,6 +47,7 @@ GROQ_MODELS = {
 }
 # Models accessed via OpenRouter API
 OPENROUTER_API_KEY = "your_openrouter_api_key_here"  # Replace with your actual API key
+GROQ_API_KEY = "your_openrouter_api_key_here"  # Replace with your actual API key
 
 
 class Prompter:
@@ -92,6 +94,14 @@ class Prompter:
     #     response = requests.post(url, headers=headers, json=data)
     #     return response.json().get("text", "-1").strip()
 
+
+    def call_groq(self, prompt):
+        url = "https://api.groq.com/generate"
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        data = {"model": self.model_name, "prompt": prompt, "max_tokens": 100}
+        response = requests.post(url, headers=headers, json=data)
+        return response.json().get("text", "")
+
     def evaluate(self, test_data, retrieved_metadata):
         dataloader = DataLoader(test_data, batch_size=self.config.prompter_batch_size, shuffle=False)
         results = []
@@ -115,7 +125,11 @@ class Prompter:
                                                                    zero_division=0)
         f1_macro = f1_score(labels, predictions, average="macro", zero_division=0)
         accuracy = accuracy_score(labels, predictions)
-        return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
+        avg_precision = average_precision_score(labels, predictions, average="macro")
+        avg_recall = recall_score(labels, predictions, average="macro")
+
+        return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall,
+                "f1-weighted": f1, "average_precision": avg_precision, "average_recall": avg_recall}
 
     def save_results(self, predictions, labels, results, name=''):
         output_dir = self.config.prompter_output_dir
