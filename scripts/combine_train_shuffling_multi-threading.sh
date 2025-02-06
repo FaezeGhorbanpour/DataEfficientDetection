@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="m3_balance_labels"
+FOLDER_NAME="m3_shuffle"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -31,13 +31,13 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
-    excluded_datasets=("ous19_fr")
+    dataset="ous19_ar"
+    lang="ar"
+    excluded_datasets=("ous19_ar")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -47,13 +47,13 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-		--balance_labels\
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --do_fine_tuning \
+		--shuffle\
                 --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\
@@ -104,10 +104,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=2
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
