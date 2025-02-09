@@ -1,16 +1,17 @@
 {
-  "datasets": ["dyn21_en", "fou18_en", "ken20_en", "xplain_en", "implicit_en", "xdomain_en"],
-  "languages": ["en", "en", "en", "en", "en", "en"],
+  "datasets": ["dyn21_en"],
+  "languages": ["en"],
   "seed": 0,
   "do_embedding": true,
   "embedder_model_name_or_path": "m3",
   "do_indexing": true,
   "index_type": "HNSW",
   "normalize_index": true,
-  "splits": ["train", "validation", "test"],
-  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/six_english_with_m3/",
+  "splits": ["train"],
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/dyn21_with_m3/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/dyn21_with_m3/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
-  "wandb_run_name": "embedding"
+  "wandb_run_name": "embedding",
+  "report_to": []
 }
