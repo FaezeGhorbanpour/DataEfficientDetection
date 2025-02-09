@@ -130,9 +130,9 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
     )
-    #report_to: List[str] = field(
-    #    default_factory=list, metadata={"help": "List of dataset sizes to load."}
-    #)
+    report_to: List[str] = field(
+         default_factory=list, metadata={"help": "List of dataset sizes to load."}
+    )
     shuffle: bool = field(
         default=False,
         metadata={"help": "Shuffle the train dataset."}
@@ -140,6 +140,14 @@ class FineTunerArguments(TrainingArguments):
     repeat_target_train_set: int = field(
         default=1,
         metadata={"help": "Repeat target train set."}
+    )
+    remove_unused_columns: bool = field(
+        default=False,
+        metadata={"help": "Remove unused columns."}
+    )
+    retrieval_loss_weight: float = field(
+        default=1,
+        metadata={"help": "Retrieval loss weight."}
     )
 
 
@@ -537,16 +545,16 @@ def main():
         logger.info("Retrieval fine-tuning the model: %s", retrieval_tuner_args.finetuner_model_name_or_path)
 
         if retrieval_tuner_args.do_train:
-            train_dataset = retrieval_tuner.prepare_data(retrieved_dataset)
-            eval_dataset = retrieval_tuner.prepare_data(dataset['validation'])
+            # train_dataset = retrieval_tuner.prepare_data(retrieved_dataset)
+            # eval_dataset = retrieval_tuner.prepare_data(dataset['validation'])
 
             retrieval_tuner.train(
-                train_dataset, eval_dataset
+                retrieved_dataset, dataset['validation']
             )
             logger.info("Retrieval fine-tuning on retrieved instances completed.")
         if retrieval_tuner_args.do_test:
-            test_dataset = retrieval_tuner.prepare_data(dataset['test'])
-            results = retrieval_tuner.evaluate(test_dataset, save_results=True,
+            # test_dataset = retrieval_tuner.prepare_data(dataset['test'])
+            results = retrieval_tuner.evaluate(dataset['test'], save_results=True,
                                                key='retrieval_finetuner', metric_key_prefix='retrieval_finetuner')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
@@ -575,26 +583,26 @@ def main():
 
 
         if finetuner_args.do_train:
-            train_dataset = fine_tuner.prepare_data(dataset['train'])
-            eval_dataset = fine_tuner.prepare_data(dataset['validation'])
+            # train_dataset = fine_tuner.prepare_data()
+            # eval_dataset = fine_tuner.prepare_data()
 
             fine_tuner.train(
-                train_dataset, eval_dataset
+                dataset['train'], dataset['validation']
             )
 
             logger.info("Fine-tuning completed.")
 
         if finetuner_args.do_test:
-            test_dataset = fine_tuner.prepare_data(dataset['test'])
-            results = fine_tuner.evaluate(test_dataset, save_results=True)
+            # test_dataset = fine_tuner.prepare_data(dataset['test'])
+            results = fine_tuner.evaluate(dataset['test'], save_results=True)
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Finetune-based inference metrics: %s", results)
 
         if finetuner_args.do_hate_check and 'hate_check' in dataset:
-            test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
-            results = fine_tuner.evaluate(test_dataset, save_results=True, key='hate_check', metric_key_prefix='hate_check')
+            # test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
+            results = fine_tuner.evaluate(dataset['hate_check'], save_results=True, key='hate_check', metric_key_prefix='hate_check')
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)

@@ -47,7 +47,8 @@ class DataProvider:
         """
         sentences = [item["metadata"]["text"] for item in retrieved_data]
         labels = [item["metadata"].get("label", None) for item in retrieved_data]
-        return Dataset.from_dict({"text": sentences, "label": labels})
+        scores = [item.get("score", None) for item in retrieved_data]
+        return Dataset.from_dict({"text": sentences, "label": labels, "score": scores})
 
     def aggregate_splits(self, datasets, just_aggregate=[]):
         splits = set([split for ds in datasets for split in ds])
@@ -65,12 +66,20 @@ class DataProvider:
             })
 
     def combine_new_dataset(self, dataset, retrieved_data, repeat=1):
-        # Add IDs to the new dataset
+        # Add IDs and source information to the new dataset
         retrieved_data = retrieved_data.map(
-            lambda example, idx: {"id": idx},
+            lambda example, idx: {"id": idx, "source": "retrieved"},
             with_indices=True
         )
 
+        # Add source information to the original train dataset
+        dataset["train"] = dataset["train"].map(lambda example: {"source": "main", 'score': float(0)})
+        dataset["test"] = dataset["test"].map(lambda example: {"source": "main", 'score': float(0)})
+        dataset["validation"] = dataset["validation"].map(lambda example: {"source": "main", 'score': float(0)})
+        if 'hate_check' in dataset:
+            dataset["hate_check"] = dataset["hate_check"].map(lambda example: {"source": "main", 'score': float(0)})
+
+        # Ensure retrieved data has the same features as the train dataset
         retrieved_data = retrieved_data.cast(dataset["train"].features)
 
         if repeat > 1:

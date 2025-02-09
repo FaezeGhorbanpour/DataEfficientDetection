@@ -7,8 +7,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     AutoConfig,
-    TrainingArguments,
     Trainer,
+    DataCollator, DefaultDataCollator, DataCollatorWithPadding,
 )
 from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig
 from datasets import Dataset
@@ -31,6 +31,7 @@ class FineTuner:
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
         self.shuffle = config.shuffle
+        self.retrieval_loss_weight = config.retrieval_loss_weight
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
@@ -38,6 +39,14 @@ class FineTuner:
         # Configure and load the model
         model_config = AutoConfig.from_pretrained(self.model_name, num_labels=config.num_labels)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=model_config)
+
+
+        logger.info("Starting training process.")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Move weights to the appropriate device
+        self.model.to(self.device)
+
 
         # Apply PEFT if specified
         if self.fine_tune_method in ["lora", "prefix_tuning", "soft_prompt", "compactor"]:
@@ -71,6 +80,10 @@ class FineTuner:
         encodings = self.tokenizer(data["text"], truncation=True, padding=True, max_length=self.config.max_seq_length)
         dataset = Dataset.from_dict(encodings)
         dataset = dataset.add_column("label", data["label"])
+        if 'source' in data.features:
+            dataset = dataset.add_column("source", data["source"])
+        if 'score' in data.features:
+            dataset = dataset.add_column("score", data["score"])
         return dataset
 
     def calculate_class_weights(self, labels):
@@ -81,18 +94,15 @@ class FineTuner:
         class_weights = compute_class_weight("balanced", classes=unique_labels, y=labels)
         return torch.tensor(class_weights, dtype=torch.float)
 
-    def train(self, train_data, eval_data):
+    def train(self, train_dataset, eval_dataset):
         """
         Train the model with weighted loss and metadata considerations.
         """
-        logger.info("Starting training process.")
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        train_data = self.prepare_data(train_dataset)
+        eval_data = self.prepare_data(eval_dataset)
 
         if self.shuffle:
             train_data = train_data.shuffle(seed=42)
-
-        # Move weights to the appropriate device
-        self.model.to(device)
 
         if self.config.use_class_weights:
 
@@ -103,10 +113,10 @@ class FineTuner:
                 class_weights = self.calculate_class_weights(train_data["label"])
 
             logger.info(f"class weights: {class_weights}")
-            class_weights = class_weights.to(device)
+            class_weights = class_weights.to(self.device)
 
             class WeightedTrainer(Trainer):
-                def compute_loss(self, model, inputs, return_outputs=False):
+                def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
                     labels = inputs.get("labels")
                     # forward pass
                     outputs = model(**inputs)
@@ -123,6 +133,62 @@ class FineTuner:
                 eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics
             )
+        elif self.retrieval_loss_weight < 1:
+
+            logger.info("** USING RETRIEVAL-WEIGHTED LOSS **")
+            retrieval_loss_weight = self.retrieval_loss_weight
+            class RetrievalWeightedTrainer(Trainer):
+                def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+                    labels = inputs.pop("labels")
+                    source = inputs.pop("source")  # Extract "source" feature
+                    score = inputs.pop("score")  # Extract "source" feature
+
+                    outputs = model(**inputs)
+                    logits = outputs.get("logits")
+
+                    # Standard loss function (no reduction to compute separately)
+                    loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
+                    losses = loss_fct(logits, labels)
+
+                    # Create masks for "main" and "retrieved" samples
+                    retrieval_mask = (source == 1).float().to(losses.device)  # 1 for retrieved, 0 for main
+                    main_mask = 1 - retrieval_mask  # 1 for main, 0 for retrieved
+
+                    # Compute separate losses
+                    loss_main = (losses * main_mask).sum() / main_mask.sum().clamp(min=1)  # Avoid division by zero
+                    loss_retrieved = (losses * retrieval_mask).sum() / retrieval_mask.sum().clamp(min=1)
+
+                    # Final weighted loss
+                    final_loss = loss_main + loss_retrieved * retrieval_loss_weight
+
+                    return (final_loss, outputs) if return_outputs else final_loss
+
+            class RetrievalWeightedDataCollator(DataCollatorWithPadding):
+                def __call__(self, features):
+                    # Extract 'source' and 'score' values for each instance
+                    sources = [f.pop("source") for f in features]  # Keeps per-instance source
+                    scores = [f.pop("score") for f in features]  # Keeps per-instance score
+
+                    # Tokenize normally using the parent collator
+                    batch = super().__call__(features)
+
+                    # Convert 'source' to a tensor (1 for retrieved, 0 for main)
+                    batch["source"] = torch.tensor([1 if s == "retrieved" else 0 for s in sources], dtype=torch.float)
+
+                    # Convert 'score' to a tensor (keep original float values)
+                    batch["score"] = torch.tensor(scores, dtype=torch.float)
+
+                    return batch
+
+            data_collator = RetrievalWeightedDataCollator(tokenizer=self.tokenizer)
+            self.trainer = RetrievalWeightedTrainer(
+                model=self.model,
+                args=self.config,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
+                compute_metrics=self.compute_metrics,
+                data_collator=data_collator
+            )
 
         else:
 
@@ -138,12 +204,13 @@ class FineTuner:
 
         self.trainer.train()
 
-    def predict(self, test_data, save_prediction=False):
+    def predict(self, test_dataset, save_prediction=False):
         """
         Predict labels for the test dataset.
         """
         logger.info("Running predictions.")
         # trainer = Trainer(model=self.model)
+        test_data = self.prepare_data(test_dataset)
         predictions = self.trainer.predict(test_data)
         # Extract predictions and labels
         logits = predictions.predictions
@@ -175,12 +242,13 @@ class FineTuner:
         accuracy = accuracy_score(labels, predictions)
         return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 
-    def evaluate(self, test_data, save_results=False, key='evaluation', metric_key_prefix='test'):
+    def evaluate(self, test_dataset, save_results=False, key='evaluation', metric_key_prefix='test'):
         """
         Evaluate the model on test data.
         """
         logger.info("Evaluating model.")
         # trainer = Trainer(model=self.model)
+        test_data = self.prepare_data(test_dataset)
         results = self.trainer.evaluate(test_data, metric_key_prefix=metric_key_prefix)
         if save_results:
             # Save evaluation results
