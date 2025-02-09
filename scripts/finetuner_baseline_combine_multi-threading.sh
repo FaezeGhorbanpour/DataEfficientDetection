@@ -4,13 +4,15 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
 DATASETS=('gahd24_de' 'xdomain_tr')
+DATASETS=('bas19_es')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 LANGUAGES=('de' 'tr')
+LANGUAGES=('es')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="combine_fou18"
+FOLDER_SUBNAME="combine_dyn21_with_shuffling"
 
 # Function to process a single dataset
 run_dataset() {
@@ -23,7 +25,7 @@ run_dataset() {
 
     for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            datas=("fou18_en-20000-${RSS[i]}" "${dataset}-${split}-${RSS[i]}")
+            datas=("dyn21_en-20000-${RSS[i]}" "${dataset}-${split}-${RSS[i]}")
             langs=("en" "${lang}")
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -36,6 +38,7 @@ run_dataset() {
                 --do_fine_tuning \
                 --do_train \
                 --do_test \
+		--shuffle \
                 --do_hate_check\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
@@ -79,7 +82,7 @@ check_gpu_memory() {
 
 # Main loop
 num_gpus=8
-start_gpu=6
+start_gpu=7
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}

@@ -130,9 +130,9 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
     )
-    report_to: List[str] = field(
-        default_factory=list, metadata={"help": "List of dataset sizes to load."}
-    )
+    #report_to: List[str] = field(
+    #    default_factory=list, metadata={"help": "List of dataset sizes to load."}
+    #)
     shuffle: bool = field(
         default=False,
         metadata={"help": "Shuffle the train dataset."}
