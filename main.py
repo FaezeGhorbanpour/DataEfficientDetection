@@ -142,7 +142,7 @@ class FineTunerArguments(TrainingArguments):
         metadata={"help": "Repeat target train set."}
     )
     remove_unused_columns: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Remove unused columns."}
     )
     retrieval_loss_weight: float = field(
