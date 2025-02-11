@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="gahd24_de"
+    lang="de"
+    excluded_datasets=("gahd24_de" "dyn21_en")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 

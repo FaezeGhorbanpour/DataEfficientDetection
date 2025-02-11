@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="combine_train_set"
+FOLDER_NAME="retrieval_weight"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -31,13 +31,13 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="gahd24_de"
-    lang="de"
-    excluded_datasets=("gahd24_de" "dyn21_en")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -54,6 +54,7 @@ run_dataset() {
                 --combine_train_set\
                 --do_fine_tuning \
                 --retrieval_loss_weight 0.3 \
+		--remove_unused_columns 0\
                 --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\
@@ -107,7 +108,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=7; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

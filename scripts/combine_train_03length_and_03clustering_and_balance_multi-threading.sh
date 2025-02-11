@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="m3-length-balanced-labels"
+FOLDER_NAME="m3-length-cluster-balanced-labels"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=3
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -48,7 +48,8 @@ run_dataset() {
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
 		--balance_labels\
-		--unique_word_criteria_weight 0.4\
+		--unique_word_criteria_weight 0.3\
+		--cluster_criteria_weight 0.3\
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
@@ -107,7 +108,7 @@ K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs4
-    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
