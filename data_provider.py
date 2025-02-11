@@ -68,16 +68,16 @@ class DataProvider:
     def combine_new_dataset(self, dataset, retrieved_data, repeat=1):
         # Add IDs and source information to the new dataset
         retrieved_data = retrieved_data.map(
-            lambda example, idx: {"id": idx, "source": "retrieved"},
+            lambda example, idx: {"id": idx, "source": 1},
             with_indices=True
         )
 
         # Add source information to the original train dataset
-        dataset["train"] = dataset["train"].map(lambda example: {"source": "main", 'score': float(0)})
-        dataset["test"] = dataset["test"].map(lambda example: {"source": "main", 'score': float(0)})
-        dataset["validation"] = dataset["validation"].map(lambda example: {"source": "main", 'score': float(0)})
+        dataset["train"] = dataset["train"].map(lambda example: {"source": 0, 'score': float(0)})
+        dataset["test"] = dataset["test"].map(lambda example: {"source": 0, 'score': float(0)})
+        dataset["validation"] = dataset["validation"].map(lambda example: {"source": 0, 'score': float(0)})
         if 'hate_check' in dataset:
-            dataset["hate_check"] = dataset["hate_check"].map(lambda example: {"source": "main", 'score': float(0)})
+            dataset["hate_check"] = dataset["hate_check"].map(lambda example: {"source": 0, 'score': float(0)})
 
         # Ensure retrieved data has the same features as the train dataset
         retrieved_data = retrieved_data.cast(dataset["train"].features)

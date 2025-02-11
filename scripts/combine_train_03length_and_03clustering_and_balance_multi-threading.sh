@@ -9,14 +9,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="m3-length-cluster-balanced-labels"
 
-#MODEL_NAME="microsoft/mdeberta-v3-base"
-#FOLDER_NAME="mdeberta"
 
-#MODEL_NAME="FacebookAI/xlm-roberta-base"
-#FOLDER_NAME="roberta"
-
-KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
-#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
@@ -62,7 +55,7 @@ run_dataset() {
                 --do_test\
                 --do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
