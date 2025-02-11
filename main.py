@@ -155,7 +155,7 @@ class FineTunerArguments(TrainingArguments):
     )
     curriculum_order: str=field(
         default='ascending',
-        metadata={"help": "curriculum learning order: ascending, descending"}
+        metadata={"help": "curriculum learning order: ascending, descending, strict_descending"}
     )
     save_more: bool=field(
         default=False,
