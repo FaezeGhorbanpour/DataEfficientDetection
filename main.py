@@ -1,6 +1,6 @@
 import argparse
-import logging
 import sys
+import logging
 import os
 import gc
 import copy
@@ -133,10 +133,6 @@ class FineTunerArguments(TrainingArguments):
     report_to: List[str] = field(
          default_factory=list, metadata={"help": "List of dataset sizes to load."}
     )
-    shuffle: bool = field(
-        default=False,
-        metadata={"help": "Shuffle the train dataset."}
-    )
     repeat_target_train_set: int = field(
         default=1,
         metadata={"help": "Repeat target train set."}
@@ -146,8 +142,24 @@ class FineTunerArguments(TrainingArguments):
         metadata={"help": "Remove unused columns."}
     )
     retrieval_loss_weight: float = field(
-        default=1,
+        default=1.0,
         metadata={"help": "Retrieval loss weight."}
+    )
+    use_curriculum_learning: bool=field(
+        default=True,
+        metadata={"help": "Use curriculum learning for finetuning."}
+    )
+    curriculum_schedule: str=field(
+        default='linear',
+        metadata={"help": "curriculum learning schedule: linear, exponential, stepwise"}
+    )
+    curriculum_order: str=field(
+        default='ascending',
+        metadata={"help": "curriculum learning order: ascending, descending"}
+    )
+    save_more: bool=field(
+        default=False,
+        metadata={"help": "Set true to save more eval results."}
     )
 
 
@@ -394,6 +406,7 @@ def main():
 
     # Setup logging
     logging.basicConfig(
+        level=logging.INFO,  # Change to DEBUG if needed
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         handlers=[logging.StreamHandler(sys.stdout)],

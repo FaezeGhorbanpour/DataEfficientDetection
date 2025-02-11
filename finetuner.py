@@ -15,6 +15,8 @@ from datasets import Dataset
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, f1_score
 
+from trainers import WeightedTrainer, RetrievalWeightedTrainer, CurriculumLearningTrainer
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +32,6 @@ class FineTuner:
         self.model_name = config.finetuner_model_name_or_path
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
-        self.shuffle = config.shuffle
         self.retrieval_loss_weight = config.retrieval_loss_weight
 
         # Load tokenizer
@@ -46,6 +47,9 @@ class FineTuner:
 
         # Move weights to the appropriate device
         self.model.to(self.device)
+
+        self.eval_epoch = 0
+        self.save_more = config.save_more
 
 
         # Apply PEFT if specified
@@ -101,9 +105,6 @@ class FineTuner:
         train_data = self.prepare_data(train_dataset)
         eval_data = self.prepare_data(eval_dataset)
 
-        if self.shuffle:
-            train_data = train_data.shuffle(seed=42)
-
         if self.config.use_class_weights:
 
             logger.info("** USING WEIGHTED LOSS**")
@@ -115,70 +116,17 @@ class FineTuner:
             logger.info(f"class weights: {class_weights}")
             class_weights = class_weights.to(self.device)
 
-            class WeightedTrainer(Trainer):
-                def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-                    labels = inputs.get("labels")
-                    # forward pass
-                    outputs = model(**inputs)
-                    logits = outputs.get("logits")
-                    # compute custom loss
-                    weighted_loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
-                    loss = weighted_loss_fct(logits, labels)
-                    return (loss, outputs) if return_outputs else loss
-
             self.trainer = WeightedTrainer(
                 model=self.model,
                 args=self.config,
                 train_dataset=train_data,
                 eval_dataset=eval_data,
-                compute_metrics=self.compute_metrics
+                compute_metrics=self.compute_metrics,
+                class_weights=class_weights
             )
         elif self.retrieval_loss_weight < 1:
 
             logger.info("** USING RETRIEVAL-WEIGHTED LOSS **")
-            retrieval_loss_weight = self.retrieval_loss_weight
-            class RetrievalWeightedTrainer(Trainer):
-                def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-                    labels = inputs.pop("labels")
-                    source = inputs.pop("source")  # Extract "source" feature
-                    score = inputs.pop("score")  # Extract "source" feature
-
-                    outputs = model(**inputs)
-                    logits = outputs.get("logits")
-
-                    # Standard loss function (no reduction to compute separately)
-                    loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
-                    losses = loss_fct(logits, labels)
-
-                    # Create masks for "main" and "retrieved" samples
-                    retrieval_mask = (source == 1).float().to(losses.device)  # 1 for retrieved, 0 for main
-                    main_mask = 1 - retrieval_mask  # 1 for main, 0 for retrieved
-
-                    # Compute separate losses
-                    loss_main = (losses * main_mask).sum() / main_mask.sum().clamp(min=1)  # Avoid division by zero
-                    loss_retrieved = (losses * retrieval_mask).sum() / retrieval_mask.sum().clamp(min=1)
-
-                    # Final weighted loss
-                    final_loss = loss_main + loss_retrieved * retrieval_loss_weight
-
-                    return (final_loss, outputs) if return_outputs else final_loss
-
-            class RetrievalWeightedDataCollator(DataCollatorWithPadding):
-                def __call__(self, features):
-                    # Extract 'source' and 'score' values for each instance
-                    sources = [f.pop("source") for f in features]  # Keeps per-instance source
-                    scores = [f.pop("score") for f in features]  # Keeps per-instance score
-
-                    # Tokenize normally using the parent collator
-                    batch = super().__call__(features)
-
-                    # Convert 'source' to a tensor (1 for retrieved, 0 for main)
-                    batch["source"] = torch.tensor([1 if s == "retrieved" else 0 for s in sources], dtype=torch.float)
-
-                    # Convert 'score' to a tensor (keep original float values)
-                    batch["score"] = torch.tensor(scores, dtype=torch.float)
-
-                    return batch
 
             data_collator = RetrievalWeightedDataCollator(tokenizer=self.tokenizer)
             self.trainer = RetrievalWeightedTrainer(
@@ -187,9 +135,25 @@ class FineTuner:
                 train_dataset=train_data,
                 eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics,
-                data_collator=data_collator
+                data_collator=data_collator,
+                retrieval_loss_weight=self.retrieval_loss_weight,
             )
+        elif  self.config.use_curriculum_learning:
+            logger.info("** USING CURRICULUM LEARNING **")
 
+            data_collator = RetrievalWeightedDataCollator(tokenizer=self.tokenizer)
+
+            self.trainer = CurriculumLearningTrainer(
+                model=self.model,
+                args=self.config,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
+                compute_metrics=self.compute_metrics,
+                data_collator=data_collator,
+                total_epochs=self.config.num_train_epochs,
+                schedule_type=self.config.curriculum_schedule,
+                schedule_order=self.config.curriculum_order
+            )
         else:
 
             logger.info("** USING STANDARD UNWEIGHTED LOSS**")
@@ -203,6 +167,10 @@ class FineTuner:
             )
 
         self.trainer.train()
+
+        if self.save_more and self.config.use_curriculum_learning:
+            self.save(self.trainer.epoch_train_size, "epoch_train_size.json")
+
 
     def predict(self, test_dataset, save_prediction=False):
         """
@@ -240,7 +208,19 @@ class FineTuner:
         precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted", zero_division=0)
         f1_macro = f1_score(labels, predictions, average="macro", zero_division=0)
         accuracy = accuracy_score(labels, predictions)
-        return {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
+        results = {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
+        if self.save_more:
+            self.eval_epoch += 1
+            self.save(results, f"eval_{self.eval_epoch}_results.json")
+
+        return results
+
+    def save(self, data, file_name):
+            # Save evaluation results
+        output_dir = self.config.output_dir
+        results_path = os.path.join(output_dir, file_name)
+        with open(results_path, "w") as f:
+            json.dump(data, f, indent=4)
 
     def evaluate(self, test_dataset, save_results=False, key='evaluation', metric_key_prefix='test'):
         """
@@ -252,11 +232,8 @@ class FineTuner:
         results = self.trainer.evaluate(test_data, metric_key_prefix=metric_key_prefix)
         if save_results:
             # Save evaluation results
-            output_dir = self.config.output_dir
-            results_path = os.path.join(output_dir, f"{key}_results.json")
-            with open(results_path, "w") as f:
-                json.dump(results, f, indent=4)
-            logger.info(f"Evaluation results saved to {results_path}")
+            self.save(results,  f"{key}_results.json")
+
         return results
 
     def save_model(self,):
@@ -266,3 +243,20 @@ class FineTuner:
         self.tokenizer.save_pretrained(model_path)
         return model_path
 
+
+class RetrievalWeightedDataCollator(DataCollatorWithPadding):
+    def __call__(self, features):
+        # Extract 'source' and 'score' values for each instance
+        sources = [f.pop("source") for f in features]  # Keeps per-instance source
+        scores = [f.pop("score") for f in features]  # Keeps per-instance score
+
+        # Tokenize normally using the parent collator
+        batch = super().__call__(features)
+
+        # Convert 'source' to a tensor (1 for retrieved, 0 for main)
+        batch["source"] = torch.tensor(sources, dtype=torch.int)
+
+        # Convert 'score' to a tensor (keep original float values)
+        batch["score"] = torch.tensor(scores, dtype=torch.float)
+
+        return batch
