@@ -87,13 +87,6 @@ class Prompter:
         response = requests.post(url, headers=headers, json=data)
         return response.json().get("text", "")
 
-    # def query_openrouter(self, prompt):
-    #     url = "https://openrouter.ai/api/generate"
-    #     headers = {"Authorization": f"Bearer {self.config.openrouter_api_key}", "Content-Type": "application/json"}
-    #     data = {"model": self.model_name, "prompt": prompt, "max_tokens": 10}
-    #     response = requests.post(url, headers=headers, json=data)
-    #     return response.json().get("text", "-1").strip()
-
 
     def call_groq(self, prompt):
         url = "https://api.groq.com/generate"
@@ -150,3 +143,5 @@ class Prompter:
 
 
 
+class Prompts:
+    pass
