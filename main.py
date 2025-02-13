@@ -146,7 +146,7 @@ class FineTunerArguments(TrainingArguments):
         metadata={"help": "Retrieval loss weight."}
     )
     use_curriculum_learning: bool=field(
-        default=True,
+        default=False,
         metadata={"help": "Use curriculum learning for finetuning."}
     )
     curriculum_schedule: str=field(

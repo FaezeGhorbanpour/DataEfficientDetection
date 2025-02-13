@@ -64,6 +64,7 @@ class Embedder:
             'arctic-base': 'Snowflake/snowflake-arctic-embed-m',
             'mpnet': 'paraphrase-multilingual-mpnet-base-v2',
             'distiluse': 'distiluse-base-multilingual-cased-v2',
+            'nomic': 'nomic-ai/nomic-embed-text-v2-moe',
         }
 
         if self.name in model_mapping:
