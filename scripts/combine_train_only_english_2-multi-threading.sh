@@ -8,12 +8,7 @@ RSS=(rs5 rs4 rs3 rs2 rs1)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-<<<<<<<< HEAD:scripts/combine_train_only_english_2-multi-threading.sh
 FOLDER_NAME="only_english_2"
-========
-FOLDER_NAME="curriculum_linear_descending"
->>>>>>>> 9b57ea5ba2d8f1463dd25cce26fa704f3abc1efa:scripts/combine_train_curriculum_linear_descending_multi-threading.sh
-
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
 
@@ -31,19 +26,17 @@ run_dataset() {
 
     # Determine epoch based on k
     local epoch
-<<<<<<<< HEAD:scripts/combine_train_only_english_2-multi-threading.sh
-    if [ "$k" -lt 10000 ]; then
-========
+
     if [ "$k" -lt 9999 ]; then
->>>>>>>> 9b57ea5ba2d8f1463dd25cce26fa704f3abc1efa:scripts/combine_train_curriculum_linear_descending_multi-threading.sh
-        epoch=10
+
+       epoch=10
     else
         epoch=5
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -62,9 +55,6 @@ run_dataset() {
                 --max_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]}\
                 --combine_train_set\
-                --use_curriculum_learning\
-                --curriculum_order "descending"\
-                --save_more \
                 --do_fine_tuning \
                 --num_train_epochs ${epoch} \
                 --do_train\
@@ -74,7 +64,7 @@ run_dataset() {
 		--unique_word_criteria_weight 0.4\
 		--do_hate_check\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -82,13 +72,8 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-<<<<<<<< HEAD:scripts/combine_train_only_english_2-multi-threading.sh
                 --report_to None \
                 --wandb_run_name "${FOLDER_NAME}"
-========
-                --wandb_run_name ${FOLDER_NAME}
->>>>>>>> 9b57ea5ba2d8f1463dd25cce26fa704f3abc1efa:scripts/combine_train_curriculum_linear_descending_multi-threading.sh
-
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
                     rm -rf "$dir"
@@ -121,16 +106,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
-<<<<<<<< HEAD:scripts/combine_train_only_english_2-multi-threading.sh
+    num_gpus=4
      #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
-========
-#$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
-
-    for ((gpu_id=7; gpu_id<num_gpus; gpu_id++)); do
->>>>>>>> 9b57ea5ba2d8f1463dd25cce26fa704f3abc1efa:scripts/combine_train_curriculum_linear_descending_multi-threading.sh
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

@@ -18,6 +18,7 @@ FOLDER_NAME="m3-length-balanced-labels-2"
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 #KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 KS=(20 200 2000 20000)
+KS=(20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -105,9 +106,9 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=4
+    num_gpus=6
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs4
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=5; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

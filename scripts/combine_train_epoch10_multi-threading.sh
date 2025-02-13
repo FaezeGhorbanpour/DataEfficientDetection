@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="gahd24_de"
-    lang="de"
-    excluded_datasets=("gahd24_de" "dyn21_en")
+    dataset="ous19_fr"
+    lang="fr"
+    excluded_datasets=("ous19_fr")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -67,7 +67,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --report_to None \
+                --report_to None\
                 --wandb_run_name ${FOLDER_NAME}
 
             for dir in "${OUTPUT_DIR}"check*; do

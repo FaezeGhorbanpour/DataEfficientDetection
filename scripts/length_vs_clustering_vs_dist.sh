@@ -28,7 +28,7 @@ run_dataset() {
 
     for cluster_weight in "${CRITERIA_WEIGHTS[@]}"; do
       echo "Starting k: ${k}, unique_word_criteria_weight: ${unique_weight}, cluster_criteria_weight: ${cluster_weight} on GPU: ${gpu}"
-      for split in 50 40 30 20 10; do
+      for split in 10 20 30 40 50; do
           for ((i=0; i<${#RSS[@]}; i++)); do
               OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/uw_${unique_weight}_cw_${cluster_weight}/"
               CUDA_VISIBLE_DEVICES=${gpu} python main.py \
