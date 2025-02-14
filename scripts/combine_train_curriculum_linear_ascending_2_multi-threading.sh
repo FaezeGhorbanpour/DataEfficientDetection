@@ -56,7 +56,7 @@ run_dataset() {
                 --curriculum_order "ascending"\
                 --save_more \
                 --do_fine_tuning \
-                --num_train_epochs ${epoch} \
+                --num_train_epochs 11 \
                 --do_train\
                 --do_eval\
                 --do_test\
@@ -72,7 +72,7 @@ run_dataset() {
                 --overwrite_output_dir \
 		--remove_unused_columns 0\
                 --wandb_run_name ${FOLDER_NAME}
-
+		--report_to ("wandb")
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
                     rm -rf "$dir"
