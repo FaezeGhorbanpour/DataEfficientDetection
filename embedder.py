@@ -19,7 +19,7 @@ import plotly.express as px
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModel
 
-from preplixity_calculator import PerplexityCalculator
+from calculator import PerplexityCalculator, UncertaintyCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Embedder:
-    def __init__(self, model_name, device="cuda", batch_size=256, add_perplexity=False):
+    def __init__(self, model_name, device="cuda", batch_size=256, add_perplexity=False, add_uncertainty=False):
         """
         Initialize the Embedder with a multilingual model.
         Args:
@@ -51,6 +51,10 @@ class Embedder:
         self.add_perplexity = add_perplexity
         if add_perplexity:
             self.perplexity_calculator = PerplexityCalculator(model_name="facebook/xglm-564M", batch_size=2, device=device)
+
+        self.add_uncertainty = add_uncertainty
+        if add_uncertainty:
+            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-xlm-roberta-base", batch_size=256, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
@@ -133,7 +137,7 @@ class Embedder:
 
     def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
         """
-        Embed all instances in multiple datasets.
+        Embed all instances in multiple datasets and compute uncertainty.
         Args:
             datasets (list[dict]): Datasets with text to embed.
             splits (list[str]): What split of Datasets to be embedded.
@@ -143,6 +147,9 @@ class Embedder:
         logger.info(f"Embedding datasets for splits: {splits}")
         embeddings = []
         metadata = []
+        all_uncertainties = []  # Collect uncertainties for normalization
+        all_languages = []  # Track corresponding languages
+
         for dataset in datasets:
             logger.info(f"Processing dataset: {dataset['name']} in language {dataset['language']}")
             for split in splits:
@@ -151,29 +158,54 @@ class Embedder:
                 labels = data["label"]
                 ids = data["id"]
                 logger.info(f"Embedding {len(texts)} texts from split: {split}")
+
+                # Generate embeddings
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
-                metadata += [{"text": texts[i],
-                              "label": labels[i],
-                              "id": ids[i],
-                              "split": split,
-                              "dataset_name": dataset["name"],
-                              "language": dataset["language"]} for i in range(len(embs))]
 
+                # Prepare metadata
+                batch_metadata = [{"text": texts[i],
+                                   "label": labels[i],
+                                   "id": ids[i],
+                                   "split": split,
+                                   "dataset_name": dataset["name"],
+                                   "language": dataset["language"]}
+                                  for i in range(len(embs))]
+
+                # Compute Perplexity (if enabled)
                 if self.add_perplexity:
                     perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
-                    metadata = [
-                        {**meta,
-                         "perplexity": perplexities[i],
-                         }
-                        for i, meta in enumerate(metadata)
-                    ]
-        if stack:
-            logger.info("Stacking all embeddings")
-            return np.vstack(embeddings), metadata
-        else:
-            logger.info("Returning embeddings without stacking")
-            return embeddings, metadata
+                    for i, meta in enumerate(batch_metadata):
+                        meta["perplexity"] = perplexities[i]
+
+                # Compute Uncertainty (if enabled)
+                if self.add_uncertainty:
+                    uncertainties, margins = self.uncertainty_calculator.calculate_uncertainty_batch(texts)
+                    for i, meta in enumerate(batch_metadata):
+                        meta["uncertainty"] = uncertainties[i]
+                        meta["margin"] = margins[i]
+
+                    # # Collect for normalization (after all datasets are processed)
+                    # all_uncertainties.extend(uncertainties)
+                    # all_languages.extend([dataset["language"]] * len(uncertainties))
+
+                # Append processed metadata
+                metadata.extend(batch_metadata)
+
+        # # **Normalize Uncertainty Across Languages (Post-processing)**
+        # if self.add_uncertainty:
+        #     logger.info("Normalizing uncertainty across languages...")
+        #     normalized_uncertainties = self.uncertainty_calculator.normalize_uncertainty(all_uncertainties,
+        #                                                                                  all_languages)
+        #
+        #     # Update metadata with normalized uncertainty
+        #     count = 0
+        #     for meta in metadata:
+        #         if "uncertainty" in meta:  # Only update if uncertainty was calculated
+        #             meta["normalized_uncertainty"] = normalized_uncertainties[count]
+        #             count += 1
+
+        return np.vstack(embeddings) if stack else embeddings, metadata
 
     @staticmethod
     def calculate_similarity(embedding1, embedding2):

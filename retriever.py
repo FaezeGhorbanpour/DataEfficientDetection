@@ -227,15 +227,6 @@ class Retriever:
 
         return np.array([cluster_sizes[cluster_labels[i]] for i, idx in enumerate(indices)])
 
-    # def _filter_metadata(self, metadata, distances, key, exclude_values):
-    #     """Filter metadata and corresponding distances based on excluded values."""
-    #     filtered_metadata, filtered_distances = [], []
-    #     for meta, dist in zip(metadata, distances):
-    #         if meta[key] not in exclude_values:
-    #             filtered_metadata.append(meta)
-    #             filtered_distances.append(dist)
-    #     return filtered_metadata, np.array(filtered_distances)
-
     def _min_max_scale(self, arr):
         """Apply Min-Max normalization to scale values between 0 and 1."""
         if len(arr) == 0:

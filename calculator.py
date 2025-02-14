@@ -1,6 +1,46 @@
 import evaluate
 
 
+import numpy as np
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+
+class UncertaintyCalculator:
+    def __init__(self, model_name, batch_size=32, device: str = 'cuda'):
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.batch_size = batch_size
+        self.device = device
+
+        self.model.to(self.device)
+        self.model.eval()
+
+    def calculate_uncertainty_batch(self, texts):
+        """Computes entropy-based uncertainty for a batch of texts."""
+        entropies = []
+        margins = []
+        for i in range(0, len(texts), self.batch_size):
+            batch_texts = texts[i:i + self.batch_size]
+            inputs = self.tokenizer(batch_texts, padding=True, truncation=True, return_tensors="pt").to(self.device)
+
+            with torch.no_grad():  # **Disable gradient computation for efficiency**
+                outputs = self.model(**inputs)
+
+            probs = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
+            batch_entropies = -np.sum(probs * np.log(probs + 1e-10), axis=1)  # Entropy calculation
+
+
+            # Margin-based uncertainty
+            sorted_probs = np.sort(probs, axis=1)
+            margin = sorted_probs[:, -1] - sorted_probs[:, -2]  # Difference between top two classes
+
+            entropies.extend(batch_entropies)
+            margins.extend(margin)
+
+        return entropies, margins
+
+
 class PerplexityCalculator:
     def __init__(self, model_name: str, batch_size: int = 32, device: str = 'cuda'):
         """
@@ -66,3 +106,5 @@ if __name__ == "__main__":
     print("Top high-perplexity samples for fine-tuning:")
     for sentence in ranked_sentences:
         print(sentence)
+
+
