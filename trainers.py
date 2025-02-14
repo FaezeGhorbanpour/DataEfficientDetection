@@ -174,7 +174,7 @@ class CurriculumLearningTrainer(Trainer):
             epoch (int): Current epoch.
         """
         retrieval_ratio = self._get_retrieval_ratio()
-        num_retrieved_to_add = int(len(self.retrieved_dataset) * retrieval_ratio)
+        num_retrieved_to_add = min(int(len(self.retrieved_dataset) * retrieval_ratio), 50)
 
         logger.info(f"Epoch {self.current_epoch + 1}: Adding {num_retrieved_to_add} retrieved samples ({retrieval_ratio * 100:.1f}%)")
 

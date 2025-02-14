@@ -13,8 +13,8 @@
   "dataloader_num_workers": 1,
   "remove_unused_columns": false,
   "use_curriculum_learning": true,
-  "curriculum_schedule": "stepwise",
-  "curriculum_order": "descending",
+  "curriculum_schedule": "linear",
+  "curriculum_order": "ascending",
   "save_more": true,
 
   "combine_train_set": true,
@@ -25,11 +25,11 @@
   "do_eval": true,
   "do_test": true,
   "do_hate_check": true,
-  "report_to": [],
+  "report_to": "wandb",
 
   "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
 
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/temp/stepwise_descending/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/temp/linear_ascending_2/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "retrieval_fine_tuning",

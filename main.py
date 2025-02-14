@@ -200,6 +200,14 @@ class EmbedderArguments:
     splits: Optional[List[str]] = field(
         default=None, metadata={"help": "What splits of given datasets must be embedded."}
     )
+    add_perplexity: bool = field(
+        default=False,
+        metadata={"help": "Add perplexity."}
+    )
+    add_uncertainty: bool = field(
+        default=False,
+        metadata={"help": "Add uncertainty."}
+    )
 
 
 
@@ -449,6 +457,8 @@ def main():
 
     if finetuner_args.report_to is None or finetuner_args.report_to == 'None' or 'None' in finetuner_args.report_to:
         finetuner_args.report_to = []
+    elif finetuner_args.report_to == 'wandb':
+        finetuner_args.report_to = ['wandb']
     
     print('excluded_datasets', retriever_args.exclude_datasets)
     # Set seed before initializing model.
@@ -475,7 +485,7 @@ def main():
     embedder = None
     embeddings, meta_datas = None, []
     if main_args.do_embedding:
-        embedder = Embedder(embedder_args.embedder_model_name_or_path)
+        embedder = Embedder(embedder_args.embedder_model_name_or_path, add_perplexity=embedder_args.add_perplexity, add_uncertainty=embedder_args.add_uncertainty)
         if main_args.enable_wandb:
             wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")
