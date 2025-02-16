@@ -13,6 +13,5 @@
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
-  "wandb_run_name": "embedding",
-  "report_to": []
+  "wandb_run_name": "embedding"
 }
