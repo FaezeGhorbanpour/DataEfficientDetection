@@ -35,8 +35,8 @@ class UncertaintyCalculator:
             sorted_probs = np.sort(probs, axis=1)
             margin = sorted_probs[:, -1] - sorted_probs[:, -2]  # Difference between top two classes
 
-            entropies.extend(batch_entropies)
-            margins.extend(margin)
+            entropies.extend([float(i) for i in batch_entropies])
+            margins.extend([float(i) for i in margin])
 
         return entropies, margins
 

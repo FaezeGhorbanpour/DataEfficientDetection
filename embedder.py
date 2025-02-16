@@ -58,11 +58,11 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name="ai-forever/mGPT", batch_size=64, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name="ai-forever/mGPT", batch_size=16, device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
-            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-xlm-roberta-base", batch_size=256, device=device)
+            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-xlm-roberta-base", batch_size=1024, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
@@ -193,12 +193,6 @@ class Embedder:
 
                 # **Compute Perplexity (if enabled)**
                 if self.add_perplexity:
-                    # Free GPU memory before perplexity computation
-                    del self.model
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    logger.info("Embedding model deleted and GPU memory cleared.")
-
                     perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
 
                     # **Store perplexities for later normalization**
