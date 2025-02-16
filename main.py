@@ -485,7 +485,9 @@ def main():
     embedder = None
     embeddings, meta_datas = None, []
     if main_args.do_embedding:
-        embedder = Embedder(embedder_args.embedder_model_name_or_path, add_perplexity=embedder_args.add_perplexity, add_uncertainty=embedder_args.add_uncertainty)
+        embedder = Embedder(embedder_args.embedder_model_name_or_path,
+                            add_perplexity=embedder_args.add_perplexity,
+                            add_uncertainty=embedder_args.add_uncertainty)
         if main_args.enable_wandb:
             wandb.config.update(embedder_args, allow_val_change=False)
         logger.info("Embedding datasets...")

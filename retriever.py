@@ -9,6 +9,7 @@ import json
 import logging
 
 from sklearn.cluster import MiniBatchKMeans
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +176,10 @@ class Retriever:
         # Compute feature scores
         norm_word_counts = np.zeros(len(results), dtype=np.float32)
         if unique_word_criteria_weight:
-            word_counts = np.array([self._compute_unique_word_count(result['metadata']["text"]) for result in results])
-            norm_word_counts = self._min_max_scale(word_counts)
+            tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-large")
+            token_counts = np.array(
+                list(map(lambda result: self._compute_unique_token_count(result['metadata']["text"], tokenizer=tokenizer), results)))
+            norm_word_counts = self._min_max_scale(token_counts)
 
 
         # Compute clustering scores if not computed before
@@ -216,14 +219,19 @@ class Retriever:
 
     def _compute_unique_word_count(self, text):
         """Compute the number of unique words in a text."""
-        return len(set(text.lower().split()))
+        return 1.0/len(set(text.lower().split()))
+
+    def _compute_unique_token_count(self, text, tokenizer):
+        """Compute the number of unique tokens in a text efficiently."""
+        tokens = tokenizer.tokenize(text)  # Efficient tokenization
+        return 1.0/len(set(tokens))  # Unique token count
 
     def _compute_cluster_scores(self, embeddings, indices, num_clusters):
         """Cluster embeddings and compute cluster scores based on cluster sizes."""
         kmeans = MiniBatchKMeans(n_clusters=num_clusters, batch_size=256, random_state=42)
         cluster_labels = kmeans.fit_predict(embeddings)
         cluster_counts = Counter(cluster_labels)
-        cluster_sizes = {cluster: 1.0 / count for cluster, count in cluster_counts.items()}  # Smaller clusters get higher scores
+        cluster_sizes = {cluster: count for cluster, count in cluster_counts.items()}  # Smaller clusters get higher scores
 
         return np.array([cluster_sizes[cluster_labels[i]] for i, idx in enumerate(indices)])
 
@@ -323,16 +331,32 @@ class Retriever:
             string_list (list): List of strings to save.
             file_path (str): Path to the file where the list will be saved.
         """
+
+        def convert_to_serializable(obj):
+            """Convert numpy types to native Python types."""
+            if isinstance(obj, np.int64):  # Handle numpy int64
+                return int(obj)
+            elif isinstance(obj, np.float64):  # Handle numpy float64
+                return float(obj)
+            elif isinstance(obj, np.ndarray):  # Handle numpy arrays
+                return obj.tolist()
+            return obj
+
         try:
             if not os.path.exists(path):
                 os.makedirs(path)
             file_path = os.path.join(path, "retrieved_data.json")
-            logger.info(f"Retrieved Metadata is going to be saved at {file_path}")
-            with open(file_path, 'w') as json_file:
-                json.dump(meta, json_file, indent=4, ensure_ascii=False)
-            logger.info(f"List saved to {file_path}")
+            logger.info(f"Retrieved Metadata is going to be saved at retrieved_data.json")
+
+            # Convert the `meta` object before saving to ensure all values are serializable
+            meta_serializable = json.loads(json.dumps(meta, default=convert_to_serializable))
+
+            with open(file_path, 'w', encoding='utf-8') as json_file:
+                json.dump(meta_serializable, json_file, indent=4, ensure_ascii=False)
+
+            logger.info(f"List saved.")
         except Exception as e:
-            logger.info(f"Error in saving Meta!")
+            logger.error(f"Error in saving Meta: {e}")
 
 
     def save_index(self, path):
@@ -347,7 +371,7 @@ class Retriever:
         faiss.write_index(self.index, os.path.join(path, 'embedding.index'))
         with open(os.path.join(path, 'metadata.json'), 'w') as f:
             json.dump(self.metadata, f, indent=4, ensure_ascii=False)
-        logger.info("Index saved successfully is this directory:")
+        logger.info("Index saved successfully is the directory:")
 
     def load_index(self, path):
         """

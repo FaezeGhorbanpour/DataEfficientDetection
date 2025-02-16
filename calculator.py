@@ -41,6 +41,7 @@ class UncertaintyCalculator:
         return entropies, margins
 
 
+
 class PerplexityCalculator:
     def __init__(self, model_name: str, batch_size: int = 32, device: str = 'cuda'):
         """
@@ -82,6 +83,26 @@ class PerplexityCalculator:
         ranked_sentences = sorted(zip(sentences, perplexities), key=lambda x: x[1], reverse=True)
 
         return [sentence for sentence, _ in ranked_sentences]
+
+
+def z_score_normalizer(input):
+    input = np.array(input)
+    # Z-score Normalization
+    mean = input.mean()
+    std = input.std()
+    z_normalized_uncertainties = (input - mean) / (std + 1e-10)
+
+    return z_normalized_uncertainties
+
+def minmax_normalizer(input):
+    input = np.array(input)
+
+    # Min-Max Normalization
+    min_val = input.min()
+    max_val = input.max()
+    minmax_normalized_uncertainties = (input - min_val) / (max_val - min_val + 1e-10)
+
+    return minmax_normalized_uncertainties
 
 
 # Example usage:

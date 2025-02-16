@@ -1,3 +1,4 @@
+import gc
 import logging
 import os.path
 
@@ -8,6 +9,12 @@ import pandas as pd
 # import datashader.transfer_functions as tf
 # import colorcet as cc
 # from datashader.mpl_ext import dsshow
+
+import gc
+import torch
+import numpy as np
+import logging
+from collections import defaultdict
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 import numpy as np
@@ -20,6 +27,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModel
 
 from calculator import PerplexityCalculator, UncertaintyCalculator
+from calculator import z_score_normalizer, minmax_normalizer
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +58,7 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name="facebook/xglm-564M", batch_size=2, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name="ai-forever/mGPT", batch_size=64, device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
@@ -135,23 +143,34 @@ class Embedder:
         logger.info("Sentences embedded successfully")
         return embeddings
 
+
+    logger = logging.getLogger(__name__)
+
     def embed_datasets(self, datasets, splits=['train', 'validation'], stack=True):
         """
-        Embed all instances in multiple datasets and compute uncertainty.
+        Embed all instances in multiple datasets and compute uncertainty, normalizing values per language.
+
         Args:
-            datasets (list[dict]): Datasets with text to embed.
-            splits (list[str]): What split of Datasets to be embedded.
+            datasets (list[dict]): List of dataset dictionaries.
+            splits (list[str]): Dataset splits to process (e.g., 'train', 'validation').
+
         Returns:
             np.ndarray, list[dict]: Embeddings and corresponding metadata.
         """
         logger.info(f"Embedding datasets for splits: {splits}")
         embeddings = []
         metadata = []
-        all_uncertainties = []  # Collect uncertainties for normalization
-        all_languages = []  # Track corresponding languages
+
+        # **Step 1: Collect all perplexities and uncertainties per language**
+        perplexity_per_language = defaultdict(list)
+        uncertainty_per_language = defaultdict(list)
+        margin_per_language = defaultdict(list)
+        language_metadata = defaultdict(list)
 
         for dataset in datasets:
-            logger.info(f"Processing dataset: {dataset['name']} in language {dataset['language']}")
+            language = dataset["language"]
+            logger.info(f"Processing dataset: {dataset['name']} in language {language}")
+
             for split in splits:
                 data = dataset["data"][split]
                 texts = data["text"]
@@ -159,51 +178,95 @@ class Embedder:
                 ids = data["id"]
                 logger.info(f"Embedding {len(texts)} texts from split: {split}")
 
-                # Generate embeddings
+                # **Generate embeddings**
                 embs = self.embed_sentences(texts)
                 embeddings.append(embs)
 
-                # Prepare metadata
+                # **Prepare metadata per instance**
                 batch_metadata = [{"text": texts[i],
                                    "label": labels[i],
                                    "id": ids[i],
                                    "split": split,
                                    "dataset_name": dataset["name"],
-                                   "language": dataset["language"]}
+                                   "language": language}
                                   for i in range(len(embs))]
 
-                # Compute Perplexity (if enabled)
+                # **Compute Perplexity (if enabled)**
                 if self.add_perplexity:
+                    # Free GPU memory before perplexity computation
+                    del self.model
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    logger.info("Embedding model deleted and GPU memory cleared.")
+
                     perplexities = self.perplexity_calculator.calculate_perplexity_batch(texts)
+
+                    # **Store perplexities for later normalization**
+                    perplexity_per_language[language].extend(perplexities)
+
+                    # Attach raw perplexities for now
                     for i, meta in enumerate(batch_metadata):
                         meta["perplexity"] = perplexities[i]
 
-                # Compute Uncertainty (if enabled)
+                # **Compute Uncertainty (if enabled)**
                 if self.add_uncertainty:
                     uncertainties, margins = self.uncertainty_calculator.calculate_uncertainty_batch(texts)
+
+                    # **Store uncertainties & margins for later normalization**
+                    uncertainty_per_language[language].extend(uncertainties)
+                    margin_per_language[language].extend(margins)
+
+                    # Attach raw values for now
                     for i, meta in enumerate(batch_metadata):
                         meta["uncertainty"] = uncertainties[i]
                         meta["margin"] = margins[i]
 
-                    # # Collect for normalization (after all datasets are processed)
-                    # all_uncertainties.extend(uncertainties)
-                    # all_languages.extend([dataset["language"]] * len(uncertainties))
+                # **Store metadata for later normalization update**
+                language_metadata[language].extend(batch_metadata)
 
                 # Append processed metadata
                 metadata.extend(batch_metadata)
 
-        # # **Normalize Uncertainty Across Languages (Post-processing)**
-        # if self.add_uncertainty:
-        #     logger.info("Normalizing uncertainty across languages...")
-        #     normalized_uncertainties = self.uncertainty_calculator.normalize_uncertainty(all_uncertainties,
-        #                                                                                  all_languages)
-        #
-        #     # Update metadata with normalized uncertainty
-        #     count = 0
-        #     for meta in metadata:
-        #         if "uncertainty" in meta:  # Only update if uncertainty was calculated
-        #             meta["normalized_uncertainty"] = normalized_uncertainties[count]
-        #             count += 1
+        # **Step 2: Normalize values per language**
+        for language in perplexity_per_language.keys():
+            # **Normalize Perplexity**
+            if self.add_perplexity:
+                perplexities = perplexity_per_language[language]
+                normalized_perplexities_z = z_score_normalizer(perplexities)
+                normalized_perplexities_mm = minmax_normalizer(perplexities)
+
+                logger.info(f"Perplexity Normalization for {language}: "
+                            f"Z-score Mean: {np.mean(normalized_perplexities_z)}, "
+                            f"Min-Max Mean: {np.mean(normalized_perplexities_mm)}")
+
+                for i, meta in enumerate(language_metadata[language]):
+                    meta["normalized_perplexity_z"] = normalized_perplexities_z[i]
+                    meta["normalized_perplexity_mm"] = normalized_perplexities_mm[i]
+
+            # **Normalize Uncertainty & Margin**
+            if self.add_uncertainty:
+                uncertainties = uncertainty_per_language[language]
+                margins = margin_per_language[language]
+
+                normalized_uncertainties_z = z_score_normalizer(uncertainties)
+                normalized_uncertainties_mm = minmax_normalizer(uncertainties)
+
+                normalized_margins_z = z_score_normalizer(margins)
+                normalized_margins_mm = minmax_normalizer(margins)
+
+                logger.info(f"Uncertainty Normalization for {language}: "
+                            f"Z-score Mean: {np.mean(normalized_uncertainties_z)}, "
+                            f"Min-Max Mean: {np.mean(normalized_uncertainties_mm)}")
+
+                logger.info(f"Margin Normalization for {language}: "
+                            f"Z-score Mean: {np.mean(normalized_margins_z)}, "
+                            f"Min-Max Mean: {np.mean(normalized_margins_mm)}")
+
+                for i, meta in enumerate(language_metadata[language]):
+                    meta["normalized_uncertainty_z"] = normalized_uncertainties_z[i]
+                    meta["normalized_uncertainty_mm"] = normalized_uncertainties_mm[i]
+                    meta["normalized_margin_z"] = normalized_margins_z[i]
+                    meta["normalized_margin_mm"] = normalized_margins_mm[i]
 
         return np.vstack(embeddings) if stack else embeddings, metadata
 
