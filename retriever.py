@@ -126,7 +126,7 @@ class Retriever:
 
 
     def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None,
-                                  exclude_languages=None, cluster_weight=0.0, unique_word_weight=0.0,
+                                  exclude_languages=None, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
                                   uncertainty_weight=0.0, perplexity_weight=0.0, balance_labels=False):
         """
         Retrieve top-k nearest neighbors for multiple query embeddings, incorporating additional scoring weights.
@@ -137,8 +137,8 @@ class Retriever:
             max_retrieved (int): Maximum number of results to return overall across all queries.
             exclude_datasets (list[str]): Datasets to exclude from results.
             exclude_languages (list[str]): Languages to exclude from results.
-            cluster_weight (float): Weight for clustering score in final ranking.
-            unique_word_weight (float): Weight for unique word count in final ranking.
+            cluster_criteria_weight (float): Weight for clustering score in final ranking.
+            unique_word_criteria_weight (float): Weight for unique word count in final ranking.
             uncertainty_weight (float): Weight for uncertainty in final ranking.
             perplexity_weight (float): Weight for perplexity in final ranking.
             balance_labels (bool): Whether to balance the retrieved results by label.
@@ -182,8 +182,8 @@ class Retriever:
         logger.info(f"Total unique results after deduplication: {len(results)}")
 
         # Compute additional feature scores
-        norm_word_counts = self._compute_word_count_scores(results, unique_word_weight)
-        norm_cluster_scores = self._compute_cluster_scores(results, cluster_weight, max_retrieved)
+        norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
+        norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight, max_retrieved)
         norm_uncertainty_scores = self._compute_normalized_scores(results, "normalized_uncertainty_mm",
                                                                   uncertainty_weight)
         norm_perplexity_scores = self._compute_normalized_scores(results, "normalized_perplexity_mm",
@@ -192,7 +192,7 @@ class Retriever:
         # Compute final scores with proper weighting
         results = self._compute_final_scores(
             results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_perplexity_scores,
-            cluster_weight, unique_word_weight, uncertainty_weight, perplexity_weight
+            cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight, perplexity_weight
         )
 
         # Sort results by final score
@@ -334,7 +334,7 @@ class Retriever:
         return deduplicated_results
 
     def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None,
-                                 cluster_weight=0.0, unique_word_weight=0.0, balance_labels=False):
+                                 cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0, balance_labels=False):
         """
         Retrieve a random selection of metadata, with optional filtering.
 

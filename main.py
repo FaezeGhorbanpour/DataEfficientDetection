@@ -238,11 +238,11 @@ class RetrieverArguments:
         default=False,
         metadata={"help": "Normalize the saved and retrieved embeddings."},
     )
-    cluster_weight: float = field(
+    cluster_criteria_weight: float = field(
         default=0.0,
         metadata={"help": "Weight for diversity criteria to score retrieved embeddings."},
     )
-    unique_word_weight: float = field(
+    unique_word_criteria_weight: float = field(
         default=0.0,
         metadata={"help": "Weight for number of unique words criteria to score retrieved embeddings."},
     )
@@ -532,8 +532,8 @@ def main():
             retrieved_data = retriever.retrieve_random_metadata(max_retrieved=retriever_args.max_retrieved,
                                                 exclude_datasets=retriever_args.exclude_datasets,
                                                 exclude_languages=retriever_args.exclude_languages,
-                                                unique_word_weight=retriever_args.unique_word_weight,
-                                                cluster_weight=retriever_args.cluster_weight,
+                                                unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
+                                                cluster_criteria_weight=retriever_args.cluster_criteria_weight,
                                                 balance_labels=retriever_args.balance_labels,)
         else:
             retrieved_data = retriever.retrieve_multiple_queries(
@@ -542,8 +542,8 @@ def main():
                 max_retrieved=retriever_args.max_retrieved,
                 exclude_datasets=retriever_args.exclude_datasets,
                 exclude_languages=retriever_args.exclude_languages,
-                unique_word_weight=retriever_args.unique_word_weight,
-                cluster_weight=retriever_args.cluster_weight,
+                unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
+                cluster_criteria_weight=retriever_args.cluster_criteria_weight,
                 perplexity_weight=retriever_args.perplexity_weight,
                 uncertainty_weight=retriever_args.uncertainty_weight,
                 balance_labels=retriever_args.balance_labels,
