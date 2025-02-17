@@ -22,7 +22,8 @@ class UncertaintyCalculator:
         margins = []
         for i in range(0, len(texts), self.batch_size):
             batch_texts = texts[i:i + self.batch_size]
-            inputs = self.tokenizer(batch_texts, padding=True, truncation=True, return_tensors="pt").to(self.device)
+            inputs = self.tokenizer(batch_texts, padding=True, truncation=True, max_length=512,
+                                    return_tensors="pt").to(self.device)
 
             with torch.no_grad():  # **Disable gradient computation for efficiency**
                 outputs = self.model(**inputs)
