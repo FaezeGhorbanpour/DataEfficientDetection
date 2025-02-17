@@ -223,7 +223,7 @@ class Retriever:
             return np.zeros(len(results), dtype=np.float32)
 
         tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-large")
-        token_counts = np.array([1.0/len(set(tokenizer.tokenize(res['metadata']["text"]))) for res in results])
+        token_counts = np.array([1.0/(len(set(tokenizer.tokenize(res['metadata']["text"])))+1e-10) for res in results])
         return self._min_max_scale(token_counts)
 
     def _compute_cluster_scores(self, results, cluster_criteria_weight, max_retrieved):
@@ -242,7 +242,7 @@ class Retriever:
         if weight == 0:
             return np.zeros(len(results), dtype=np.float32)
         if revert:
-            scores = np.array([1.0/res["metadata"].get(metric_name, 0) for res in results])
+            scores = np.array([1.0/(res["metadata"].get(metric_name, 0)+1e-10) for res in results])
         else:
             scores = np.array([res["metadata"].get(metric_name, 0) for res in results])
         return self._min_max_scale(scores)
