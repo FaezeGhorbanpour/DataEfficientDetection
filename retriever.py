@@ -124,109 +124,159 @@ class Retriever:
             vectors[i] = self.index.reconstruct(int(idx))
         return vectors
 
+
     def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None,
-                                  exclude_languages=None, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
-                                  balance_labels=False):
+                                  exclude_languages=None, cluster_weight=0.0, unique_word_weight=0.0,
+                                  uncertainty_weight=0.0, perplexity_weight=0.0, balance_labels=False):
         """
-        Retrieve top-k nearest neighbors for multiple query embeddings, with optional filtering and deduplication.
+        Retrieve top-k nearest neighbors for multiple query embeddings, incorporating additional scoring weights.
+
         Args:
             query_embeddings (np.ndarray): Query embeddings (N x embedding_dim).
             k (int): Number of nearest neighbors to retrieve for each query.
             max_retrieved (int): Maximum number of results to return overall across all queries.
-            filters (dict): Optional metadata filters.
+            exclude_datasets (list[str]): Datasets to exclude from results.
+            exclude_languages (list[str]): Languages to exclude from results.
+            cluster_weight (float): Weight for clustering score in final ranking.
+            unique_word_weight (float): Weight for unique word count in final ranking.
+            uncertainty_weight (float): Weight for uncertainty in final ranking.
+            perplexity_weight (float): Weight for perplexity in final ranking.
+            balance_labels (bool): Whether to balance the retrieved results by label.
+
         Returns:
-            list[dict]: Top results based on shortest distances, with optional filtering and deduplication.
+            list[dict]: Top results based on combined scores, with optional filtering and deduplication.
         """
         logger.info("Starting retrieval for multiple queries.")
 
-        # Normalize embeddings if required
+        # Normalize query embeddings if required
         if self.normalize_index:
             faiss.normalize_L2(query_embeddings)
 
-        # Perform the search for all queries at once
+        # Perform search for all queries
         distances, indices = self.index.search(query_embeddings, k)
 
-        # Flatten distances and indices for efficient processing
-        num_queries = query_embeddings.shape[0]
-        flattened_distances = distances.flatten()
-        flattened_indices = indices.flatten()
+        # Flatten distances and indices
+        flattened_distances, flattened_indices = distances.flatten(), indices.flatten()
 
         # Filter out invalid indices (-1)
         valid_mask = flattened_indices != -1
-        flattened_distances = flattened_distances[valid_mask]
-        flattened_indices = flattened_indices[valid_mask]
+        flattened_distances, flattened_indices = flattened_distances[valid_mask], flattened_indices[valid_mask]
 
         # Fetch metadata for all valid indices
         metadata = [self.metadata[idx] for idx in flattened_indices]
 
-        # Apply filters
-        if exclude_languages:
-            metadata, flattened_distances, flattened_indices = self._filter_metadata(metadata, flattened_distances, flattened_indices,'language', exclude_languages)
-        if exclude_datasets:
-            metadata, flattened_distances, flattened_indices = self._filter_metadata(metadata, flattened_distances, flattened_indices, 'dataset_name', exclude_datasets)
+        # Apply filtering by language and dataset
+        metadata, flattened_distances, flattened_indices = self._apply_filters(
+            metadata, flattened_distances, flattened_indices, exclude_languages, exclude_datasets
+        )
 
-        # Combine distances and metadata into a single structure
+        # Normalize distances
         norm_distances = self._min_max_scale(flattened_distances)
-        results = [{"metadata": meta, "score": float(dist), "index": index} for meta, dist, index in zip(metadata, norm_distances, flattened_indices)]
+
+        # Construct initial result list
+        results = [{"metadata": meta, "score": float(dist), "index": index}
+                   for meta, dist, index in zip(metadata, norm_distances, flattened_indices)]
 
         # Deduplicate results
         results = self._deduplicate_results(results)
         logger.info(f"Total unique results after deduplication: {len(results)}")
 
-        # Compute feature scores
-        norm_word_counts = np.zeros(len(results), dtype=np.float32)
-        if unique_word_criteria_weight:
-            tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-large")
-            token_counts = np.array(
-                list(map(lambda result: self._compute_unique_token_count(result['metadata']["text"], tokenizer=tokenizer), results)))
-            norm_word_counts = self._min_max_scale(token_counts)
-
-
-        # Compute clustering scores if not computed before
-        norm_cluster_scores = np.zeros(len(results), dtype=np.float32)
-        if cluster_criteria_weight:
-            remained_indices = [result["index"] for result in results]
-            all_embeddings = self._retrieve_vectors(remained_indices)
-            cluster_scores = self._compute_cluster_scores(all_embeddings, remained_indices, num_clusters=int(min(max_retrieved/4, 100)))
-            norm_cluster_scores = self._min_max_scale(cluster_scores)
+        # Compute additional feature scores
+        norm_word_counts = self._compute_word_count_scores(results, unique_word_weight)
+        norm_cluster_scores = self._compute_cluster_scores(results, cluster_weight, max_retrieved)
+        norm_uncertainty_scores = self._compute_normalized_scores(results, "normalized_uncertainty_mm",
+                                                                  uncertainty_weight)
+        norm_perplexity_scores = self._compute_normalized_scores(results, "normalized_perplexity_mm",
+                                                                 perplexity_weight, revert=True)
 
         # Compute final scores with proper weighting
-        if cluster_criteria_weight or unique_word_criteria_weight:
-            results = [
-                {**res,
-                 "score": (1-cluster_criteria_weight-unique_word_criteria_weight) * res['score'] +
-                          norm_word_counts[i] * unique_word_criteria_weight +
-                          norm_cluster_scores[i] * cluster_criteria_weight,
-                 "dist":res['score'],
-                 "length_score": norm_word_counts[i],
-                 "cluster_score": norm_cluster_scores[i]
-                 }
-                for i, res in enumerate(results)
-            ]
+        results = self._compute_final_scores(
+            results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_perplexity_scores,
+            cluster_weight, unique_word_weight, uncertainty_weight, perplexity_weight
+        )
 
-        # Sort results by score
+        # Sort results by final score
         results.sort(key=lambda x: x["score"])
 
-        # Balance labels if required
-        if balance_labels:
-            results = self._balance_labels(results, max_retrieved)
-        else:
-            results = results[:max_retrieved]
+        # Apply max retrieval constraint
+        results = results[:max_retrieved] if not balance_labels else self._balance_labels(results, max_retrieved)
 
         logger.info(f"Returning {len(results)} results after applying max_retrieved limit.")
 
         return results
 
-    def _compute_unique_word_count(self, text):
-        """Compute the number of unique words in a text."""
-        return 1.0/len(set(text.lower().split()))
+    # --------------- 🛠️ HELPER FUNCTIONS -----------------
 
-    def _compute_unique_token_count(self, text, tokenizer):
-        """Compute the number of unique tokens in a text efficiently."""
-        tokens = tokenizer.tokenize(text)  # Efficient tokenization
-        return 1.0/len(set(tokens))  # Unique token count
+    def _apply_filters(self, metadata, distances, indices, exclude_languages, exclude_datasets):
+        """Apply language and dataset filters to metadata and distances."""
+        if exclude_languages:
+            metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'language',
+                                                                 exclude_languages)
+        if exclude_datasets:
+            metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'dataset_name',
+                                                                 exclude_datasets)
+        return metadata, distances, indices
 
-    def _compute_cluster_scores(self, embeddings, indices, num_clusters):
+    def _compute_word_count_scores(self, results, unique_word_criteria_weight):
+        """Compute word count scores if the weight is provided."""
+        if unique_word_criteria_weight == 0:
+            return np.zeros(len(results), dtype=np.float32)
+
+        tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-large")
+        token_counts = np.array([1.0/len(set(tokenizer.tokenize(res['metadata']["text"]))) for res in results])
+        return self._min_max_scale(token_counts)
+
+    def _compute_cluster_scores(self, results, cluster_criteria_weight, max_retrieved):
+        """Compute clustering scores if the weight is provided."""
+        if cluster_criteria_weight == 0:
+            return np.zeros(len(results), dtype=np.float32)
+
+        remained_indices = [res["index"] for res in results]
+        all_embeddings = self._retrieve_vectors(remained_indices)
+        cluster_scores = self.cluster_scores(all_embeddings, remained_indices,
+                                                      num_clusters=int(min(max_retrieved / 4, 100)))
+        return self._min_max_scale(cluster_scores)
+
+    def _compute_normalized_scores(self, results, metric_name, weight, revert=False):
+        """Retrieve and normalize metric-based scores (uncertainty, perplexity) if the weight is provided."""
+        if weight == 0:
+            return np.zeros(len(results), dtype=np.float32)
+        if revert:
+            scores = np.array([1.0/res["metadata"].get(metric_name, 0) for res in results])
+        else:
+            scores = np.array([res["metadata"].get(metric_name, 0) for res in results])
+        return self._min_max_scale(scores)
+
+    def _compute_final_scores(self, results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores,
+                              norm_perplexity_scores,
+                              cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight,
+                              perplexity_weight):
+        """Compute final weighted scores for retrieved results."""
+        weight_sum = 1 - (
+                    cluster_criteria_weight + unique_word_criteria_weight + uncertainty_weight + perplexity_weight)
+
+        return [
+            {**res,
+             "score": (weight_sum * res['score'] +
+                       norm_word_counts[i] * unique_word_criteria_weight +
+                       norm_cluster_scores[i] * cluster_criteria_weight +
+                       norm_uncertainty_scores[i] * uncertainty_weight +
+                       norm_perplexity_scores[i] * perplexity_weight),
+             "dist": res['score'],
+             "length_score": norm_word_counts[i],
+             "cluster_score": norm_cluster_scores[i],
+             "uncertainty_score": norm_uncertainty_scores[i],
+             "perplexity_score": norm_perplexity_scores[i]
+             }
+            for i, res in enumerate(results)
+        ]
+
+    # def _compute_unique_word_count(self, text):
+    #     """Compute the number of unique words in a text."""
+    #     return 1.0/len(set(text.lower().split()))
+    #
+
+    def cluster_scores(self, embeddings, indices, num_clusters):
         """Cluster embeddings and compute cluster scores based on cluster sizes."""
         kmeans = MiniBatchKMeans(n_clusters=num_clusters, batch_size=256, random_state=42)
         cluster_labels = kmeans.fit_predict(embeddings)
@@ -284,7 +334,7 @@ class Retriever:
         return deduplicated_results
 
     def retrieve_random_metadata(self, max_retrieved=None, exclude_datasets=None, exclude_languages=None,
-                                 cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0, balance_labels=False):
+                                 cluster_weight=0.0, unique_word_weight=0.0, balance_labels=False):
         """
         Retrieve a random selection of metadata, with optional filtering.
 
