@@ -375,38 +375,41 @@ class Retriever:
 
     def save_meta_to_file(self, meta, path):
         """
-        Saves a list of strings to a file, each string on a new line.
+        Saves metadata as a JSON file, ignoring non-serializable entries.
 
         Args:
-            string_list (list): List of strings to save.
-            file_path (str): Path to the file where the list will be saved.
+            meta (dict or list): Metadata to save.
+            path (str): Directory where the file will be saved.
         """
 
         def convert_to_serializable(obj):
-            """Convert numpy types to native Python types."""
-            if isinstance(obj, np.int64):  # Handle numpy int64
+            """Convert numpy types and ignore non-serializable objects."""
+            if isinstance(obj, (np.integer, np.int64, np.int32)):  # Convert numpy int
                 return int(obj)
-            elif isinstance(obj, np.float64):  # Handle numpy float64
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):  # Convert numpy float
                 return float(obj)
-            elif isinstance(obj, np.ndarray):  # Handle numpy arrays
+            elif isinstance(obj, np.ndarray):  # Convert numpy array
                 return obj.tolist()
-            return obj
+            elif isinstance(obj, (list, tuple, set)):  # Convert lists/sets/tuples recursively
+                return [convert_to_serializable(item) for item in obj]
+            elif isinstance(obj, dict):  # Convert dict recursively
+                return {key: convert_to_serializable(value) for key, value in obj.items()}
+            else:
+                return None  # Ignore non-serializable objects
 
         try:
-            if not os.path.exists(path):
-                os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
             file_path = os.path.join(path, "retrieved_data.json")
-            logger.info(f"Retrieved Metadata is going to be saved at retrieved_data.json")
+            logger.info(f"Saving metadata at {file_path}")
 
-            # Convert the `meta` object before saving to ensure all values are serializable
-            meta_serializable = json.loads(json.dumps(meta, default=convert_to_serializable))
+            meta_serializable = convert_to_serializable(meta)
 
-            with open(file_path, 'w', encoding='utf-8') as json_file:
+            with open(file_path, "w", encoding="utf-8") as json_file:
                 json.dump(meta_serializable, json_file, indent=4, ensure_ascii=False)
 
-            logger.info(f"List saved.")
+            logger.info(f"Metadata saved successfully.")
         except Exception as e:
-            logger.error(f"Error in saving Meta: {e}")
+            logger.error(f"Error saving metadata: {e}")
 
 
     def save_index(self, path):

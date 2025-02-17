@@ -78,14 +78,6 @@ class FineTunerArguments(TrainingArguments):
         default="f1-macro",
         metadata={"help": "Metric to use for selecting the best model during training."}
     )
-    logging_steps: int = field(
-        default=500,
-        metadata={"help": "Number of update steps between two logs."}
-    )
-    save_steps: int = field(
-        default=1000,
-        metadata={"help": "Number of update steps between two logs."}
-    )
     eval_strategy: str = field(
         default="epoch",
         metadata={"help": "Evaluation strategy to adopt during training."}
