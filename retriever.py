@@ -184,9 +184,9 @@ class Retriever:
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
         norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight, max_retrieved)
-        norm_uncertainty_scores = self._compute_normalized_scores(results, "normalized_uncertainty_mm",
-                                                                  uncertainty_weight)
-        norm_perplexity_scores = self._compute_normalized_scores(results, "normalized_perplexity_mm",
+        norm_uncertainty_scores = self._compute_normalized_scores(results, "margin",
+                                                                  uncertainty_weight, revert=True)
+        norm_perplexity_scores = self._compute_normalized_scores(results, "perplexity",
                                                                  perplexity_weight, revert=True)
 
         # Compute final scores with proper weighting
