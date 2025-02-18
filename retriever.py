@@ -183,7 +183,7 @@ class Retriever:
 
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
-        norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight, max_retrieved)
+        norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight)
         norm_uncertainty_scores = self._compute_normalized_scores(results, "margin",
                                                                   uncertainty_weight, revert=True)
         norm_perplexity_scores = self._compute_normalized_scores(results, "perplexity",
@@ -223,18 +223,19 @@ class Retriever:
             return np.zeros(len(results), dtype=np.float32)
 
         tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-large")
-        token_counts = np.array([1.0/(len(set(tokenizer.tokenize(res['metadata']["text"])))+1e-10) for res in results])
+        token_counts = np.array([-1 * len(set(tokenizer.tokenize(res['metadata']["text"]))) for res in results])
         return self._min_max_scale(token_counts)
 
-    def _compute_cluster_scores(self, results, cluster_criteria_weight, max_retrieved):
+    def _compute_cluster_scores(self, results, cluster_criteria_weight):
         """Compute clustering scores if the weight is provided."""
         if cluster_criteria_weight == 0:
             return np.zeros(len(results), dtype=np.float32)
 
         remained_indices = [res["index"] for res in results]
         all_embeddings = self._retrieve_vectors(remained_indices)
+        num_clusters = int(max(len(all_embeddings) / 100, 50))
         cluster_scores = self.cluster_scores(all_embeddings, remained_indices,
-                                                      num_clusters=int(min(max_retrieved / 4, 100)))
+                                                      num_clusters=num_clusters)
         return self._min_max_scale(cluster_scores)
 
     def _compute_normalized_scores(self, results, metric_name, weight, revert=False):
@@ -242,7 +243,7 @@ class Retriever:
         if weight == 0:
             return np.zeros(len(results), dtype=np.float32)
         if revert:
-            scores = np.array([1.0/(res["metadata"].get(metric_name, 0)+1e-10) for res in results])
+            scores = np.array([-1 * res["metadata"].get(metric_name, 0) for res in results])
         else:
             scores = np.array([res["metadata"].get(metric_name, 0) for res in results])
         return self._min_max_scale(scores)
@@ -390,6 +391,8 @@ class Retriever:
                 return float(obj)
             elif isinstance(obj, np.ndarray):  # Convert numpy array
                 return obj.tolist()
+            elif isinstance(obj, (str, int, float, bool)):
+                return obj
             elif isinstance(obj, (list, tuple, set)):  # Convert lists/sets/tuples recursively
                 return [convert_to_serializable(item) for item in obj]
             elif isinstance(obj, dict):  # Convert dict recursively

@@ -514,7 +514,8 @@ def main():
         if main_args.enable_wandb:
             wandb.config.update(retriever_args, allow_val_change=False)
         logger.info("Loading retriever's index...")
-        retriever = Retriever()
+        retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type,
+                              normalize_index=retriever_args.normalize_index)
         retriever.load_index(retriever_args.index_path)
         logger.info("Retrieving similar sentences...")
 

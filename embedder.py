@@ -221,46 +221,46 @@ class Embedder:
                 # Append processed metadata
                 metadata.extend(batch_metadata)
 
-        # **Step 2: Normalize values per language**
-        for language in perplexity_per_language.keys():
-            # **Normalize Perplexity**
-            if self.add_perplexity:
-                perplexities = perplexity_per_language[language]
-                normalized_perplexities_z = z_score_normalizer(perplexities)
-                normalized_perplexities_mm = minmax_normalizer(perplexities)
-
-                logger.info(f"Perplexity Normalization for {language}: "
-                            f"Z-score Mean: {np.mean(normalized_perplexities_z)}, "
-                            f"Min-Max Mean: {np.mean(normalized_perplexities_mm)}")
-
-                for i, meta in enumerate(language_metadata[language]):
-                    meta["normalized_perplexity_z"] = normalized_perplexities_z[i]
-                    meta["normalized_perplexity_mm"] = normalized_perplexities_mm[i]
-
-            # **Normalize Uncertainty & Margin**
-            if self.add_uncertainty:
-                uncertainties = uncertainty_per_language[language]
-                margins = margin_per_language[language]
-
-                normalized_uncertainties_z = z_score_normalizer(uncertainties)
-                normalized_uncertainties_mm = minmax_normalizer(uncertainties)
-
-                normalized_margins_z = z_score_normalizer(margins)
-                normalized_margins_mm = minmax_normalizer(margins)
-
-                logger.info(f"Uncertainty Normalization for {language}: "
-                            f"Z-score Mean: {np.mean(normalized_uncertainties_z)}, "
-                            f"Min-Max Mean: {np.mean(normalized_uncertainties_mm)}")
-
-                logger.info(f"Margin Normalization for {language}: "
-                            f"Z-score Mean: {np.mean(normalized_margins_z)}, "
-                            f"Min-Max Mean: {np.mean(normalized_margins_mm)}")
-
-                for i, meta in enumerate(language_metadata[language]):
-                    meta["normalized_uncertainty_z"] = normalized_uncertainties_z[i]
-                    meta["normalized_uncertainty_mm"] = normalized_uncertainties_mm[i]
-                    meta["normalized_margin_z"] = normalized_margins_z[i]
-                    meta["normalized_margin_mm"] = normalized_margins_mm[i]
+        # # **Step 2: Normalize values per language**
+        # for language in perplexity_per_language.keys():
+        #     # **Normalize Perplexity**
+        #     if self.add_perplexity:
+        #         perplexities = perplexity_per_language[language]
+        #         normalized_perplexities_z = z_score_normalizer(perplexities)
+        #         normalized_perplexities_mm = minmax_normalizer(perplexities)
+        #
+        #         logger.info(f"Perplexity Normalization for {language}: "
+        #                     f"Z-score Mean: {np.mean(normalized_perplexities_z)}, "
+        #                     f"Min-Max Mean: {np.mean(normalized_perplexities_mm)}")
+        #
+        #         for i, meta in enumerate(language_metadata[language]):
+        #             meta["normalized_perplexity_z"] = normalized_perplexities_z[i]
+        #             meta["normalized_perplexity_mm"] = normalized_perplexities_mm[i]
+        #
+        #     # **Normalize Uncertainty & Margin**
+        #     if self.add_uncertainty:
+        #         uncertainties = uncertainty_per_language[language]
+        #         margins = margin_per_language[language]
+        #
+        #         normalized_uncertainties_z = z_score_normalizer(uncertainties)
+        #         normalized_uncertainties_mm = minmax_normalizer(uncertainties)
+        #
+        #         normalized_margins_z = z_score_normalizer(margins)
+        #         normalized_margins_mm = minmax_normalizer(margins)
+        #
+        #         logger.info(f"Uncertainty Normalization for {language}: "
+        #                     f"Z-score Mean: {np.mean(normalized_uncertainties_z)}, "
+        #                     f"Min-Max Mean: {np.mean(normalized_uncertainties_mm)}")
+        #
+        #         logger.info(f"Margin Normalization for {language}: "
+        #                     f"Z-score Mean: {np.mean(normalized_margins_z)}, "
+        #                     f"Min-Max Mean: {np.mean(normalized_margins_mm)}")
+        #
+        #         for i, meta in enumerate(language_metadata[language]):
+        #             meta["normalized_uncertainty_z"] = normalized_uncertainties_z[i]
+        #             meta["normalized_uncertainty_mm"] = normalized_uncertainties_mm[i]
+        #             meta["normalized_margin_z"] = normalized_margins_z[i]
+        #             meta["normalized_margin_mm"] = normalized_margins_mm[i]
 
         return np.vstack(embeddings) if stack else embeddings, metadata
 
