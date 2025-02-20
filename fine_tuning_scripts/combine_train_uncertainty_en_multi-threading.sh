@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="curriculum_linear_ascending"
+FOLDER_NAME="en-uncertainty=1"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -17,7 +17,7 @@ FOLDER_NAME="curriculum_linear_ascending"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 #KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-KS=(20 200)
+KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="bas19_es"
-    lang="es"
-    excluded_datasets=("bas19_es")
+    dataset="ous19_ar"
+    lang="ar"
+    excluded_datasets=("ous19_ar")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -47,14 +47,12 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
+		--uncertainty_weight 1\
                 --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/" \
                 --max_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --use_curriculum_learning\
-                --curriculum_order "ascending"\
-                --save_more \
                 --do_fine_tuning \
                 --num_train_epochs ${epoch} \
                 --do_train\
@@ -70,7 +68,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-		--remove_unused_columns 0\
+                --report_to None \
                 --wandb_run_name ${FOLDER_NAME}
 
             for dir in "${OUTPUT_DIR}"check*; do
@@ -87,7 +85,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=8000
+MIN_MEM=6400
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=10
 
@@ -109,7 +107,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=2; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
