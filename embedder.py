@@ -58,11 +58,11 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name="ai-forever/mGPT", batch_size=16, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name="openai-community/gpt2-medium", batch_size=16, device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
-            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-xlm-roberta-base", batch_size=1024, device=device)
+            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-roberta-base-hate", batch_size=1024, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',

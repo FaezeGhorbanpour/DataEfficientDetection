@@ -9,6 +9,8 @@ import json
 import logging
 import requests
 
+from prompts import *
+
 logger = logging.getLogger(__name__)
 
 SUPPORTED_HF_MODELS = {
@@ -107,10 +109,38 @@ class Prompter:
                 results.append(int(prediction) if prediction.isdigit() and int(prediction) in [0, 1] else -1)
         return results
 
-    def form_prompt_template(self, text, retrieved_data):
-        related_texts = [entry['metadata']['text'] for entry in retrieved_data]
-        prompt = f"Based on the retrieved similar texts: {'; '.join(related_texts)}, classify the following text as hate or non-hate. Answer with '1' for hate and '0' for non-hate. Text: {text}"
-        return prompt
+    def form_prompt_template(self, text, language="English", prompt_template="general", examples=None, context=None, non_hate_example=None):
+        # related_texts = [entry['metadata']['text'] for entry in retrieved_data]
+        # prompt = f"Based on the retrieved similar texts: {'; '.join(related_texts)}, classify the following text as hate or non-hate. Answer with '1' for hate and '0' for non-hate. Text: {text}"
+
+        if prompt_template == "general":
+            return general_prompt(text)
+        elif prompt_template == "definition":
+            return definition_prompt(text)
+        elif prompt_template == "chain_of_thought":
+            return chain_of_thought_prompt(text)
+        elif prompt_template == "few_shot":
+            if not examples:
+                raise ValueError("Few-shot prompting requires examples.")
+            return few_shot_prompt(text, examples)
+        elif prompt_template == "multilingual":
+            return multilingual_prompt(text, language)
+        elif prompt_template == "zero_shot_nli":
+            return zero_shot_nli_prompt(text)
+        elif prompt_template == "multilingual_chain_of_thought":
+            return multilingual_chain_of_thought_prompt(text, language)
+        elif prompt_template == "context_aware":
+            if not context:
+                raise ValueError("Context-aware prompting requires a context string.")
+            return context_aware_prompt(text, context)
+        elif prompt_template == "role_play":
+            return role_play_prompt(text)
+        elif prompt_template == "comparative":
+            if not non_hate_example:
+                raise ValueError("Comparative prompting requires a non-hate example.")
+            return comparative_prompt(text, non_hate_example)
+        else:
+            raise ValueError(f"Unknown prompt template: {prompt_template}")
 
     def compute_metrics(self, predictions, labels):
         logger.info("Evaluating model.")
@@ -138,10 +168,3 @@ class Prompter:
             json.dump(results, f, indent=4)
 
 
-
-
-
-
-
-class Prompts:
-    pass
