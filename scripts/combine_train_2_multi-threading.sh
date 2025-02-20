@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="epoch10"
+FOLDER_NAME="base_setting"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
-    excluded_datasets=("ous19_fr")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -52,7 +52,7 @@ run_dataset() {
                 --max_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --do_fine_tuning \
+                --do_fine_tuning 0\
                 --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\

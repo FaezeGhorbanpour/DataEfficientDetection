@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="m3-length"
+FOLDER_NAME="length=1"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -26,14 +26,14 @@ run_dataset() {
     # Determine epoch based on k
     local epoch
     if [ "$k" -lt 9999 ]; then
-        epoch=5
+        epoch=10
     else
-        epoch=3
+        epoch=5
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
-    excluded_datasets=("ous19_fr")
+    dataset="ous19_ar"
+    lang="ar"
+    excluded_datasets=("ous19_ar")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -47,7 +47,7 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-		--unique_word_criteria_weight 0.4\
+		--unique_word_criteria_weight 1\
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --max_retrieved ${k} \
@@ -85,7 +85,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=8000
+MIN_MEM=6400
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=10
 

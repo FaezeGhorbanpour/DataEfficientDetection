@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="curriculum_linear_ascending_epoch11"
+FOLDER_NAME="en-perplexity=1"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -47,16 +47,14 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
+		--perplexity_weight 1\
                 --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/" \
                 --max_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --use_curriculum_learning\
-                --curriculum_order "ascending"\
-                --save_more \
                 --do_fine_tuning \
-                --num_train_epochs 11 \
+                --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\
                 --do_test\
@@ -70,9 +68,9 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-		--remove_unused_columns 0\
+                --report_to None \
                 --wandb_run_name ${FOLDER_NAME}
-		--report_to ("wandb")
+
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
                     rm -rf "$dir"
@@ -106,10 +104,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=1
+    num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=7; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
