@@ -175,9 +175,10 @@ class FineTuner:
 
 
             self.trainer = Trainer(
+                model=self.model,
                 args=self.config,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics,
                 callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.do_early_stopping else None,
             )
