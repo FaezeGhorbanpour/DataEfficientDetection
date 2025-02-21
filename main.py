@@ -157,6 +157,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Set true to early stopping."}
     )
+    use_step_trainer: bool=field(
+        default=False,
+        metadata={"help": ""}
+    )
 
 
 # Define arguments for each module using dataclasses
