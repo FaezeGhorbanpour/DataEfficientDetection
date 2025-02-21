@@ -34,6 +34,9 @@ run_dataset() {
                 --do_train \
                 --do_test \
                 --do_hate_check\
+                --do_hate_check\
+                --per_device_train_batch_size 16 \
+                --per_device_eval_batch_size 64 \
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \

@@ -51,6 +51,9 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+                --do_hate_check\
+                --per_device_train_batch_size 16 \
+                --per_device_eval_batch_size 64 \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --output_dir $OUTPUT_DIR \
