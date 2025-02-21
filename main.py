@@ -250,6 +250,10 @@ class RetrieverArguments:
         default=0.0,
         metadata={"help": "Weight for uncertainty criteria to score retrieved embeddings."},
     )
+    margin_weight: float = field(
+        default=0.0,
+        metadata={"help": "Weight for margin criteria to score retrieved embeddings."},
+    )
     balance_labels: bool = field(
         default=False,
         metadata={"help": "Balance the retrieved embeddings."},
