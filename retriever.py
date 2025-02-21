@@ -127,7 +127,7 @@ class Retriever:
 
     def retrieve_multiple_queries(self, query_embeddings, k=5, max_retrieved=None, exclude_datasets=None,
                                   exclude_languages=None, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
-                                  uncertainty_weight=0.0, perplexity_weight=0.0, balance_labels=False):
+                                  uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0, balance_labels=False):
         """
         Retrieve top-k nearest neighbors for multiple query embeddings, incorporating additional scoring weights.
 
@@ -184,15 +184,16 @@ class Retriever:
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
         norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight)
-        norm_uncertainty_scores = self._compute_normalized_scores(results, "margin",
+        norm_uncertainty_scores = self._compute_normalized_scores(results, "uncertainty",
                                                                   uncertainty_weight, revert=True)
+        norm_margin_scores = self._compute_normalized_scores(results, "margin", margin_weight)
         norm_perplexity_scores = self._compute_normalized_scores(results, "perplexity",
                                                                  perplexity_weight, revert=True)
 
         # Compute final scores with proper weighting
         results = self._compute_final_scores(
-            results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_perplexity_scores,
-            cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight, perplexity_weight
+            results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_margin_scores, norm_perplexity_scores,
+            cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight, margin_weight, perplexity_weight
         )
 
         # Sort results by final score
@@ -249,12 +250,11 @@ class Retriever:
         return self._min_max_scale(scores)
 
     def _compute_final_scores(self, results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores,
-                              norm_perplexity_scores,
-                              cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight,
-                              perplexity_weight):
+                              norm_margin_scores, norm_perplexity_scores, cluster_criteria_weight,
+                              unique_word_criteria_weight, uncertainty_weight, margin_weight, perplexity_weight):
         """Compute final weighted scores for retrieved results."""
         weight_sum = 1 - (
-                    cluster_criteria_weight + unique_word_criteria_weight + uncertainty_weight + perplexity_weight)
+                    cluster_criteria_weight + unique_word_criteria_weight + uncertainty_weight + margin_weight + perplexity_weight)
 
         return [
             {**res,
@@ -262,6 +262,7 @@ class Retriever:
                        norm_word_counts[i] * unique_word_criteria_weight +
                        norm_cluster_scores[i] * cluster_criteria_weight +
                        norm_uncertainty_scores[i] * uncertainty_weight +
+                       norm_margin_scores[i] * margin_weight +
                        norm_perplexity_scores[i] * perplexity_weight),
              "dist": res['score'],
              "length_score": norm_word_counts[i],

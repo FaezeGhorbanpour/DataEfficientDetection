@@ -8,7 +8,7 @@ from transformers import (
     AutoTokenizer,
     AutoConfig,
     Trainer,
-    DataCollator, DefaultDataCollator, DataCollatorWithPadding,
+    DataCollator, DefaultDataCollator, DataCollatorWithPadding, EarlyStoppingCallback,
 )
 from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig
 from datasets import Dataset
@@ -33,6 +33,8 @@ class FineTuner:
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
         self.retrieval_loss_weight = config.retrieval_loss_weight
+        self.do_early_stopping = config.early_stopping
+        self.use_step_trainer = config.use_step_trainer
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
@@ -154,6 +156,29 @@ class FineTuner:
                 schedule_type=self.config.curriculum_schedule,
                 schedule_order=self.config.curriculum_order
             )
+        elif self.use_step_trainer:
+            logger.info("** USING STEP-TRAIN **")
+            self.config.max_steps=2000
+            self.config.warmup_steps=int(0.1 * 2000)  # 10% warmup
+            self.config.evaluation_strategy="steps"  # Evaluate periodically
+            self.config.eval_steps=250  # Evaluate every 250 steps
+            self.config.save_steps=500  # Save checkpoints every 500 steps
+            self.config.logging_steps=250  # Log progress every 50 steps
+            self.config.learning_rate=2e-5
+            self.config.weight_decay=0.01
+            self.config.max_seq_length=256
+            self.config.load_best_model_at_end=True  # Ensure best checkpoint is used
+            self.config.metric_for_best_model="f1-macro"  # Track F1-macro for early stopping
+            self.config.greater_is_better=True  # Higher F1-macro is better
+
+
+            self.trainer = Trainer(
+                args=self.config,
+                train_dataset=train_dataset,
+                eval_dataset=eval_dataset,
+                compute_metrics=self.compute_metrics,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.config.early_stopping else None,
+            )
         else:
 
             logger.info("** USING STANDARD UNWEIGHTED LOSS**")
@@ -163,7 +188,8 @@ class FineTuner:
                 args=self.config,
                 train_dataset=train_data,
                 eval_dataset=eval_data,
-                compute_metrics=self.compute_metrics
+                compute_metrics=self.compute_metrics,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.config.early_stopping else None,
             )
 
         self.trainer.train()

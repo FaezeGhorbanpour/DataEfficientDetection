@@ -15,7 +15,7 @@ from data_provider import DataProvider
 from embedder import Embedder
 from retriever import Retriever
 from finetuner import FineTuner
-from prompter import Prompter
+from old_prompter import Prompter
 
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
@@ -152,6 +152,10 @@ class FineTunerArguments(TrainingArguments):
     save_more: bool=field(
         default=False,
         metadata={"help": "Set true to save more eval results."}
+    )
+    do_early_stopping: bool=field(
+        default=False,
+        metadata={"help": "Set true to early stopping."}
     )
 
 
@@ -539,6 +543,7 @@ def main():
                 cluster_criteria_weight=retriever_args.cluster_criteria_weight,
                 perplexity_weight=retriever_args.perplexity_weight,
                 uncertainty_weight=retriever_args.uncertainty_weight,
+                margin_weight=retriever_args.margin_weight,
                 balance_labels=retriever_args.balance_labels,
             )
         retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
