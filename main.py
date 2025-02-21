@@ -161,6 +161,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": ""}
     )
+    load_best_model_at_end: bool=field(
+        default=True,
+        metadata={"help": ""}
+    )
 
 
 # Define arguments for each module using dataclasses
