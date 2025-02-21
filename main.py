@@ -464,7 +464,6 @@ def main():
     if main_args.enable_wandb:
         wandb.init(
             project=main_args.wandb_project,
-            run_name=main_args.wandb_run_name,
             name=f"{main_args.wandb_run_name}-{data_args.datasets[0]}-{finetuner_args.seed}",
             config=main_args,
         )
