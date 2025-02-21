@@ -2,15 +2,15 @@
 BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
-#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
-DATASETS=('gahd24_de' 'xdomain_tr')
+#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+DATASETS=('bas19_es' 'ous19_ar')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-LANGUAGES=('de' 'tr')
+LANGUAGES=('es' 'ar')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="mono_baseline"
+FOLDER_SUBNAME="mono_step_trainer"
 
 # Function to process a single dataset
 run_dataset() {
@@ -25,22 +25,20 @@ run_dataset() {
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		 --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
                 --do_fine_tuning \
+                --use_step_trainer\
                 --do_train \
                 --do_test \
                 --do_hate_check\
-                --per_device_train_batch_size 16 \
-                --per_device_eval_batch_size 64 \
-                --num_train_epochs 10\
-                --max_seq_length 128 \
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
+                --report_to "wandb" \
                 --wandb_run_name "${FOLDER_SUBNAME}"
 
             # Clean up checkpoint files

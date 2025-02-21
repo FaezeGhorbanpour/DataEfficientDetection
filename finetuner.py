@@ -170,6 +170,8 @@ class FineTuner:
             self.config.load_best_model_at_end=True  # Ensure best checkpoint is used
             self.config.metric_for_best_model="f1-macro"  # Track F1-macro for early stopping
             self.config.greater_is_better=True  # Higher F1-macro is better
+            self.config.per_device_train_batch_size=32
+            self.config.per_device_eval_batch_size=128
 
 
             self.trainer = Trainer(
