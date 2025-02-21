@@ -33,7 +33,7 @@ class FineTuner:
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
         self.retrieval_loss_weight = config.retrieval_loss_weight
-        self.do_early_stopping = config.early_stopping
+        self.do_early_stopping = config.do_early_stopping
         self.use_step_trainer = config.use_step_trainer
 
         # Load tokenizer
@@ -177,7 +177,7 @@ class FineTuner:
                 train_dataset=train_dataset,
                 eval_dataset=eval_dataset,
                 compute_metrics=self.compute_metrics,
-                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.config.early_stopping else None,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.do_early_stopping else None,
             )
         else:
 
@@ -189,7 +189,7 @@ class FineTuner:
                 train_dataset=train_data,
                 eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics,
-                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.config.early_stopping else None,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.do_early_stopping else None,
             )
 
         self.trainer.train()
