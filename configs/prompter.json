@@ -1,8 +1,8 @@
 {
-"prompter_model_name_or_path": "mistral",
+"prompter_model_name_or_path": "bloomz",
   "num_rounds": 1,
-  "datasets": ["bas19_es", "ous19_ar"],
-  "languages": ["es", "ar"],
+  "datasets": ["ous19_ar", "bas19_es"],
+  "languages": ["ar", "es"],
   "do_prompting": true,
   "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/temp/",
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/temp/",

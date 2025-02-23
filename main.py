@@ -361,10 +361,6 @@ class PrompterArguments:
         default=False,
         metadata={"help": "Do few shot prompting."}
     )
-    translate_prompt: bool = field(
-        default=False,
-        metadata={"help": "Translate prompt."}
-    )
 
 
     # max_length: int = field(

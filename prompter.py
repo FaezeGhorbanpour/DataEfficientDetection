@@ -49,19 +49,6 @@ MODEL_CONFIGS = {
 }
 
 
-class EfficiencyDataset(Dataset):
-    """Custom dataset class for memory-efficient data handling."""
-
-    def __init__(self, texts, labels):
-        self.texts = texts
-        self.labels = labels
-
-    def __len__(self) -> int:
-        return len(self.texts)
-
-    def __getitem__(self, idx) -> Dict[str, Any]:
-        return {"text": self.texts[idx], "label": self.labels[idx]}
-
 
 class Prompter:
     """
@@ -80,14 +67,13 @@ class Prompter:
         # Model configuration
         self.model_name = config.prompter_model_name_or_path
         self.prompts_list = (
-            ["multilingual_chain_of_thought", "chain_of_thought", "nli", "classification", "multilingual",
+            ["multilingual", "chain_of_thought", "nli", "classification",
               "role_play", "general", "definition", ]
             if config.prompts_list == 'all' else config.prompts_list
         )
 
         # Processing parameters
         self.num_rounds = config.num_rounds
-        self.translate_prompt = config.translate_prompt
         self.prompter_max_length = config.prompter_max_length
         self.model_config = self.get_model_config()
 
@@ -183,7 +169,7 @@ class Prompter:
 
         return predictions
 
-    def predict(self, dataset, prompt_template, max_length, batch_size, lang = 'en', retrieved_metadata = None):
+    def predict(self, dataset, prompt_template, max_length, batch_size, translate_prompt=False, lang='en', retrieved_metadata=None):
         """Process dataset and generate predictions."""
         logger.info("Starting batch prediction...")
 
@@ -196,7 +182,7 @@ class Prompter:
         for batch_idx, batch in enumerate(tqdm(dataloader, desc="Processing batches")):
             # Prepare batch prompts
             batch_prompts = [
-                self.form_prompt(text, lang=lang, prompt_template=prompt_template,
+                self.form_prompt(text, lang=lang, prompt_template=prompt_template, translate_prompt=translate_prompt,
                     examples=retrieved_metadata.get(text, "") if retrieved_metadata else None
                 )
                 for text in batch["text"]
@@ -214,29 +200,27 @@ class Prompter:
 
         return all_predictions
 
-    def form_prompt(self, text, lang, prompt_template, examples = None):
+    def form_prompt(self, text, lang, prompt_template, translate_prompt=False, examples = None):
         """Form prompt using specified template."""
         prompt_functions = {
             "general": general_prompt,
             "definition": definition_prompt,
             "classification": classification_prompt,
             "chain_of_thought": chain_of_thought_prompt,
-            "few_shot": lambda txt, lang: few_shot_prompt(txt, examples) if examples else ValueError(
+            "few_shot": lambda txt, translate_to: few_shot_prompt(txt, examples, translate_to=translate_to) if examples else ValueError(
                 "Few-shot prompting requires examples."),
-            "multilingual": lambda txt: multilingual_prompt(txt, language=lang) if lang else ValueError(
+            "multilingual": lambda txt, translate_to: multilingual_prompt(txt, language=lang, translate_to=translate_to) if lang else ValueError(
                 "Multilingual prompting requires language."),
             "nli": nli_prompt,
-            "multilingual_chain_of_thought": lambda txt: multilingual_chain_of_thought_prompt(txt, language=lang) if lang else ValueError(
-                "Multilingual chain of thought prompting requires language."),
             "role_play": role_play_prompt
         }
 
         if prompt_template not in prompt_functions:
             raise ValueError(f"Unknown prompt template: {prompt_template}")
 
-        if self.translate_prompt:
+        if translate_prompt:
             return prompt_functions[prompt_template](text, translate_to=lang)
-        return prompt_functions[prompt_template](text)
+        return prompt_functions[prompt_template](text, translate_to='en')
 
     def do_zero_shot_prompting(self, data):
         """Perform zero-shot prompting on dataset."""
@@ -253,29 +237,30 @@ class Prompter:
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 if "chain_of_thought" in prompt or 'role' in prompt or 'nli' in prompt:
                     batch_size = batch_size // 2
-                try:
-                    for i in range(self.num_rounds):
-                        logger.info("-" * 100)
-                        logger.info(f"Starting split: {split}, prompt: {prompt}, round: {i}, batch_size: {batch_size}")
-                        predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
-                                                   lang=data["language"])
+                for translate_prompt in [False, True]:
+                    try:
+                        for i in range(self.num_rounds):
+                            logger.info("-" * 100)
+                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+                            predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
+                                                       translate_prompt=translate_prompt, lang=data["language"])
 
-                        # Process predictions
-                        processed_predictions = [
-                            map_output(pred, dataset['language']) if self.translate_prompt else map_output(pred)
-                            for pred in predictions
-                        ]
+                            # Process predictions
+                            processed_predictions = [
+                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                                for pred in predictions
+                            ]
 
-                        results = self.compute_metrics(processed_predictions, dataset["label"])
+                            results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                        # Save results
-                        output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'], prompt,
-                                                  dataset['language'] if self.translate_prompt else 'en', split, str(i))
+                            # Save results
+                            output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
+                                                      data['language'] if translate_prompt else 'en', prompt, split, str(i))
 
-                        self.save_predictions(processed_predictions, dataset["label"], output_dir)
-                        self.save_results(results, output_dir)
-                except Exception as e:
-                    logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+                            self.save_predictions(processed_predictions, dataset["label"], output_dir)
+                            self.save_results(results, output_dir)
+                    except Exception as e:
+                        logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
 
     def compute_metrics(self, predictions, labels):
         """Compute classification metrics for hate speech detection."""
