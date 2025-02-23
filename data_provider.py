@@ -18,11 +18,11 @@ class DataProvider:
             try:
                 if '/' in dataset_name:
                     dataset_name_parts = dataset_name.split('/')
-                    data = load_dataset(dataset_name_parts[0], dataset_name_parts[1], cache_dir=cache_dir, trust_remote_code=True)
+                    data = load_dataset(dataset_name_parts[0], dataset_name_parts[1], cache_dir=cache_dir)
                 else:
-                    data = load_dataset(dataset_name, cache_dir=cache_dir, trust_remote_code=True)
+                    data = load_dataset(dataset_name, cache_dir=cache_dir)
             except:
-                data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir, trust_remote_code=True)
+                data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir)
 
             for split in data.keys():
                 ds = data[split]

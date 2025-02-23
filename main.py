@@ -10,12 +10,12 @@ import transformers
 from transformers import set_seed, HfArgumentParser, TrainingArguments
 from transformers.trainer_utils import is_main_process
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Union
 from data_provider import DataProvider
 from embedder import Embedder
 from retriever import Retriever
 from finetuner import FineTuner
-from old_prompter import Prompter
+from prompter import Prompter
 
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'
@@ -91,7 +91,7 @@ class FineTunerArguments(TrainingArguments):
         metadata={"help": "Limit the total number of checkpoints to save."}
     )
     max_seq_length: int = field(
-        default=128,
+        default=256,
         metadata={"help": "Limit the total number of checkpoints to save."}
     )
     cache_dir: Optional[str] = field(
@@ -296,7 +296,7 @@ class RetrievalTunerArguments:
         metadata={"help": "Configuration dictionary for PEFT methods like LoRA or prefix tuning."}
     )
     retrieval_max_seq_length: int = field(
-        default=128,
+        default=256,
         metadata={"help": "Limit the total number of checkpoints to save."}
     )
     retrieval_do_train: bool = field(
@@ -327,7 +327,7 @@ class RetrievalTunerArguments:
 @dataclass
 class PrompterArguments:
     prompter_model_name_or_path: str = field(
-        default="google/flan-t5-base", metadata={"help": "Instruction-tuned model name or path."}
+        default="mt0", metadata={"help": "Instruction-tuned model name or path."}
     )
     prompter_output_dir: Optional[str] = field(
         default=None,
@@ -342,11 +342,33 @@ class PrompterArguments:
         metadata={"help": "Batch size for training and evaluation."}
     )
     prompter_max_length: int = field(
-        default=128,
-        metadata={"help": "Batch size for training and evaluation."}
+        default=0,
+        metadata={"help": "."}
     )
+    prompts_list: Union[List[str], str] = field(
+        default_factory=lambda: "all",  # Default value can be "all", "none", or a list
+        metadata={"help": "A list of prompts, or the special values 'none' or 'all'."}
+    )
+    num_rounds: int = field(
+        default=3,
+        metadata={"help": "Number of prompting rounds."}
+    )
+    do_zero_shot_prompting: bool = field(
+        default=True,
+        metadata={"help": "Do zero shot prompting."}
+    )
+    do_few_shot_prompting: bool = field(
+        default=False,
+        metadata={"help": "Do few shot prompting."}
+    )
+    translate_prompt: bool = field(
+        default=False,
+        metadata={"help": "Translate prompt."}
+    )
+
+
     # max_length: int = field(
-    #     default=128,
+    #     default=256,
     #     metadata={"help": "Maximum length of the input sequence for prompting."},
     # )
     # fp16: bool = field(
@@ -660,19 +682,8 @@ def main():
         prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         for i, data in enumerate(datasets):
-            dataset = data['data']
-            if not prompter_args.prompt:
-                prompter_args.prompt = prompter.form_prompt_template(language=data['language'])
-            predictions = prompter.evaluate(
-                test_data=dataset['test'],
-                prompt_template=prompter_args.prompt
-            )
-            results = prompter.compute_metrics(predictions, dataset['test']['label'])
-            prompter.save_results(predictions, dataset, results, name=data['name']+'_with_translated_prompt')
-            # results = {'prompter_'+i: j for i, j in results.items()}
-            if main_args.enable_wandb:
-                wandb.log(results)
-            logger.info("Prompt-based inference metrics for %s is: %s", data['name'],results)
+            prompter.do_zero_shot_prompting(data)
+            logger.info("Prompt-based inference metrics for %s finished. ", data['name'])
 
     # Finish Wandb
     if main_args.enable_wandb:
