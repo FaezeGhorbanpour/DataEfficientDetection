@@ -29,11 +29,10 @@ from transformers import AutoTokenizer, AutoModel
 from calculator import PerplexityCalculator, UncertaintyCalculator
 from calculator import z_score_normalizer, minmax_normalizer
 
-logger = logging.getLogger(__name__)
-
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel
 import logging
+
 
 logger = logging.getLogger(__name__)
 
