@@ -242,6 +242,15 @@ class Prompter:
                         for i in range(self.num_rounds):
                             logger.info("-" * 100)
                             logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+
+                            # Save results
+                            output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
+                                                      data['language'] if translate_prompt else 'en', prompt, split, str(i))
+                            file_path = os.path.join(output_dir, "evaluation_results.json")
+                            if os.path.exists(file_path):
+                                print(f"Error: The file {file_path} exist. Aborting the run.")
+                                continue
+
                             predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
                                                        translate_prompt=translate_prompt, lang=data["language"])
 
@@ -252,10 +261,6 @@ class Prompter:
                             ]
 
                             results = self.compute_metrics(processed_predictions, dataset["label"])
-
-                            # Save results
-                            output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
-                                                      data['language'] if translate_prompt else 'en', prompt, split, str(i))
 
                             self.save_predictions(processed_predictions, dataset["label"], output_dir)
                             self.save_results(results, output_dir)
