@@ -108,12 +108,12 @@ class Prompter:
             # Load appropriate model type
             if self.model_config.get("model_type") == "seq2seq":
                 model = AutoModelForSeq2SeqLM.from_pretrained(self.model_config["name"], torch_dtype=torch.float16,
-                    device_map='auto' if self.model_config.get("big_model", True) else None, low_cpu_mem_usage=True,
-                   )
+                    device_map='auto' if self.model_config.get("big_model", True) else None, trust_remote_code=True,
+                   ).to(device=self.device)
             else:
                 model = AutoModelForCausalLM.from_pretrained(self.model_config["name"], torch_dtype=torch.float16,
                     device_map='auto' if self.model_config.get("big_model", True) else None, trust_remote_code=True,
-                )
+                ).to(device=self.device)
 
             tokenizer = AutoTokenizer.from_pretrained(self.model_config["name"], trust_remote_code=True, 
                                                       padding_side="left")
