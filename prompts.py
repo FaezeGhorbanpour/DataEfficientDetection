@@ -71,6 +71,8 @@ def clean_output(input):
     output = output.split("</s>")[0] # remove </s> and everything after
     output = output.split(',')[0] # remove quotes, and stuff like "I hope this answer helped!"
     output = output.split('.')[0]
+    output = output.split('।')[0]
+    output = output.split('|')[0]
     output = output.split('the')[0]
     output = output.split('human')[0]
     output = output.split('comment')[0]
