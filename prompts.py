@@ -76,8 +76,6 @@ def clean_output(input):
     output = output.split('the')[0]
     output = output.split('human')[0]
     output = output.split('comment')[0]
-    output = output.split('role')[0]
-    output = output.split('system')[0]
     output = output.replace('[/inst]', '')
     output = output.replace('[inst]', '')
     output = output.replace('assistant:', '')
