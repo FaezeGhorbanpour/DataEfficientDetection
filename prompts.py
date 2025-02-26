@@ -100,11 +100,60 @@ def clean_output(input):
     output = output.replace('التعليق هو', '')
     output = output.replace('The text is', '')
     output = output.replace('The text', '')
+    output = output.replace('does not contain', 'no')
+    output = output.replace('contains', 'yes')
+
+    # Spanish
+    output = output.replace('El texto es', '')
+    output = output.replace('El texto', '')
+    output = output.replace('no contiene', 'no')
+    output = output.replace('contiene', 'sí')
+
+    # Portuguese
+    output = output.replace('O texto é', '')
+    output = output.replace('O texto', '')
+    output = output.replace('não contém', 'não')
+    output = output.replace('contém', 'sim')
+
+    # Italian
+    output = output.replace('Il testo è', '')
+    output = output.replace('Il testo', '')
+    output = output.replace('non contiene', 'no')
+    output = output.replace('contiene', 'sì')
+
+    # French
+    output = output.replace('Le texte est', '')
+    output = output.replace('Le texte', '')
+    output = output.replace('ne contient pas', 'non')
+    output = output.replace('contient', 'oui')
+
+    # German
+    output = output.replace('Der Text ist', '')
+    output = output.replace('Der Text', '')
+    output = output.replace('enthält nicht', 'nein')
+    output = output.replace('enthält', 'ja')
+
+    # Hindi
+    output = output.replace('पाठ है', '')
+    output = output.replace('पाठ', '')
+    output = output.replace('शामिल नहीं है', 'नहीं')
+    output = output.replace('शामिल है', 'हां')
+
+    # Arabic
+    output = output.replace('النص هو', '')
+    output = output.replace('النص', '')
+    output = output.replace('لا يحتوي على', 'لا')
+    output = output.replace('يحتوي على', 'نعم')
+
+    # Turkish
+    output = output.replace('Metin şudur', '')
+    output = output.replace('Metin', '')
+    output = output.replace('içermez', 'hayır')
+    output = output.replace('içerir', 'evet')
+
     output = output.replace('**', '')
     output = output.replace(':', '')
     output = output.replace('"', '')
-    output = output.replace('does not contain', 'no')
-    output = output.replace('contains', 'yes')
     output = output.strip()
     output = output.split("\n")[0]
     output = output.split(" ")[0]
