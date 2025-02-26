@@ -33,19 +33,28 @@ MODEL_CONFIGS = {
                "model_type": "seq2seq", "context_length": 4096, "batch_size": 256},
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 4096, "batch_size": 64},
+    "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
+              "context_length": 8000, "batch_size": 64}, #new
     "bloomz": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
                "batch_size": 128},
     "mistral": {"name": "mistralai/Mistral-7B-Instruct-v0.2", "prompt_template": "<s>[INST] {instruction} [/INST]",
-                "context_length": 32768, "batch_size": 256},
+                "context_length": 32768, "batch_size": 128},
+    "mistral8": {"name": "mistralai/Ministral-8B-Instruct-2410", "prompt_template": "<s>[INST] {instruction} [/INST]",
+                "context_length": 128000, "batch_size": 128}, #new
     "llama2": {"name": "meta-llama/Llama-2-7b-chat-hf", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 4096, "batch_size": 128},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
-               "context_length": 4096, "batch_size": 128},
+               "context_length": 128000, "batch_size": 128},
     "gemma": {"name": "google/gemma-7b-it",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 64},
+    "gemma9": {"name": "google/gemma-2-9b",
+              "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
+              "context_length": 8192, "batch_size": 64}, #new
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
-               "prompt_template": "System: En\nUser: {instruction}\nAssistant:", "context_length": 8192}
+               "prompt_template": "System: {translate_to}\nUser: {instruction}\nAssistant:", "context_length": 8192},
+    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
+               "prompt_template": "role: system\ncontent: {instruction}\nrole: user\n content:", "context_length": 8192}
 }
 
 

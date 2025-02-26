@@ -40,7 +40,7 @@ def chain_of_thought_prompt(text, translate_to="en"):
 def few_shot_prompt(text, examples, translate_to="en"):
     yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
                                  no=translations.get(translate_to, translations["en"])["no"])
-    formatted_examples = "\n".join([f"Texto: \"{ex['text']}\"{ex['label']}" for ex in examples])
+    formatted_examples = "\n".join([f"Text: \"{ex['text']}\"{ex['label']}" for ex in examples])
     return translations.get(translate_to, translations["en"])["few_shot"].format(examples=formatted_examples,
                                                                                  text=text, yn1=yn1, yn2=yn2)
 

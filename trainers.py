@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 import torch
-from accelerate import DistributedType
+from accelerate import DistributedType, skip_first_batches
 from datasets import concatenate_datasets
 from transformers import Trainer
 
@@ -163,6 +163,11 @@ class CurriculumLearningTrainer(Trainer):
                 return 0.6
             else:
                 return 1.0
+        elif self.schedule_type == "strict":
+            if (epoch <= 5 and total_epochs > 6) or (epoch <= 3 and total_epochs <= 6):
+                return 0.0 # train first few epochs solely on target train set and then whole retrieved and target
+            else:
+                return 1.0
         else:
             raise ValueError("Invalid schedule_type. Choose from 'linear', 'exponential', or 'stepwise'.")
 
@@ -231,7 +236,7 @@ class CurriculumLearningTrainer(Trainer):
         """
         m = len(self.target_dataset)
         n = len(self.retrieved_dataset)
-        if self.schedule_type == "linear":
+        if self.schedule_type == "linear" or self.schedule_type == "strict":
             avg_train_size = m + 0.5 * n
         elif self.schedule_type == "exponential":
             avg_train_size = m + 0.75 * n
