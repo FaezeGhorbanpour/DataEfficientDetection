@@ -165,7 +165,7 @@ class Prompter:
         with torch.no_grad():
             outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=1, max_new_tokens=10, temperature=0, top_p=1, top_k=1)
+                                          num_beams=1, max_new_tokens=10, temperature=0, top_p=1)
 
         # do_sample = False, top_p = 1, temperature = 0)
         # Process predictions

@@ -74,7 +74,6 @@ def clean_output(input):
     output = output.split('.')[0]
     output = output.split('।')[0]
     output = output.split('|')[0]
-    output = output.split('the')[0]
     output = output.split('human')[0]
     output = output.split('comment')[0]
     output = output.replace('[/inst]', '')
@@ -88,48 +87,49 @@ def clean_output(input):
     output = output.replace('role:', '')
     output = output.replace('system', '')
     output = output.replace('user', '')
-    output = output.replace('The post is', '')
-    output = output.replace('The comment is', '')
-    output = output.replace('El comentario es', '')
-    output = output.replace('Der Kommentar ist', '')
-    output = output.replace('O comentário é', '')
-    output = output.replace('Yorum şu şekildedir', '')
-    output = output.replace('Le commentaire est', '')
-    output = output.replace('Il commento è', '')
+    output = output.replace('the post is', '')
+    output = output.replace('the comment is', '')
+    output = output.replace('el comentario es', '')
+    output = output.replace('der Kommentar ist', '')
+    output = output.replace('o comentário é', '')
+    output = output.replace('yorum şu şekildedir', '')
+    output = output.replace('le commentaire est', '')
+    output = output.replace('il commento è', '')
     output = output.replace('टिप्पणी है', '')
     output = output.replace('التعليق هو', '')
-    output = output.replace('The text is', '')
-    output = output.replace('The text', '')
+    output = output.replace('the text is', '')
+    output = output.replace('the text', '')
+    output = output.replace('the', '')
     output = output.replace('does not contain', 'no')
     output = output.replace('contains', 'yes')
 
     # Spanish
-    output = output.replace('El texto es', '')
-    output = output.replace('El texto', '')
+    output = output.replace('el texto es', '')
+    output = output.replace('el texto', '')
     output = output.replace('no contiene', 'no')
     output = output.replace('contiene', 'sí')
 
     # Portuguese
-    output = output.replace('O texto é', '')
-    output = output.replace('O texto', '')
+    output = output.replace('o texto é', '')
+    output = output.replace('o texto', '')
     output = output.replace('não contém', 'não')
     output = output.replace('contém', 'sim')
 
     # Italian
-    output = output.replace('Il testo è', '')
-    output = output.replace('Il testo', '')
+    output = output.replace('il testo è', '')
+    output = output.replace('il testo', '')
     output = output.replace('non contiene', 'no')
     output = output.replace('contiene', 'sì')
 
     # French
-    output = output.replace('Le texte est', '')
-    output = output.replace('Le texte', '')
+    output = output.replace('le texte est', '')
+    output = output.replace('le texte', '')
     output = output.replace('ne contient pas', 'non')
     output = output.replace('contient', 'oui')
 
     # German
-    output = output.replace('Der Text ist', '')
-    output = output.replace('Der Text', '')
+    output = output.replace('der Text ist', '')
+    output = output.replace('der Text', '')
     output = output.replace('enthält nicht', 'nein')
     output = output.replace('enthält', 'ja')
 
@@ -146,8 +146,8 @@ def clean_output(input):
     output = output.replace('يحتوي على', 'نعم')
 
     # Turkish
-    output = output.replace('Metin şudur', '')
-    output = output.replace('Metin', '')
+    output = output.replace('metin şudur', '')
+    output = output.replace('metin', '')
     output = output.replace('içermez', 'hayır')
     output = output.replace('içerir', 'evet')
 
@@ -175,7 +175,7 @@ def map_output(response, translate_to="en"):
     elif response_lower == t["no"] or response_lower == "no":
         return 0
     else:
-        print("invalid prediction:", response)
+        print("invalid prediction:", response, response_lower)
         return -1  # Handle uncertain cases
 
 # Example Usage
@@ -183,8 +183,15 @@ def map_output(response, translate_to="en"):
 # print(general_prompt(text_sample, "es"))  # Spanish
 # print(chain_of_thought_prompt(text_sample, "es"))  # Spanish
 #
-# # Example of mapping output
-# print(map_output("odioso", "es"))  # Should return 1
+# Example of mapping output
+
+text = ''' 
+
+
+**Analysis:**
+
+The text contains hate speech'''
+print(map_output(text, "en"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
 
 
