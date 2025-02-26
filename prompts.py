@@ -86,6 +86,7 @@ def clean_output(input):
     output = output.replace('content:', '')
     output = output.replace('role:', '')
     output = output.replace('system', '')
+    output = output.replace('user', '')
     output = output.replace(' The post is', '')
     output = output.replace(' The comment is', '')
     output = output.replace(' The text is', '')

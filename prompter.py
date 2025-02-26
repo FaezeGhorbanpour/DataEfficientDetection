@@ -54,7 +54,7 @@ MODEL_CONFIGS = {
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
                "prompt_template": "System: {translate_to}\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
-               "prompt_template": "role: system\ncontent: {instruction}\nrole: user\n content:", "context_length": 8192}
+               "prompt_template": "{instruction}", "context_length": 8192}
 }
 
 
@@ -165,7 +165,7 @@ class Prompter:
         with torch.no_grad():
             outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=1, max_new_tokens=10, temperature=0, top_p=1)
+                                          num_beams=1, max_new_tokens=10, temperature=0)
 
         # do_sample = False, top_p = 1, temperature = 0)
         # Process predictions
