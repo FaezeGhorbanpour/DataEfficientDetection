@@ -139,6 +139,30 @@ def clean_output(input):
     output = output.replace('the', '')
     output = output.replace('does not contain', 'no')
     output = output.replace('contains', 'yes')
+    output = output.replace('maybe', 'yes')
+    # Spanish
+    output = output.replace('tal vez', 'yes')
+
+    # Portuguese
+    output = output.replace('talvez', 'yes')
+
+    # Italian
+    output = output.replace('forse', 'yes')
+
+    # French
+    output = output.replace('peut-être', 'yes')
+
+    # German
+    output = output.replace('vielleicht', 'yes')
+
+    # Hindi
+    output = output.replace('शायद', 'yes')
+
+    # Arabic
+    output = output.replace('ربما', 'yes')
+
+    # Turkish
+    output = output.replace('belki', 'yes')
 
     # Spanish
     output = output.replace('el texto es', '')
