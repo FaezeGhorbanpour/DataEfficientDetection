@@ -69,14 +69,9 @@ def role_play_prompt(text, translate_to="en"):
 def clean_output(input):
     output = input.strip().lower()
     output = output.replace('Based on the given text, it', '')
-    output = output.split("</s>")[0] # remove </s> and everything after
-    output = output.split(',')[0] # remove quotes, and stuff like "I hope this answer helped!"
-    output = output.split('.')[0]
-    output = output.split('।')[0]
-    output = output.split('|')[0]
-    output = output.split('human')[0]
-    output = output.split('comment')[0]
     output = output.replace('[/inst]', '')
+    output = output.replace('human', '')
+    output = output.replace('comment', '')
     output = output.replace('[inst]', '')
     output = output.replace('assistant:', '')
     output = output.replace('nohuman:', '')
@@ -89,6 +84,48 @@ def clean_output(input):
     output = output.replace('user', '')
     output = output.replace('the post is', '')
     output = output.replace('the comment is', '')
+    output = output.replace('In this case, the comment is', '')
+
+    # Spanish
+    output = output.replace('la publicación es', '')
+    output = output.replace('el comentario es', '')
+    output = output.replace('En este caso, el comentario es', '')
+
+    # Portuguese
+    output = output.replace('a postagem é', '')
+    output = output.replace('o comentário é', '')
+    output = output.replace('Neste caso, o comentário é', '')
+
+    # Italian
+    output = output.replace('il post è', '')
+    output = output.replace('il commento è', '')
+    output = output.replace('In questo caso, il commento è', '')
+
+    # French
+    output = output.replace('le post est', '')
+    output = output.replace('le commentaire est', '')
+    output = output.replace('Dans ce cas, le commentaire est', '')
+
+    # German
+    output = output.replace('der Beitrag ist', '')
+    output = output.replace('der Kommentar ist', '')
+    output = output.replace('In diesem Fall ist der Kommentar', '')
+
+    # Hindi
+    output = output.replace('पोस्ट है', '')
+    output = output.replace('टिप्पणी है', '')
+    output = output.replace('इस मामले में, टिप्पणी है', '')
+
+    # Arabic
+    output = output.replace('المنشور هو', '')
+    output = output.replace('التعليق هو', '')
+    output = output.replace('في هذه الحالة، التعليق هو', '')
+
+    # Turkish
+    output = output.replace('gönderi şudur', '')
+    output = output.replace('yorum şudur', '')
+    output = output.replace('Bu durumda, yorum şudur', '')
+
     output = output.replace('el comentario es', '')
     output = output.replace('der Kommentar ist', '')
     output = output.replace('o comentário é', '')
@@ -154,6 +191,11 @@ def clean_output(input):
     output = output.replace('**', '')
     output = output.replace(':', '')
     output = output.replace('"', '')
+    output = output.split("</s>")[0] # remove </s> and everything after
+    output = output.split(',')[0] # remove quotes, and stuff like "I hope this answer helped!"
+    output = output.split('.')[0]
+    output = output.split('।')[0]
+    output = output.split('|')[0]
     output = output.strip()
     output = output.split("\n")[0]
     output = output.split(" ")[0]
@@ -170,9 +212,9 @@ def map_output(response, translate_to="en"):
     response_cleaned = clean_output(response)
     response_lower = response_cleaned.strip().lower()
 
-    if response_lower == t["yes"] or response_lower == "yes":
+    if response_lower == t["yes"].lower() or response_lower == "yes":
         return 1
-    elif response_lower == t["no"] or response_lower == "no":
+    elif response_lower == t["no"].lower() or response_lower == "no":
         return 0
     else:
         print("invalid prediction:", response, response_lower)
@@ -187,11 +229,10 @@ def map_output(response, translate_to="en"):
 
 text = ''' 
 
+Si
 
-**Analysis:**
-
-The text contains hate speech'''
-print(map_output(text, "en"))  # Should return 1
+¿Este comentario es sí?'''
+print(map_output(text, "es"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
 
 
