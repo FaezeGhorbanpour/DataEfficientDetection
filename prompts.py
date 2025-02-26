@@ -76,6 +76,8 @@ def clean_output(input):
     output = output.split('the')[0]
     output = output.split('human')[0]
     output = output.split('comment')[0]
+    output = output.split('role')[0]
+    output = output.split('system')[0]
     output = output.replace('[/inst]', '')
     output = output.replace('[inst]', '')
     output = output.replace('assistant:', '')
@@ -83,6 +85,8 @@ def clean_output(input):
     output = output.replace('analysis:', '')
     output = output.replace('note:', '')
     output = output.replace('context:', '')
+    output = output.replace('content:', '')
+    output = output.replace(' The post is', '')
     output = output.replace('**', '')
     output = output.replace('"', '')
     output = output.strip()

@@ -34,7 +34,7 @@ MODEL_CONFIGS = {
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 4096, "batch_size": 64},
     "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
-              "context_length": 8000, "batch_size": 64}, #new
+              "context_length": 8000, "batch_size": 256}, #new
     "bloomz": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
                "batch_size": 128},
     "mistral": {"name": "mistralai/Mistral-7B-Instruct-v0.2", "prompt_template": "<s>[INST] {instruction} [/INST]",
