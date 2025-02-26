@@ -66,164 +66,126 @@ def role_play_prompt(text, translate_to="en"):
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["role_play"].format(text=text, yn1=yn1, yn2=yn2)
 
-def clean_output(input):
-    output = input.strip().lower()
-    output = output.replace('Based on the given text, it', '')
-    output = output.replace('[/inst]', '')
-    output = output.replace('human', '')
-    output = output.replace('comment', '')
-    output = output.replace('[inst]', '')
-    output = output.replace('assistant:', '')
-    output = output.replace('nohuman:', '')
-    output = output.replace('analysis:', '')
-    output = output.replace('note:', '')
-    output = output.replace('context:', '')
-    output = output.replace('content:', '')
-    output = output.replace('role:', '')
-    output = output.replace('system', '')
-    output = output.replace('user', '')
-    output = output.replace('the post is', '')
-    output = output.replace('the comment is', '')
-    output = output.replace('In this case, the comment is', '')
 
-    # Spanish
-    output = output.replace('la publicación es', '')
-    output = output.replace('el comentario es', '')
-    output = output.replace('En este caso, el comentario es', '')
+def clean_output(input_text):
+    """
+    Clean and normalize output text by removing various phrases and formatting.
 
-    # Portuguese
-    output = output.replace('a postagem é', '')
-    output = output.replace('o comentário é', '')
-    output = output.replace('Neste caso, o comentário é', '')
+    Args:
+        input_text (str): The text to be cleaned
 
-    # Italian
-    output = output.replace('il post è', '')
-    output = output.replace('il commento è', '')
-    output = output.replace('In questo caso, il commento è', '')
+    Returns:
+        str: The cleaned text
+    """
+    # Convert to lowercase and strip whitespace
+    output = input_text.strip().lower()
 
-    # French
-    output = output.replace('le post est', '')
-    output = output.replace('le commentaire est', '')
-    output = output.replace('Dans ce cas, le commentaire est', '')
+    # Define phrases to remove, grouped by category
+    phrases_to_remove = {
+        # English phrases
+        "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
+        "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone",
+        "role:", "system", "user", "the post is", "the comment is", "it", "it is",
+        "in this case, the comment is", "the text is", "the text", "the", "text", "comment", "post",
 
-    # German
-    output = output.replace('der Beitrag ist', '')
-    output = output.replace('der Kommentar ist', '')
-    output = output.replace('In diesem Fall ist der Kommentar', '')
+        # Spanish phrases
+        "la publicación es", "el comentario es", "en este caso, el comentario es",
+        "el texto es", "el texto",
 
-    # Hindi
-    output = output.replace('पोस्ट है', '')
-    output = output.replace('टिप्पणी है', '')
-    output = output.replace('इस मामले में, टिप्पणी है', '')
+        # Portuguese phrases
+        "a postagem é", "o comentário é", "neste caso, o comentário é",
+        "o texto é", "o texto",
 
-    # Arabic
-    output = output.replace('المنشور هو', '')
-    output = output.replace('التعليق هو', '')
-    output = output.replace('في هذه الحالة، التعليق هو', '')
+        # Italian phrases
+        "il post è", "il commento è", "in questo caso, il commento è",
+        "il testo è", "il testo",
 
-    # Turkish
-    output = output.replace('gönderi şudur', '')
-    output = output.replace('yorum şudur', '')
-    output = output.replace('Bu durumda, yorum şudur', '')
+        # French phrases
+        "le post est", "le commentaire est", "dans ce cas, le commentaire est",
+        "le texte est", "le texte",
 
-    output = output.replace('el comentario es', '')
-    output = output.replace('der Kommentar ist', '')
-    output = output.replace('o comentário é', '')
-    output = output.replace('yorum şu şekildedir', '')
-    output = output.replace('le commentaire est', '')
-    output = output.replace('il commento è', '')
-    output = output.replace('टिप्पणी है', '')
-    output = output.replace('التعليق هو', '')
-    output = output.replace('the text is', '')
-    output = output.replace('the text', '')
-    output = output.replace('the', '')
-    output = output.replace('does not contain', 'no')
-    output = output.replace('contains', 'yes')
-    output = output.replace('maybe', 'yes')
-    # Spanish
-    output = output.replace('tal vez', 'yes')
+        # German phrases
+        "der Beitrag ist", "der Kommentar ist", "in diesem Fall ist der Kommentar",
+        "der Text ist", "der Text",
 
-    # Portuguese
-    output = output.replace('talvez', 'yes')
+        # Hindi phrases
+        "पोस्ट है", "टिप्पणी है", "इस मामले में, टिप्पणी है",
+        "पाठ है", "पाठ",
 
-    # Italian
-    output = output.replace('forse', 'yes')
+        # Arabic phrases
+        "المنشور هو", "التعليق هو", "في هذه الحالة، التعليق هو",
+        "النص هو", "النص",
 
-    # French
-    output = output.replace('peut-être', 'yes')
+        # Turkish phrases
+        "gönderi şudur", "yorum şudur", "bu durumda, yorum şudur",
+        "metin şudur", "metin",
 
-    # German
-    output = output.replace('vielleicht', 'yes')
+        # Additional language-specific comment phrases
+        "el comentario es", "der Kommentar ist", "o comentário é",
+        "yorum şu şekildedir", "le commentaire est", "il commento è",
+        "टिप्पणी है", "التعليق هو"
+    }
 
-    # Hindi
-    output = output.replace('शायद', 'yes')
+    # Word replacements mapping
+    word_replacements = {
+        "does not contain": "no",
+        "contains": "yes",
+        "maybe": "yes",
+        "tal vez": "yes",  # Spanish
+        "talvez": "yes",  # Portuguese
+        "forse": "yes",  # Italian
+        "peut-être": "yes",  # French
+        "vielleicht": "yes",  # German
+        "शायद": "yes",  # Hindi
+        "ربما": "yes",  # Arabic
+        "belki": "yes",  # Turkish
 
-    # Arabic
-    output = output.replace('ربما', 'yes')
+        # Language-specific content indicators
+        "no contiene": "no",  # Spanish
+        "contiene": "sí",  # Spanish
+        "não contém": "não",  # Portuguese
+        "contém": "sim",  # Portuguese
+        "non contiene": "no",  # Italian
+        "contiene": "sì",  # Italian
+        "ne contient pas": "non",  # French
+        "contient": "oui",  # French
+        "enthält nicht": "nein",  # German
+        "enthält": "ja",  # German
+        "शामिल नहीं है": "नहीं",  # Hindi
+        "शामिल है": "हां",  # Hindi
+        "لا يحتوي على": "لا",  # Arabic
+        "يحتوي على": "نعم",  # Arabic
+        "içermez": "hayır",  # Turkish
+        "içerir": "evet"  # Turkish
+    }
 
-    # Turkish
-    output = output.replace('belki', 'yes')
+    # Remove phrases
+    for phrase in phrases_to_remove:
+        output = output.replace(phrase, '')
 
-    # Spanish
-    output = output.replace('el texto es', '')
-    output = output.replace('el texto', '')
-    output = output.replace('no contiene', 'no')
-    output = output.replace('contiene', 'sí')
+    # Apply word replacements
+    for old, new in word_replacements.items():
+        output = output.replace(old, new)
 
-    # Portuguese
-    output = output.replace('o texto é', '')
-    output = output.replace('o texto', '')
-    output = output.replace('não contém', 'não')
-    output = output.replace('contém', 'sim')
-
-    # Italian
-    output = output.replace('il testo è', '')
-    output = output.replace('il testo', '')
-    output = output.replace('non contiene', 'no')
-    output = output.replace('contiene', 'sì')
-
-    # French
-    output = output.replace('le texte est', '')
-    output = output.replace('le texte', '')
-    output = output.replace('ne contient pas', 'non')
-    output = output.replace('contient', 'oui')
-
-    # German
-    output = output.replace('der Text ist', '')
-    output = output.replace('der Text', '')
-    output = output.replace('enthält nicht', 'nein')
-    output = output.replace('enthält', 'ja')
-
-    # Hindi
-    output = output.replace('पाठ है', '')
-    output = output.replace('पाठ', '')
-    output = output.replace('शामिल नहीं है', 'नहीं')
-    output = output.replace('शामिल है', 'हां')
-
-    # Arabic
-    output = output.replace('النص هو', '')
-    output = output.replace('النص', '')
-    output = output.replace('لا يحتوي على', 'لا')
-    output = output.replace('يحتوي على', 'نعم')
-
-    # Turkish
-    output = output.replace('metin şudur', '')
-    output = output.replace('metin', '')
-    output = output.replace('içermez', 'hayır')
-    output = output.replace('içerir', 'evet')
-
-    output = output.replace('**', '')
-    output = output.replace(':', '')
-    output = output.replace('"', '')
-    output = output.split("</s>")[0] # remove </s> and everything after
-    output = output.split(',')[0] # remove quotes, and stuff like "I hope this answer helped!"
-    output = output.split('.')[0]
-    output = output.split('।')[0]
-    output = output.split('|')[0]
+    # Clean up formatting
     output = output.strip()
-    output = output.split("\n")[0]
-    output = output.split(" ")[0]
-    return output
+
+    # Remove leading punctuation
+    if len(output) > 1 and output[0] in ',.:;':
+        output = output[1:].strip()
+
+    # Remove special characters and formatting
+    chars_to_remove = "**:\"'"
+    for char in chars_to_remove:
+        output = output.replace(char, '')
+
+    # Extract only the first part of text before certain delimiters
+    delimiters = ["</s>", ",", ".", "।", "|", "\n", " "]
+    for delimiter in delimiters:
+        if delimiter in output:
+            output = output.split(delimiter)[0]
+
+    return output.strip()
 
 def map_output(response, translate_to="en"):
     """Maps model response to binary labels (0 = non-hate, 1 = hate)"""
@@ -251,12 +213,8 @@ def map_output(response, translate_to="en"):
 #
 # Example of mapping output
 
-text = ''' 
-
-Si
-
-¿Este comentario es sí?'''
-print(map_output(text, "es"))  # Should return 1
+text = ''' [/INST] Based on the given text, it does not contain based'''
+print(map_output(text, "en"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
 
 
