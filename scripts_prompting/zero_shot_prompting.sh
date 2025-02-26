@@ -14,7 +14,7 @@ LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 MODEL_PATH=$1
 GPU_CORE=$2
 
-
+echo "starting  ${MODEL_PATH} on gpu ${GPU_CORE}"
 
 # Run the Python script with only the model path argument
 CUDA_VISIBLE_DEVICES=$GPU_CORE python main.py \
@@ -23,8 +23,8 @@ CUDA_VISIBLE_DEVICES=$GPU_CORE python main.py \
     --datasets ${DATASETS[@]} \
     --languages ${LANGUAGES[@]} \
     --do_prompting true \
-    --prompter_output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/" \
-    --output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/" \
+    --prompter_output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/zero_shot_prompting/" \
+    --output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/zero_shot_prompting/" \
     --cache_dir "/mounts/data/proj/faeze/data_efficient_hate/cache/" \
     --logging_dir "/mounts/data/proj/faeze/data_efficient_hate/logs/" \
     --overwrite_output_dir true \

@@ -3,48 +3,67 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
-DATASETS=('bas19_es' 'ous19_ar')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-LANGUAGES=('es' 'ar')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="mono_step_trainer"
+FOLDER_NAME="step_trainer_early_stopping"
 
+#MODEL_NAME="microsoft/mdeberta-v3-base"
+#FOLDER_NAME="mdeberta"
+
+#MODEL_NAME="FacebookAI/xlm-roberta-base"
+#FOLDER_NAME="roberta"
+
+KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
+#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
+KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
-    local dataset=$1
-    local lang=$2
-    local gpu=$3
+    local k=$1
+    local gpu=$2
 
-    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
-    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
+
+    echo "Starting k: ${k} on GPU: ${gpu}"
+
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
+            OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
-                --finetuner_model_name_or_path "${MODEL_NAME}" \
-		 --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --datasets "${dataset}-${split}-${RSS[i]}" \
                 --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
+                --do_embedding \
+                --embedder_model_name_or_path "m3" \
+                --do_searching \
+                --splits "train" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
+                --max_retrieved ${k} \
+                --exclude_datasets ${excluded_datasets[@]} \
+                --combine_train_set\
                 --do_fine_tuning \
                 --use_step_trainer\
-                --do_train \
-                --do_test \
+                --do_early_stopping\
+                --do_train\
+                --do_eval\
+                --do_test\
                 --do_hate_check\
                 --do_hate_check\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
+                --finetuner_model_name_or_path "${MODEL_NAME}" \
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --report_to "wandb" \
-                --wandb_run_name "${FOLDER_SUBNAME}"
+		--report_to "wandb"\
+                --wandb_run_name ${FOLDER_NAME}
 
-            # Clean up checkpoint files
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
                     rm -rf "$dir"
@@ -59,9 +78,10 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=10000
+MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=5
+WAIT_TIME=10
+
 # Function to check available memory on a GPU
 check_gpu_memory() {
     local gpu_id=$1
@@ -73,29 +93,32 @@ check_gpu_memory() {
         echo -1
     fi
 }
+
 # Main loop
-num_gpus=4
-start_gpu=2
-for i in "${!DATASETS[@]}"; do
-    dataset=${DATASETS[$i]}
-    lang=${LANGUAGES[$i]}
+K=0
+while [ "$K" -lt "${#KS[@]}" ]; do
+    num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
-    for ((gpu_id=start_gpu; gpu_id<num_gpus; gpu_id++)); do
+
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
-            run_dataset "$dataset" "$lang" "$available_gpu" &
-            start_gpu=$((start_gpu + 1))
-            break 1
+            run_dataset "${KS[$K]}" "$available_gpu" &
+            sleep 30
+            K=$((K + 1)) # Increment K only when a GPU is assigned
+            if [ "$K" -ge "${#KS[@]}" ]; then
+                break # Exit the loop when all datasets have been processed
+            fi
         fi
     done
-    if [ $start_gpu -ge $num_gpus ]; then
-        echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
-        sleep $WAIT_TIME
-    fi
+
+    echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+    sleep $WAIT_TIME
+
 done
-# Wait for all background processes to finish
+
 wait
 
-echo "All datasets processed!"
+echo "All K processed!"

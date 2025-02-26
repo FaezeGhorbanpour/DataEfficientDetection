@@ -170,7 +170,7 @@ class FineTuner:
             self.config.load_best_model_at_end=True  # Ensure best checkpoint is used
             self.config.metric_for_best_model="f1-macro"  # Track F1-macro for early stopping
             self.config.greater_is_better=True  # Higher F1-macro is better
-
+            self.report_to = ['wandb']
 
 
             self.trainer = Trainer(
@@ -191,7 +191,7 @@ class FineTuner:
                 train_dataset=train_data,
                 eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics,
-                callbacks = [EarlyStoppingCallback(early_stopping_patience=10)] if self.do_early_stopping else None,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.do_early_stopping else None,
             )
 
         self.trainer.train()

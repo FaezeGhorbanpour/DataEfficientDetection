@@ -62,7 +62,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=10000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=500
+WAIT_TIME=5
 # Function to check available memory on a GPU
 check_gpu_memory() {
     local gpu_id=$1
@@ -75,8 +75,8 @@ check_gpu_memory() {
     fi
 }
 # Main loop
-num_gpus=8
-start_gpu=0
+num_gpus=3
+start_gpu=1
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}
