@@ -68,6 +68,7 @@ def role_play_prompt(text, translate_to="en"):
 
 def clean_output(input):
     output = input.strip().lower()
+    output = output.replace('Based on the given text, it', '')
     output = output.split("</s>")[0] # remove </s> and everything after
     output = output.split(',')[0] # remove quotes, and stuff like "I hope this answer helped!"
     output = output.split('.')[0]
@@ -87,11 +88,23 @@ def clean_output(input):
     output = output.replace('role:', '')
     output = output.replace('system', '')
     output = output.replace('user', '')
-    output = output.replace(' The post is', '')
-    output = output.replace(' The comment is', '')
-    output = output.replace(' The text is', '')
+    output = output.replace('The post is', '')
+    output = output.replace('The comment is', '')
+    output = output.replace('El comentario es', '')
+    output = output.replace('Der Kommentar ist', '')
+    output = output.replace('O comentário é', '')
+    output = output.replace('Yorum şu şekildedir', '')
+    output = output.replace('Le commentaire est', '')
+    output = output.replace('Il commento è', '')
+    output = output.replace('टिप्पणी है', '')
+    output = output.replace('التعليق هو', '')
+    output = output.replace('The text is', '')
+    output = output.replace('The text', '')
     output = output.replace('**', '')
+    output = output.replace(':', '')
     output = output.replace('"', '')
+    output = output.replace('does not contain', 'no')
+    output = output.replace('contains', 'yes')
     output = output.strip()
     output = output.split("\n")[0]
     output = output.split(" ")[0]
