@@ -85,7 +85,7 @@ def clean_output(input_text):
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
         "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone", "the comment is"
-        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is",
+        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**",
         "in this case,", "the text is", "the text", "the", "text", "comment", "post",
 
         # Spanish phrases
@@ -214,7 +214,10 @@ def map_output(response, translate_to="en"):
 #
 # Example of mapping output
 
-text = ''' [/INST] Based on the given text, it does not contain based'''
+text = '''** No
+
+The comment does not 
+'''
 print(map_output(text, "en"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
 
