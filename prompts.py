@@ -84,9 +84,9 @@ def clean_output(input_text):
     phrases_to_remove = {
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
-        "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone",
-        "role:", "system", "user", "the post is", "the comment is", "it", "it is",
-        "in this case, the comment is", "the text is", "the text", "the", "text", "comment", "post",
+        "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone", "the comment is"
+        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is",
+        "in this case,", "the text is", "the text", "the", "text", "comment", "post",
 
         # Spanish phrases
         "la publicación es", "el comentario es", "en este caso, el comentario es",
@@ -129,6 +129,7 @@ def clean_output(input_text):
     # Word replacements mapping
     word_replacements = {
         "does not contain": "no",
+        "not yes": "no",
         "contains": "yes",
         "maybe": "yes",
         "tal vez": "yes",  # Spanish

@@ -409,6 +409,20 @@ class MainArguments:
         default=True,
         metadata={"help": "Run the prompter step."}
     )
+    run_optuna: bool = field(
+        default=False,
+        metadata={"help": "Whether to run Optuna hyperparameter optimization"}
+    )
+
+    optuna_n_trials: int = field(
+        default=20,
+        metadata={"help": "Number of trials for Optuna optimization"}
+    )
+
+    run_best_params: bool = field(
+        default=True,
+        metadata={"help": "Whether to run with the best parameters after Optuna optimization"}
+    )
     # seed: Optional[int] = field(
     #     default=None,
     #     metadata={"help": "Random seed!"}
@@ -431,14 +445,23 @@ def copy_args(retrieval_tuner_args, finetuner_args):
 
 
 
-def main():
-    parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments, RetrievalTunerArguments, FineTunerArguments, PrompterArguments))
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # If we pass only one argument to the script and it's the path to a json file,
-        # let's parse it to get our arguments.
-        main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
-    else:
-        main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
+def main(
+    main_args=None,
+    data_args=None,
+    embedder_args=None,
+    retriever_args=None,
+    retrieval_tuner_args=None,
+    finetuner_args=None,
+    prompter_args=None):
+
+    if main_args is None:
+        parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments,
+                                   RetrievalTunerArguments, FineTunerArguments, PrompterArguments))
+        if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+            main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_json_file(
+                json_file=os.path.abspath(sys.argv[1]))
+        else:
+            main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parser.parse_args_into_dataclasses()
 
     if main_args.do_fine_tuning:
         file_path = os.path.join(finetuner_args.output_dir, "evaluation_results.json")
@@ -687,5 +710,76 @@ def main():
     logger.info("Pipeline execution completed.")
 
 
+def objective(trial, parsed_args):
+    # Unpack the parsed arguments
+    main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
+
+    # Modify arguments with Optuna suggestions
+    # Examples (adjust based on your actual parameters):
+    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True) #todo
+
+    # Call main with the modified arguments
+    macro_f1 = main(
+        main_args=main_args,
+        data_args=data_args,
+        embedder_args=embedder_args,
+        retriever_args=retriever_args,
+        retrieval_tuner_args=retrieval_tuner_args,
+        finetuner_args=finetuner_args,
+        prompter_args=prompter_args
+    )
+
+    return macro_f1
+
 if __name__ == "__main__":
-    main()
+    # Parse arguments first
+    parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments,
+                               RetrievalTunerArguments, FineTunerArguments, PrompterArguments))
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+        parsed_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    else:
+        parsed_args = parser.parse_args_into_dataclasses()
+
+    # Check if we should run hyperparameter tuning
+    main_args = parsed_args[0]
+    if hasattr(main_args, "run_optuna") and main_args.run_optuna:
+        # Run Optuna optimization
+        import optuna
+
+        n_trials = main_args.optuna_n_trials if hasattr(main_args, "optuna_n_trials") else 20
+        study = optuna.create_study(direction="maximize")
+        study.optimize(lambda trial: objective(trial, parsed_args), n_trials=n_trials)
+
+        print("Best trial:")
+        trial = study.best_trial
+        print(f"  Value: {trial.value}")
+        print("  Params: ")
+        for key, value in trial.params.items():
+            print(f"    {key}: {value}")
+
+        # Optionally run with the best parameters
+        if hasattr(main_args, "run_best_params") and main_args.run_best_params:
+            # Unpack parsed arguments
+            main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
+
+            # Update with best parameters
+            for key, value in trial.params.items():
+                if key.startswith("retriever_"):
+                    setattr(retriever_args, key.replace("retriever_", ""), value)
+                elif key.startswith("embedder_"):
+                    setattr(embedder_args, key.replace("embedder_", ""), value)
+                # Add more conditions for other argument types as needed
+
+            # Run with best parameters
+            main(
+                main_args=main_args,
+                data_args=data_args,
+                embedder_args=embedder_args,
+                retriever_args=retriever_args,
+                retrieval_tuner_args=retrieval_tuner_args,
+                finetuner_args=finetuner_args,
+                prompter_args=prompter_args
+            )
+    else:
+        # Run normally
+        main()
