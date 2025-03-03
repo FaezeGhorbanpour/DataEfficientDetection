@@ -50,7 +50,7 @@ run_dataset() {
 		--unique_word_criteria_weight 1\
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
-                --max_retrieved ${k} \
+                --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --do_fine_tuning \

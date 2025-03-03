@@ -130,8 +130,10 @@ def clean_output(input_text):
     word_replacements = {
         "does not contain": "no",
         "not yes": "no",
+        "not hate speech": "no",
         "contains": "yes",
         "maybe": "yes",
+        "hate speech": "yes",
         "tal vez": "yes",  # Spanish
         "talvez": "yes",  # Portuguese
         "forse": "yes",  # Italian
@@ -214,12 +216,10 @@ def map_output(response, translate_to="en"):
 #
 # Example of mapping output
 
-text = '''** No
-
-The comment does not 
-'''
-print(map_output(text, "en"))  # Should return 1
-# print(map_output("no odioso", "es"))  # Should return 0
+# text = '''The text is not hate speech.
+# '''
+# print(map_output(text, "en"))  # Should return 1
+# # print(map_output("no odioso", "es"))  # Should return 0
 
 
 

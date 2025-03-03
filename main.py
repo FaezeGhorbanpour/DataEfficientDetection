@@ -234,7 +234,7 @@ class RetrieverArguments:
         default="./index_path",
         metadata={"help": "Directory to save index path!"},
     )
-    max_retrieved: int = field(
+    num_retrieved: int = field(
         default=20000,
         metadata={"help": "Maximum retrieved instances from the pool."},
     )
@@ -265,6 +265,10 @@ class RetrieverArguments:
     balance_labels: bool = field(
         default=False,
         metadata={"help": "Balance the retrieved embeddings."},
+    )
+    mmr_threshold: float = field(
+        default=0.0,
+        metadata={"help": "Threshold for the MMR."},
     )
 
 
@@ -318,6 +322,10 @@ class RetrievalTunerArguments:
     random_retrieve: bool = field(
         default=False,
         metadata={"help": "Combine retrieved data with training set."}
+    )
+    do_mmr: bool = field(
+        default=False,
+        metadata={"help": "Do MMR."}
     )
 
 
@@ -526,7 +534,7 @@ def main(
     data_args.sizes = [x.split('-')[1] if '-' in x else 'full'for x in data_args.datasets]
     data_args.rss = [x.split('-')[2] if '-' in x else 'full' for x in data_args.datasets]
     if main_args.enable_wandb:
-        wandb.config.update(data_args, allow_val_change=False)
+        wandb.config.update(data_args, allow_val_change=True)
 
     # Step 1: Load datasets
     logger.info(f"Loading datasets: {data_args.datasets} ...")
@@ -546,7 +554,7 @@ def main(
                             add_perplexity=embedder_args.add_perplexity,
                             add_uncertainty=embedder_args.add_uncertainty)
         if main_args.enable_wandb:
-            wandb.config.update(embedder_args, allow_val_change=False)
+            wandb.config.update(embedder_args, allow_val_change=True)
         logger.info("Embedding datasets...")
 
         embeddings, meta_datas = embedder.embed_datasets(datasets, splits=embedder_args.splits)
@@ -558,7 +566,7 @@ def main(
     # Step 3: Retrieve similar sentences
     if main_args.do_indexing:
         if main_args.enable_wandb:
-            wandb.config.update(retriever_args, allow_val_change=False)
+            wandb.config.update(retriever_args, allow_val_change=True)
         logger.info("Indexing is starting...")
         retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type,
                               normalize_index=retriever_args.normalize_index)
@@ -569,7 +577,7 @@ def main(
     retrieved_dataset = None
     if main_args.do_searching:
         if main_args.enable_wandb:
-            wandb.config.update(retriever_args, allow_val_change=False)
+            wandb.config.update(retriever_args, allow_val_change=True)
         logger.info("Loading retriever's index...")
         retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type,
                               normalize_index=retriever_args.normalize_index)
@@ -577,9 +585,11 @@ def main(
         logger.info("Retrieving similar sentences...")
 
         if retriever_args.k == 0:
-            retriever_args.k = max((retriever_args.max_retrieved // len(embeddings)), 1) * 50
+            import math #max((retriever_args.num_retrieved // len(embeddings)), 1) * 50
+            retriever_args.k = max(math.ceil(3 * retriever_args.num_retrieved / len(embeddings)),
+                                   math.ceil(2000 / len(embeddings)))
         if retrieval_tuner_args.random_retrieve:
-            retrieved_data = retriever.retrieve_random_metadata(max_retrieved=retriever_args.max_retrieved,
+            retrieved_data = retriever.retrieve_random_metadata(num_retrieved=retriever_args.num_retrieved,
                                                 exclude_datasets=retriever_args.exclude_datasets,
                                                 exclude_languages=retriever_args.exclude_languages,
                                                 unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
@@ -589,7 +599,7 @@ def main(
             retrieved_data = retriever.retrieve_multiple_queries(
                 query_embeddings=embeddings,
                 k=retriever_args.k,
-                max_retrieved=retriever_args.max_retrieved,
+                num_retrieved=retriever_args.num_retrieved,
                 exclude_datasets=retriever_args.exclude_datasets,
                 exclude_languages=retriever_args.exclude_languages,
                 unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
@@ -598,6 +608,7 @@ def main(
                 uncertainty_weight=retriever_args.uncertainty_weight,
                 margin_weight=retriever_args.margin_weight,
                 balance_labels=retriever_args.balance_labels,
+                mmr_threshold=retriever_args.mmr_threshold
             )
         retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
         logger.info("Retrieved %d instances based on query.", len(retrieved_data))
@@ -625,7 +636,7 @@ def main(
     retrieval_tuning_model_path = ''
     if main_args.do_retrieval_tuning:
         if main_args.enable_wandb:
-            wandb.config.update(finetuner_args, allow_val_change=False)
+            wandb.config.update(finetuner_args, allow_val_change=True)
         retrieval_tuner_args = copy_args(retrieval_tuner_args, finetuner_args)
         retrieval_tuner = FineTuner(retrieval_tuner_args)
         logger.info("Retrieval fine-tuning the model: %s", retrieval_tuner_args.finetuner_model_name_or_path)
@@ -659,7 +670,7 @@ def main(
     # Step 4: Fine-tune the model
     if main_args.do_fine_tuning:
         if main_args.enable_wandb:
-            wandb.config.update(finetuner_args, allow_val_change=False)
+            wandb.config.update(finetuner_args, allow_val_change=True)
         fine_tuner = FineTuner(finetuner_args)
         if main_args.do_retrieval_tuning and retrieval_tuning_model_path:
             fine_tuner.finetuner_model_name_or_path = retrieval_tuning_model_path
@@ -697,7 +708,7 @@ def main(
     # Step 5: Prompt-based inference
     if main_args.do_prompting:
         if main_args.enable_wandb:
-            wandb.config.update(prompter_args, allow_val_change=False)
+            wandb.config.update(prompter_args, allow_val_change=True)
         prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         for i, data in enumerate(datasets):
@@ -719,15 +730,8 @@ def objective(trial, parsed_args):
     finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True) #todo
 
     # Call main with the modified arguments
-    macro_f1 = main(
-        main_args=main_args,
-        data_args=data_args,
-        embedder_args=embedder_args,
-        retriever_args=retriever_args,
-        retrieval_tuner_args=retrieval_tuner_args,
-        finetuner_args=finetuner_args,
-        prompter_args=prompter_args
-    )
+    macro_f1 = main(main_args=main_args, data_args=data_args, embedder_args=embedder_args, retriever_args=retriever_args,
+        retrieval_tuner_args=retrieval_tuner_args, finetuner_args=finetuner_args, prompter_args=prompter_args)
 
     return macro_f1
 

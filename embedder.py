@@ -1,33 +1,24 @@
-import gc
-import logging
+
 import os.path
 
-import torch
-import umap
-import pandas as pd
 # import datashader as ds
 # import datashader.transfer_functions as tf
 # import colorcet as cc
 # from datashader.mpl_ext import dsshow
 
-import gc
 import torch
-import numpy as np
-import logging
 from collections import defaultdict
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
-import umap
+# import umap
 import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModel
 
 from calculator import PerplexityCalculator, UncertaintyCalculator
-from calculator import z_score_normalizer, minmax_normalizer
 
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel

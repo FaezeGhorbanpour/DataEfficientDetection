@@ -50,7 +50,7 @@ run_dataset() {
 		--perplexity_weight 1\
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/" \
-                --max_retrieved ${k} \
+                --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --do_fine_tuning \
