@@ -570,7 +570,8 @@ def main(
         logger.info("Indexing is starting...")
         retriever = Retriever(embedder.embedding_dim, index_type=retriever_args.index_type,
                               normalize_index=retriever_args.normalize_index)
-        retriever.add_embeddings(embeddings, meta_datas)
+        retriever.add_embeddings(embeddings, meta_datas,
+                mmr_threshold=retriever_args.mmr_threshold)
         retriever.save_index(retriever_args.index_path)
         logger.info("Indexing is done...")
 

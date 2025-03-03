@@ -9,7 +9,7 @@
   "add_uncertainty": true,
   "index_type": "FlatIP",
   "normalize_index": true,
-  "mrr_threshold": 0.99,
+  "mmr_threshold": 0.99,
   "splits": ["train", "validation", "test"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_labse_flatip-new/",
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_labse_flatip-new/",
