@@ -31,12 +31,14 @@ MODEL_CONFIGS = {
             "context_length": 1024, "big_model": False, "batch_size": 1024},
     "aya101": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
                "model_type": "seq2seq", "context_length": 4096, "batch_size": 256},
+    "aya101-2": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
+               "model_type": "seq2seq", "context_length": 4096, "batch_size": 64},
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 4096, "batch_size": 64},
     "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
-              "context_length": 8000, "batch_size": 256}, #new
+              "context_length": 8000, "batch_size": 32}, #new
     "bloomz": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
-               "batch_size": 128},
+               "batch_size": 32},
     "mistral": {"name": "mistralai/Mistral-7B-Instruct-v0.2", "prompt_template": "<s>[INST] {instruction} [/INST]",
                 "context_length": 32768, "batch_size": 128},
     "mistral8": {"name": "mistralai/Ministral-8B-Instruct-2410", "prompt_template": "<s>[INST] {instruction} [/INST]",
@@ -45,15 +47,17 @@ MODEL_CONFIGS = {
                "context_length": 4096, "batch_size": 128},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 128000, "batch_size": 128},
+    "llama3-2": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
+               "context_length": 128000, "batch_size": 128},
     "gemma": {"name": "google/gemma-7b-it",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
-              "context_length": 8192, "batch_size": 64},
+              "context_length": 8192, "batch_size": 16},
     "gemma9": {"name": "google/gemma-2-9b",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
-              "context_length": 8192, "batch_size": 64}, #new
+              "context_length": 8192, "batch_size": 16}, #new
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
                "prompt_template": "System: {translate_to}\nUser: {instruction}\nAssistant:", "context_length": 8192},
-    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
+    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 64, #new
                "prompt_template": "{instruction}", "context_length": 8192}
 }
 

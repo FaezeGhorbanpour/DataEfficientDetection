@@ -86,7 +86,7 @@ class Retriever:
             indices = [i for i in range(len(embeddings))]
             scores = [1 for _ in range(len(embeddings))]
             remained_indices = self.mmr_diversity_filter(embeddings=embeddings,  indices=indices, scores=scores,
-                                                         similarity_threshold=mmr_threshold)
+                                                         similarity_threshold=mmr_threshold, batch_size=400000)
             embeddings = embeddings[remained_indices]
             metadata = metadata[remained_indices]
 
@@ -577,7 +577,7 @@ class Retriever:
                         torch.cuda.empty_cache()
 
                     # Log progress at intervals
-                    if len(selected_indices) % 100 == 0:
+                    if len(selected_indices) % 1000 == 0:
                         logger.info(f"Selected {len(selected_indices)}/{len(embeddings)} embeddings")
 
         finally:

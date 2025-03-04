@@ -1,0 +1,342 @@
+[
+    {
+        "metadata": {
+            "text": "@user @user @user que cette petite pute ferme sa gueule",
+            "label": 0,
+            "id": "147",
+            "split": "test",
+            "dataset_name": "ous19_fr",
+            "language": "fr"
+        },
+        "score": 0.0,
+        "index": 200858,
+        "dist": 0.0,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user @user You're a fucking imbecile.",
+            "label": 0,
+            "id": "1487",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.023853491991758347,
+        "index": 42631,
+        "dist": 0.023853491991758347,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user esse gordo pedante se sentindo",
+            "label": 1,
+            "id": "995",
+            "split": "test",
+            "dataset_name": "for19_pt",
+            "language": "pt"
+        },
+        "score": 0.02836962789297104,
+        "index": 189245,
+        "dist": 0.02836962789297104,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user não sei oq pensar.",
+            "label": 0,
+            "id": "527",
+            "split": "test",
+            "dataset_name": "for19_pt",
+            "language": "pt"
+        },
+        "score": 0.030047211796045303,
+        "index": 188777,
+        "dist": 0.030047211796045303,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user @user Your an idiot",
+            "label": 1,
+            "id": "2865",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.05257285758852959,
+        "index": 44009,
+        "dist": 0.05257285758852959,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user gorda feia  xodade",
+            "label": 1,
+            "id": "1919",
+            "split": "test",
+            "dataset_name": "for19_pt",
+            "language": "pt"
+        },
+        "score": 0.05671370029449463,
+        "index": 190169,
+        "dist": 0.05671370029449463,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user @user nonsense!",
+            "label": 0,
+            "id": "808",
+            "split": "test",
+            "dataset_name": "ous19_fr",
+            "language": "fr"
+        },
+        "score": 0.07961954921483994,
+        "index": 201519,
+        "dist": 0.07961954921483994,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user W  You got no sense of humor fag",
+            "label": 1,
+            "id": "4641",
+            "split": "train",
+            "dataset_name": "ken20_en",
+            "language": "en"
+        },
+        "score": 0.12625399231910706,
+        "index": 68350,
+        "dist": 0.12625399231910706,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user तेरे जैसे सूअर को नहीं समझ आयेगा",
+            "label": 0,
+            "id": "1255",
+            "split": "train",
+            "dataset_name": "has21_hi",
+            "language": "hi"
+        },
+        "score": 0.1306992769241333,
+        "index": 191505,
+        "dist": 0.1306992769241333,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user It's no laughing matter you fucking idiot",
+            "label": 0,
+            "id": "15187",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.15654946863651276,
+        "index": 56331,
+        "dist": 0.15654946863651276,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user @user She's a stupid idiot",
+            "label": 1,
+            "id": "6716",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.160267174243927,
+        "index": 47860,
+        "dist": 0.160267174243927,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user What an imbecile. Incompetent idiot",
+            "label": 1,
+            "id": "12787",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.16738347709178925,
+        "index": 53931,
+        "dist": 0.16738347709178925,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "RT @user: I know you probally use to nothing niggas fucking with ya",
+            "label": 1,
+            "id": "647",
+            "split": "test",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.17041972279548645,
+        "index": 62356,
+        "dist": 0.17041972279548645,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "RT @user: I know you probally use to nothing niggas fucking with ya",
+            "label": 1,
+            "id": "1721",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.1704198718070984,
+        "index": 42865,
+        "dist": 0.1704198718070984,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "RT @user: I know you probally use to nothing niggas fucking with ya",
+            "label": 1,
+            "id": "11430",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.1704198718070984,
+        "index": 52574,
+        "dist": 0.1704198718070984,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "RT @user: I know you probally use to nothing niggas fucking with ya",
+            "label": 1,
+            "id": "19765",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.1704198718070984,
+        "index": 60909,
+        "dist": 0.1704198718070984,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user على مقياس لا يفهمه الحريم",
+            "label": 0,
+            "id": "215",
+            "split": "train",
+            "dataset_name": "ous19_ar",
+            "language": "ar"
+        },
+        "score": 0.17553718388080597,
+        "index": 195059,
+        "dist": 0.17553718388080597,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user Every one of you folks are fucking idiots.",
+            "label": 1,
+            "id": "5309",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.182346910238266,
+        "index": 46453,
+        "dist": 0.182346910238266,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user You are a fuckin retard",
+            "label": 0,
+            "id": "1989",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.1848871409893036,
+        "index": 43133,
+        "dist": 0.1848871409893036,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    },
+    {
+        "metadata": {
+            "text": "@user @user @user Bitch you don't even have a hairline it's been all bad for you",
+            "label": 1,
+            "id": "2197",
+            "split": "train",
+            "dataset_name": "fou18_en",
+            "language": "en"
+        },
+        "score": 0.18693117797374725,
+        "index": 43341,
+        "dist": 0.18693117797374725,
+        "length_score": 0.0,
+        "cluster_score": 0.0,
+        "uncertainty_score": 0.0,
+        "perplexity_score": 0.0
+    }
+]
