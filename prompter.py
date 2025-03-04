@@ -60,9 +60,9 @@ MODEL_CONFIGS = {
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16}, #new
     "teuken-2": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
-               "prompt_template": "System: {translate_to}\nUser: {instruction}\nAssistant:", "context_length": 8192},
+               "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
-               "prompt_template": "System: {translate_to}\nUser: {instruction}\nAssistant:", "context_length": 8192},
+               "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 64, #new
                "prompt_template": "{instruction}", "context_length": 8192}
 }
@@ -157,13 +157,13 @@ class Prompter:
                 torch.cuda.empty_cache()
                 gc.collect()
 
-    def batch_generate_predictions(self, prompts, max_length):
+    def batch_generate_predictions(self, prompts, max_length, lang='en'):
         """Generate predictions for a batch of prompts efficiently."""
         logger.debug(f"Generating predictions for batch of {len(prompts)} prompts")
 
         # Format prompts with model template
         formatted_prompts = [
-            self.model_config["prompt_template"].format(instruction=prompt)
+            self.model_config["prompt_template"].replace('translate_to', LANGUAGES[lang]).format(instruction=prompt)
             for prompt in prompts
         ]
 
@@ -208,7 +208,7 @@ class Prompter:
             ]
 
             # Generate predictions
-            batch_predictions = self.batch_generate_predictions(batch_prompts, max_length)
+            batch_predictions = self.batch_generate_predictions(batch_prompts, max_length, lang=lang)
 
             all_predictions.extend(batch_predictions)
 
