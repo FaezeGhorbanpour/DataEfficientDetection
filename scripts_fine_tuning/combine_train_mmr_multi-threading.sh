@@ -52,7 +52,7 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --do_mmr\
+                --mmr_threshold 0.99\
                 --num_train_epochs ${epoch} \
                 --do_train\
                 --do_eval\

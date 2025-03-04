@@ -1,5 +1,5 @@
 {
-"prompter_model_name_or_path": "mt0",
+"prompter_model_name_or_path": "aya101-2",
   "num_rounds": 1,
   "datasets": ["ous19_ar", "bas19_es"],
   "languages": ["ar", "es"],

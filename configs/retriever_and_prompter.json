@@ -1,5 +1,5 @@
 {
-"prompter_model_name_or_path": "google/flan-t5-base",
+"prompter_model_name_or_path": "aya101-2",
   "datasets": ["bas19_es"],
   "languages": ["es"],
   "seed": 0,
@@ -8,12 +8,12 @@
   "embedder_model_name_or_path": "m3",
   "do_searching": true,
   "splits": ["test"],
-  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/bas19_es_m3_HNSW/",
   "num_retrieved": 10,
-  "exclude_datasets": ["bas19_es"],
 
   "do_prompting": true,
-  "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/bloomz/",
+  "num_rounds": 1,
+  "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/aya101-2/",
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
