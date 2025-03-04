@@ -690,6 +690,15 @@ def main(
 
             logger.info("Fine-tuning completed.")
 
+        if finetuner_args.do_eval:
+            results = fine_tuner.evaluate(dataset['eval'], save_results=True, key='eval', metric_key_prefix='eval')
+            if main_args.enable_wandb:
+                wandb.log(results)
+            logger.info("Finetune-based inference on eval dataset metrics: %s", results)
+
+            if main_args.run_optuna:
+                return results['eval-f1-macro']
+
         if finetuner_args.do_test:
             # test_dataset = fine_tuner.prepare_data(dataset['test'])
             results = fine_tuner.evaluate(dataset['test'], save_results=True)
@@ -728,7 +737,8 @@ def objective(trial, parsed_args):
 
     # Modify arguments with Optuna suggestions
     # Examples (adjust based on your actual parameters):
-    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True) #todo
+    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
+    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
 
     # Call main with the modified arguments
     macro_f1 = main(main_args=main_args, data_args=data_args, embedder_args=embedder_args, retriever_args=retriever_args,

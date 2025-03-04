@@ -159,14 +159,14 @@ class FineTuner:
         elif self.use_step_trainer:
             logger.info("** USING STEP-TRAIN **")
             self.config.max_steps=2000
-            self.config.warmup_steps=int(0.1 * 2000)  # 10% warmup
+            # self.config.warmup_steps=int(0.1 * 2000)  # 10% warmup
             self.config.evaluation_strategy="steps"  # Evaluate periodically
             self.config.eval_steps=250  # Evaluate every 250 steps
             self.config.save_steps=500  # Save checkpoints every 500 steps
             self.config.logging_steps=250  # Log progress every 50 steps
-            self.config.learning_rate=2e-5
-            self.config.weight_decay=0.01
-            self.config.max_seq_length=256
+            # self.config.learning_rate=2e-5
+            # self.config.weight_decay=0.01
+            # self.config.max_seq_length=256
             self.config.load_best_model_at_end=True  # Ensure best checkpoint is used
             self.config.metric_for_best_model="f1-macro"  # Track F1-macro for early stopping
             self.config.greater_is_better=True  # Higher F1-macro is better
