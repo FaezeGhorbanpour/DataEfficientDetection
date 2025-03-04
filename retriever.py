@@ -255,8 +255,9 @@ class Retriever:
         results = self._deduplicate_results(results)
         logger.info(f"Total unique results after deduplication: {len(results)}")
 
-        results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
-                                            min_remained_amount=num_retrieved)
+        if mmr_threshold > 0:
+            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
+                                                min_remained_amount=num_retrieved)
 
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
