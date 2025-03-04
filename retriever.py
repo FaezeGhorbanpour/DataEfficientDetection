@@ -238,11 +238,13 @@ class Retriever:
 
         # Fetch metadata for all valid indices
         metadata = [self.metadata[idx] for idx in flattened_indices]
+        logger.info(f"Total unique meta after searching: {len(metadata)}")
 
         # Apply filtering by language and dataset
         metadata, flattened_distances, flattened_indices = self._apply_filters(
             metadata, flattened_distances, flattened_indices, exclude_languages, exclude_datasets
         )
+        logger.info(f"Total unique results after excluding: {len(metadata)}")
 
         # Normalize distances
         norm_distances = self._min_max_scale(flattened_distances)
