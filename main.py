@@ -691,7 +691,7 @@ def main(
             logger.info("Fine-tuning completed.")
 
         if finetuner_args.do_eval:
-            results = fine_tuner.evaluate(dataset['eval'], save_results=True, key='eval', metric_key_prefix='eval')
+            results = fine_tuner.evaluate(dataset['validation'], save_results=True, key='validation', metric_key_prefix='validation')
             if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Finetune-based inference on eval dataset metrics: %s", results)
