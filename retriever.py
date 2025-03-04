@@ -98,34 +98,96 @@ class Retriever:
 
         logger.info("Embeddings added successfully.")
 
-    def retrieve(self, query_embedding, k=5, filters=None):
+    def retrieve_one_query(self, query_embedding, k=5, exclude_datasets=None, exclude_languages=None,
+                           cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
+                           uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0,
+                           balance_labels=False, mmr_threshold=0.0):
         """
-        Retrieve top-k nearest neighbors for a given query embedding, optionally filtering by metadata.
+        Retrieve top-k nearest neighbors for a single query embedding, incorporating additional scoring weights.
+
         Args:
             query_embedding (np.ndarray): Query embedding vector (1 x embedding_dim).
             k (int): Number of nearest neighbors to retrieve.
-            filters (dict): Metadata filters (e.g., {"language": "en", "dataset_name": "my_dataset"}).
+            exclude_datasets (list[str]): Datasets to exclude from results.
+            exclude_languages (list[str]): Languages to exclude from results.
+            cluster_criteria_weight (float): Weight for clustering score in final ranking.
+            unique_word_criteria_weight (float): Weight for unique word count in final ranking.
+            uncertainty_weight (float): Weight for uncertainty in final ranking.
+            margin_weight (float): Weight for margin in final ranking.
+            perplexity_weight (float): Weight for perplexity in final ranking.
+            balance_labels (bool): Whether to balance the retrieved results by label.
+            mmr_threshold (float): Threshold for maximal marginal relevance.
+
         Returns:
-            list[dict]: Retrieved metadata and scores.
+            list[dict]: Top results based on combined scores, with optional filtering.
         """
         logger.info("Performing retrieval for a single query.")
+
+        # Ensure query_embedding is 2D for consistency with faiss interface
+        if len(query_embedding.shape) == 1:
+            query_embedding = query_embedding.reshape(1, -1)
 
         # Normalize embeddings if required
         if self.normalize_index:
             faiss.normalize_L2(query_embedding)
 
-        distances, indices = self.index.search(query_embedding, k)
+        # Perform search
+        distances, indices = self.index.search(query_embedding, k*5)
 
-        results = []
-        for idx, dist in zip(indices[0], distances[0]):
-            if idx == -1:  # No more valid indices
-                continue
-            data_meta = self.metadata[idx]
-            if filters:
-                if not all(data_meta.get(key) == value for key, value in filters.items()):
-                    continue
-            results.append({"metadata": data_meta, "score": dist})
-        logger.info(f"Retrieved {len(results)} results.")
+        # Filter out invalid indices (-1)
+        valid_mask = indices[0] != -1
+        distances, indices = distances[0][valid_mask], indices[0][valid_mask]
+
+        # Fetch metadata for all valid indices
+        metadata = [self.metadata[idx] for idx in indices]
+
+        # Apply filtering by language and dataset
+        metadata, distances, indices = self._apply_filters(
+            metadata, distances, indices, exclude_languages, exclude_datasets
+        )
+
+        # Normalize distances
+        norm_distances = self._min_max_scale(distances)
+
+        # Construct initial result list
+        results = [{"metadata": meta, "score": float(dist), "index": index}
+                   for meta, dist, index in zip(metadata, norm_distances, indices)]
+
+        # Deduplicate results
+        results = self._deduplicate_results(results)
+        logger.info(f"Total unique results after deduplication: {len(results)}")
+
+        # Apply MMR if threshold is provided
+        if mmr_threshold > 0.0:
+            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5)
+
+        # Compute additional feature scores
+        norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
+        norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight)
+        norm_uncertainty_scores = self._compute_normalized_scores(results, "uncertainty",
+                                                                  uncertainty_weight, revert=True)
+        norm_margin_scores = self._compute_normalized_scores(results, "margin", margin_weight)
+        norm_perplexity_scores = self._compute_normalized_scores(results, "perplexity",
+                                                                 perplexity_weight, revert=True)
+
+        # Compute final scores with proper weighting
+        results = self._compute_final_scores(
+            results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_margin_scores,
+            norm_perplexity_scores,
+            cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight, margin_weight, perplexity_weight
+        )
+
+        # Sort results by final score
+        results.sort(key=lambda x: x["score"])
+
+        # Apply label balancing if requested
+        if balance_labels:
+            results = self._balance_labels(results, k)
+        else:
+            results = results[:k]
+
+        logger.info(f"Returning {len(results)} results.")
+
         return results
 
     def _retrieve_vectors(self, indices):
@@ -361,17 +423,26 @@ class Retriever:
         return deduplicated_results_2
 
     def retrieve_random_metadata(self, num_retrieved=None, exclude_datasets=None, exclude_languages=None,
-                                 cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0, balance_labels=False):
+                                 cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
+                                 uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0,
+                                 balance_labels=False, mmr_threshold=0.0):
         """
-        Retrieve a random selection of metadata, with optional filtering.
+        Retrieve a random selection of metadata, with optional filtering and criteria-based scoring.
 
         Args:
-            num_retrieved (int): Number of random metadata entries to retrieve.
+            num_retrieved (int): Number of metadata entries to retrieve after applying criteria.
             exclude_datasets (list[str]): List of dataset names to exclude from results.
             exclude_languages (list[str]): List of languages to exclude from results.
+            cluster_criteria_weight (float): Weight for clustering score in final ranking.
+            unique_word_criteria_weight (float): Weight for unique word count in final ranking.
+            uncertainty_weight (float): Weight for uncertainty in final ranking.
+            margin_weight (float): Weight for margin in final ranking.
+            perplexity_weight (float): Weight for perplexity in final ranking.
+            balance_labels (bool): Whether to balance the retrieved results by label.
+            mmr_threshold (float): Threshold for maximal marginal relevance.
 
         Returns:
-            list[dict]: Randomly selected metadata entries after applying optional filters.
+            list[dict]: Randomly selected metadata entries after applying optional filters and scoring criteria.
         """
         logger.info("Starting random metadata retrieval.")
 
@@ -390,15 +461,61 @@ class Retriever:
                 if meta.get('dataset_name') not in exclude_datasets
             ]
 
-        # Randomly sample the desired number of results
-        num_results = min(num_retrieved, len(filtered_metadata))
-        metadata = random.sample(filtered_metadata, num_results)
-        # Combine distances and metadata into a single structure
-        random_metadata = [{"metadata": meta} for meta in metadata]
+        # Sample more entries than needed to allow for criteria-based filtering and ranking
+        sample_size = max(num_retrieved * 2, 100)
 
-        logger.info(f"Returning {len(random_metadata)} random metadata entries.")
+        # Get random indices for selected metadata
+        indices = list(range(len(filtered_metadata)))
+        random_indices = random.sample(indices, sample_size)
 
-        return random_metadata
+        # Create initial results with metadata and indices
+        results = []
+        for i, idx in enumerate(random_indices):
+            meta = filtered_metadata[idx]
+            # Use random scores as initial values
+            results.append({
+                "metadata": meta,
+                "score": 0,  # Random initial score
+                "index": idx
+            })
+
+        # Deduplicate results based on content
+        results = self._deduplicate_results(results)
+        logger.info(f"Total unique results after deduplication: {len(results)}")
+
+        # Apply MMR if threshold is provided
+        if mmr_threshold > 0.0:
+            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
+                                      min_remained_amount=num_retrieved)
+
+        # Compute additional feature scores
+        norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
+        norm_cluster_scores = self._compute_cluster_scores(results, cluster_criteria_weight)
+        norm_uncertainty_scores = self._compute_normalized_scores(results, "uncertainty",
+                                                                  uncertainty_weight, revert=True)
+        norm_margin_scores = self._compute_normalized_scores(results, "margin", margin_weight)
+        norm_perplexity_scores = self._compute_normalized_scores(results, "perplexity",
+                                                                 perplexity_weight, revert=True)
+
+        # Compute final scores with proper weighting
+        results = self._compute_final_scores(
+            results, norm_word_counts, norm_cluster_scores, norm_uncertainty_scores, norm_margin_scores,
+            norm_perplexity_scores,
+            cluster_criteria_weight, unique_word_criteria_weight, uncertainty_weight, margin_weight, perplexity_weight
+        )
+
+        # Sort results by final score
+        results.sort(key=lambda x: x["score"])
+
+        # Apply number of results limit with optional label balancing
+        if balance_labels:
+            results = self._balance_labels(results, num_retrieved)
+        else:
+            results = results[:num_retrieved]
+
+        logger.info(f"Returning {len(results)} randomly selected entries after applying criteria.")
+
+        return results
 
     def save_meta_to_file(self, meta, path):
         """

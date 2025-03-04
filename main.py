@@ -696,7 +696,7 @@ def main(
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
-            logger.info("Finetune-based inference metrics: %s", results)
+            logger.info("Finetune-based inference on test dataset metrics: %s", results)
 
         if finetuner_args.do_hate_check and 'hate_check' in dataset:
             # test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
@@ -704,7 +704,7 @@ def main(
             # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
-            logger.info("Finetune-based inference metrics: %s", results)
+            logger.info("Finetune-based inference on hate-check metrics: %s", results)
 
     # Step 5: Prompt-based inference
     if main_args.do_prompting:
