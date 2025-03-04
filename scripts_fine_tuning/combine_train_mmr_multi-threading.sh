@@ -54,6 +54,7 @@ run_dataset() {
                 --combine_train_set\
                 --mmr_threshold 0.99\
                 --num_train_epochs ${epoch} \
+                --do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\

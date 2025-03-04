@@ -1,13 +1,13 @@
 {
   "datasets": ["bas19_es-1000-rs3"],
-  "languages": ["tr"],
+  "languages": ["es"],
   "seed": 0,
   "do_embedding": true,
   "embedder_model_name_or_path": "m3",
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/",
-  "num_retrieved": 20,
+  "num_retrieved": 2000,
   "exclude_datasets": ["bas19_es"],
 
   "dataloader_num_workers": 1,
@@ -16,7 +16,7 @@
   "combine_train_set": true,
 
   "do_fine_tuning": true,
-  "num_train_epochs": 11,
+  "num_train_epochs": 10,
   "do_train": true,
   "do_eval": true,
   "do_test": true,
