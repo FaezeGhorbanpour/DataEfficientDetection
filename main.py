@@ -586,9 +586,9 @@ def main(
         logger.info("Retrieving similar sentences...")
 
         if retriever_args.k == 0:
-            import math #max((retriever_args.num_retrieved // len(embeddings)), 1) * 50
+            import math
             retriever_args.k = max(math.ceil(3 * retriever_args.num_retrieved / len(embeddings)),
-                                   math.ceil(2000 / len(embeddings)))
+                                   math.ceil(2000 / len(embeddings)), 2)
         if retrieval_tuner_args.random_retrieve:
             retrieved_data = retriever.retrieve_random_metadata(num_retrieved=retriever_args.num_retrieved,
                                                 exclude_datasets=retriever_args.exclude_datasets,

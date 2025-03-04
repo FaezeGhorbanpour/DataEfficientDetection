@@ -9,6 +9,8 @@ from datasets import Dataset
 import json
 import logging
 
+import math
+
 from sklearn.cluster import MiniBatchKMeans
 from transformers import AutoTokenizer
 
@@ -226,36 +228,42 @@ class Retriever:
         if self.normalize_index:
             faiss.normalize_L2(query_embeddings)
 
-        # Perform search for all queries
-        distances, indices = self.index.search(query_embeddings, k)
+        results = []
+        while len(results) < num_retrieved * 2:
+            logger.info(f"--------------- K is: {k} -----------------")
 
-        # Flatten distances and indices
-        flattened_distances, flattened_indices = distances.flatten(), indices.flatten()
+            # Perform search for all queries
+            distances, indices = self.index.search(query_embeddings, k)
 
-        # Filter out invalid indices (-1)
-        valid_mask = flattened_indices != -1
-        flattened_distances, flattened_indices = flattened_distances[valid_mask], flattened_indices[valid_mask]
+            # Flatten distances and indices
+            flattened_distances, flattened_indices = distances.flatten(), indices.flatten()
 
-        # Fetch metadata for all valid indices
-        metadata = [self.metadata[idx] for idx in flattened_indices]
-        logger.info(f"Total unique meta after searching: {len(metadata)}")
+            # Filter out invalid indices (-1)
+            valid_mask = flattened_indices != -1
+            flattened_distances, flattened_indices = flattened_distances[valid_mask], flattened_indices[valid_mask]
 
-        # Apply filtering by language and dataset
-        metadata, flattened_distances, flattened_indices = self._apply_filters(
-            metadata, flattened_distances, flattened_indices, exclude_languages, exclude_datasets
-        )
-        logger.info(f"Total unique results after excluding: {len(metadata)}")
+            # Fetch metadata for all valid indices
+            metadata = [self.metadata[idx] for idx in flattened_indices]
+            logger.info(f"Total unique meta after searching: {len(metadata)}")
 
-        # Normalize distances
-        norm_distances = self._min_max_scale(flattened_distances)
+            # Apply filtering by language and dataset
+            metadata, flattened_distances, flattened_indices = self._apply_filters(
+                metadata, flattened_distances, flattened_indices, exclude_languages, exclude_datasets
+            )
+            logger.info(f"Total unique results after excluding: {len(metadata)}")
 
-        # Construct initial result list
-        results = [{"metadata": meta, "score": float(dist), "index": index}
-                   for meta, dist, index in zip(metadata, norm_distances, flattened_indices)]
+            # Normalize distances
+            norm_distances = self._min_max_scale(flattened_distances)
 
-        # Deduplicate results
-        results = self._deduplicate_results(results)
-        logger.info(f"Total unique results after deduplication: {len(results)}")
+            # Construct initial result list
+            results = [{"metadata": meta, "score": float(dist), "index": index}
+                       for meta, dist, index in zip(metadata, norm_distances, flattened_indices)]
+
+            # Deduplicate results
+            results = self._deduplicate_results(results)
+            logger.info(f"Total unique results after deduplication: {len(results)}")
+
+            k = k*3//2
 
         if mmr_threshold > 0:
             results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
