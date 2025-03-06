@@ -14,55 +14,66 @@ LANGUAGES = {
     'ar': 'Arabic',
     'de': 'German'
 }
+
+
 def get_random_yes_no(yes='yes', no='no'):
     return (yes, no) if random.choice([True, False]) else (no, yes)
 
+
 def general_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["general"].format(text=text, yn1=yn1, yn2=yn2)
 
+
 def classification_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["classification"].format(text=text, yn1=yn1, yn2=yn2)
 
+
 def definition_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["definition"].format(text=text, yn1=yn1, yn2=yn2)
 
+
 def chain_of_thought_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["cot"].format(text=text, yn1=yn1, yn2=yn2)
 
+
 def few_shot_prompt(text, examples, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     formatted_examples = "\n".join([f"Text: \"{ex['text']}\"{ex['label']}" for ex in examples])
     return translations.get(translate_to, translations["en"])["few_shot"].format(examples=formatted_examples,
                                                                                  text=text, yn1=yn1, yn2=yn2)
 
+
 def multilingual_prompt(text, language, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["multilingual"].format(language=LANGUAGES[language],
                                                                                      text=text, yn1=yn1, yn2=yn2)
 
+
 def nli_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["nli"].format(text=text, yn1=yn1, yn2=yn2)
 
+
 def multilingual_chain_of_thought_prompt(text, language, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["multilingual_cot"].format(language=LANGUAGES[language],
                                                                                          text=text, yn1=yn1, yn2=yn2)
 
+
 def role_play_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
+    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"],
                                  no=translations.get(translate_to, translations["en"])["no"])
     return translations.get(translate_to, translations["en"])["role_play"].format(text=text, yn1=yn1, yn2=yn2)
 
@@ -85,7 +96,8 @@ def clean_output(input_text):
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
         "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone", "the comment is"
-        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**",
+                                                                                         "role:", "system", "user",
+        "the post is", "the comment is", "it", "it is", "is", "**",
         "in this case,", "the text is", "the text", "the", "text", "comment", "post",
 
         # Spanish phrases
@@ -190,11 +202,12 @@ def clean_output(input_text):
 
     return output.strip()
 
+
 def map_output(response, translate_to="en"):
     """Maps model response to binary labels (0 = non-hate, 1 = hate)"""
     t = translations.get(translate_to, translations["en"])
-    response = response.split(t['answer'])[-1] # remove everything before "Answer:"
-    response = response.split(t['answer'].lower())[-1] # remove everything before "Answer:"
+    response = response.split(t['answer'])[-1]  # remove everything before "Answer:"
+    response = response.split(t['answer'].lower())[-1]  # remove everything before "Answer:"
     response = response.replace(t["non_hateful"], t["no"])
     response = response.replace(t["hateful"], t["yes"])
 
@@ -222,7 +235,6 @@ def map_output(response, translate_to="en"):
 # # print(map_output("no odioso", "es"))  # Should return 0
 
 
-
 # def context_aware_prompt(text, context):
 #     prompt = (
 #         f"Given the following context: \"{context}\", analyze the subsequent text to determine if it contains hate speech.\n\n"
@@ -240,4 +252,3 @@ def map_output(response, translate_to="en"):
 #         f"Which text contains hate speech? Answer 'A', 'B', or 'Neither'."
 #     )
 #     return prompt
-

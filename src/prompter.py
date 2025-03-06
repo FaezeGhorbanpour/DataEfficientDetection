@@ -27,46 +27,46 @@ logger = logging.getLogger(__name__)
 
 # Original Model configurations
 MODEL_CONFIGS = {
-    "mt0-2": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
-            "context_length": 1024, "big_model": False, "batch_size": 1024},
+    "mt0-2": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:",
+              "model_type": "seq2seq",
+              "context_length": 1024, "big_model": False, "batch_size": 1024},
     "mt0": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
             "context_length": 1024, "big_model": False, "batch_size": 1024},
     "aya101-2": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
-               "model_type": "seq2seq", "context_length": 4096, "batch_size": 64},
+                 "model_type": "seq2seq", "context_length": 4096, "batch_size": 64},
     "aya101": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
                "model_type": "seq2seq", "context_length": 4096, "batch_size": 256},
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 4096, "batch_size": 64},
     "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
-              "context_length": 8000, "batch_size": 32}, #new
+             "context_length": 8000, "batch_size": 32},  # new
     "bloomz-2": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
-               "batch_size": 32},
+                 "batch_size": 32},
     "bloomz": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
                "batch_size": 32},
     "mistral": {"name": "mistralai/Mistral-7B-Instruct-v0.2", "prompt_template": "<s>[INST] {instruction} [/INST]",
                 "context_length": 32768, "batch_size": 128},
     "mistral8": {"name": "mistralai/Ministral-8B-Instruct-2410", "prompt_template": "<s>[INST] {instruction} [/INST]",
-                "context_length": 128000, "batch_size": 128}, #new
+                 "context_length": 128000, "batch_size": 128},  # new
     "llama2": {"name": "meta-llama/Llama-2-7b-chat-hf", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 4096, "batch_size": 128},
     "llama3-2": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
-               "context_length": 128000, "batch_size": 128},
+                 "context_length": 128000, "batch_size": 128},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 128000, "batch_size": 128},
     "gemma": {"name": "google/gemma-7b-it",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16},
     "gemma9": {"name": "google/gemma-2-9b",
-              "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
-              "context_length": 8192, "batch_size": 16}, #new
+               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
+               "context_length": 8192, "batch_size": 16},  # new
     "teuken-2": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
-               "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
+                 "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
                "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
-    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 64, #new
-               "prompt_template": "{instruction}", "context_length": 8192}
+    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 64,  # new
+             "prompt_template": "{instruction}", "context_length": 8192}
 }
-
 
 
 class Prompter:
@@ -74,7 +74,7 @@ class Prompter:
     Enhanced BatchPrompter class for efficient processing of large-scale text data.
     """
 
-    def __init__(self, config, device = None):
+    def __init__(self, config, device=None):
         """Initialize BatchPrompter with configuration."""
         logger.info("Initializing BatchPrompter...")
 
@@ -87,7 +87,7 @@ class Prompter:
         self.model_name = config.prompter_model_name_or_path
         self.prompts_list = (
             ["multilingual", "chain_of_thought", "nli", "classification",
-              "role_play", "general", "definition", ]
+             "role_play", "general", "definition", ]
             if config.prompts_list == 'all' else config.prompts_list
         )
 
@@ -101,7 +101,7 @@ class Prompter:
         logger.info("BatchPrompter initialization completed")
 
         # Memory management
-        self.memory_threshold = 0.85 
+        self.memory_threshold = 0.85
 
     def get_model_config(self):
         """Get model configuration from MODEL_CONFIGS."""
@@ -127,14 +127,18 @@ class Prompter:
             # Load appropriate model type
             if self.model_config.get("model_type") == "seq2seq":
                 model = AutoModelForSeq2SeqLM.from_pretrained(self.model_config["name"], torch_dtype=torch.float16,
-                    device_map='auto' if self.model_config.get("big_model", True) else None, trust_remote_code=True,
-                   ).to(device=self.device)
+                                                              device_map='auto' if self.model_config.get("big_model",
+                                                                                                         True) else None,
+                                                              trust_remote_code=True,
+                                                              ).to(device=self.device)
             else:
                 model = AutoModelForCausalLM.from_pretrained(self.model_config["name"], torch_dtype=torch.float16,
-                    device_map='auto' if self.model_config.get("big_model", True) else None, trust_remote_code=True,
-                ).to(device=self.device)
+                                                             device_map='auto' if self.model_config.get("big_model",
+                                                                                                        True) else None,
+                                                             trust_remote_code=True,
+                                                             ).to(device=self.device)
 
-            tokenizer = AutoTokenizer.from_pretrained(self.model_config["name"], trust_remote_code=True, 
+            tokenizer = AutoTokenizer.from_pretrained(self.model_config["name"], trust_remote_code=True,
                                                       padding_side="left")
 
             if not tokenizer.pad_token_id:
@@ -173,7 +177,7 @@ class Prompter:
 
         # Generate outputs
         with torch.no_grad():
-            outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
+            outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
                                           num_beams=1, max_new_tokens=10, temperature=0, top_p=1)
 
@@ -188,7 +192,8 @@ class Prompter:
 
         return predictions
 
-    def predict(self, dataset, prompt_template, max_length, batch_size, translate_prompt=False, lang='en', retrieved_metadata=None):
+    def predict(self, dataset, prompt_template, max_length, batch_size, translate_prompt=False, lang='en',
+                retrieved_metadata=None):
         """Process dataset and generate predictions."""
         logger.info("Starting batch prediction...")
 
@@ -202,8 +207,8 @@ class Prompter:
             # Prepare batch prompts
             batch_prompts = [
                 self.form_prompt(text, lang=lang, prompt_template=prompt_template, translate_prompt=translate_prompt,
-                    examples=retrieved_metadata.get(text, "") if retrieved_metadata else None
-                )
+                                 examples=retrieved_metadata.get(text, "") if retrieved_metadata else None
+                                 )
                 for text in batch["text"]
             ]
 
@@ -219,16 +224,18 @@ class Prompter:
 
         return all_predictions
 
-    def form_prompt(self, text, lang, prompt_template, translate_prompt=False, examples = None):
+    def form_prompt(self, text, lang, prompt_template, translate_prompt=False, examples=None):
         """Form prompt using specified template."""
         prompt_functions = {
             "general": general_prompt,
             "definition": definition_prompt,
             "classification": classification_prompt,
             "chain_of_thought": chain_of_thought_prompt,
-            "few_shot": lambda txt, translate_to: few_shot_prompt(txt, examples, translate_to=translate_to) if examples else ValueError(
+            "few_shot": lambda txt, translate_to: few_shot_prompt(txt, examples,
+                                                                  translate_to=translate_to) if examples else ValueError(
                 "Few-shot prompting requires examples."),
-            "multilingual": lambda txt, translate_to: multilingual_prompt(txt, language=lang, translate_to=translate_to) if lang else ValueError(
+            "multilingual": lambda txt, translate_to: multilingual_prompt(txt, language=lang,
+                                                                          translate_to=translate_to) if lang else ValueError(
                 "Multilingual prompting requires language."),
             "nli": nli_prompt,
             "role_play": role_play_prompt
@@ -260,11 +267,13 @@ class Prompter:
                     try:
                         for i in range(self.num_rounds):
                             logger.info("-" * 100)
-                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+                            logger.info(
+                                f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
 
                             # Save results
-                            output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
-                                                      data['language'] if translate_prompt else 'en', prompt, split, str(i))
+                            output_dir = os.path.join(self.config.prompter_output_dir, self.model_name, data['name'],
+                                                      data['language'] if translate_prompt else 'en', prompt, split,
+                                                      str(i))
                             file_path = os.path.join(output_dir, "evaluation_results.json")
                             if os.path.exists(file_path):
                                 print(f"Error: The file {file_path} exist. Aborting the run.")
@@ -275,7 +284,8 @@ class Prompter:
 
                             # Process predictions
                             processed_predictions = [
-                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(
+                                    pred)
                                 for pred in predictions
                             ]
 

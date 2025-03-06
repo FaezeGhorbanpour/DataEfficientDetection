@@ -18,6 +18,7 @@ from utils import convert_to_serializable
 
 logger = logging.getLogger(__name__)
 
+
 class Retriever:
     def __init__(self, embedding_dim=768, index_type="FlatL2", device="cuda", normalize_index=False):
         """
@@ -87,7 +88,7 @@ class Retriever:
             # Construct initial result list
             indices = [i for i in range(len(embeddings))]
             scores = [1 for _ in range(len(embeddings))]
-            remained_indices = self.mmr_diversity_filter(embeddings=embeddings,  indices=indices, scores=scores,
+            remained_indices = self.mmr_diversity_filter(embeddings=embeddings, indices=indices, scores=scores,
                                                          similarity_threshold=mmr_threshold, batch_size=400000)
             embeddings = embeddings[remained_indices]
             metadata = metadata[remained_indices]
@@ -134,7 +135,7 @@ class Retriever:
             faiss.normalize_L2(query_embedding)
 
         # Perform search
-        distances, indices = self.index.search(query_embedding, k*5)
+        distances, indices = self.index.search(query_embedding, k * 5)
 
         # Filter out invalid indices (-1)
         valid_mask = indices[0] != -1
@@ -263,11 +264,11 @@ class Retriever:
             results = self._deduplicate_results(results)
             logger.info(f"Total unique results after deduplication: {len(results)}")
 
-            k = k*3//2
+            k = k * 3 // 2
 
         if mmr_threshold > 0:
             results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
-                                                min_remained_amount=num_retrieved)
+                                      min_remained_amount=num_retrieved)
 
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
@@ -577,9 +578,8 @@ class Retriever:
             self.metadata = json.load(f)
         logger.info("Index loaded successfully.")
 
-
-    def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5, batch_size=20000):
-
+    def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5,
+                   batch_size=20000):
 
         # Check input data
         indices = np.array([res["index"] for res in results])
@@ -587,14 +587,12 @@ class Retriever:
         embeddings = self._retrieve_vectors(indices)
 
         selected_idx_original = self.mmr_diversity_filter(embeddings=embeddings, indices=indices, scores=scores,
-                                                           similarity_threshold=similarity_threshold,
-                                                           min_remained_amount=min_remained_amount,
-                                                           lambda_param=lambda_param, batch_size=batch_size)
-
+                                                          similarity_threshold=similarity_threshold,
+                                                          min_remained_amount=min_remained_amount,
+                                                          lambda_param=lambda_param, batch_size=batch_size)
 
         selected_results = [res for res in results if res['index'] in selected_idx_original]
         return selected_results
-
 
     def mmr_diversity_filter(self, embeddings, indices, scores, similarity_threshold=0.95, lambda_param=0.5,
                              min_remained_amount=None, batch_size=20000):

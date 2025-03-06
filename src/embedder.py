@@ -1,4 +1,3 @@
-
 import os.path
 
 # import datashader as ds
@@ -24,8 +23,8 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel
 import logging
 
-
 logger = logging.getLogger(__name__)
+
 
 class Embedder:
     def __init__(self, model_name, device="cuda", batch_size=256, add_perplexity=False, add_uncertainty=False):
@@ -48,11 +47,13 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name="openai-community/gpt2-large", batch_size=32, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name="openai-community/gpt2-large", batch_size=32,
+                                                              device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
-            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-roberta-base-hate", batch_size=1024, device=device)
+            self.uncertainty_calculator = UncertaintyCalculator(model_name="cardiffnlp/twitter-roberta-base-hate",
+                                                                batch_size=1024, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
@@ -81,14 +82,12 @@ class Embedder:
             # Load the model as a custom SentenceTransformer
             self.model = SentenceTransformer(model_name)
 
-
         if self.type == 'sentence_transformers':
             self.embedding_dim = self.model.get_sentence_embedding_dimension()
         else:
             self.embedding_dim = self.model.config.hidden_size
             self.model = self.model.to(device)
         logger.info(f"Model initialized: {model_name} with embedding dimension {self.embedding_dim}")
-
 
     def _initialize_transformer_model(self, model_name):
         """
@@ -132,7 +131,6 @@ class Embedder:
         embeddings = np.vstack(embeddings)
         logger.info("Sentences embedded successfully")
         return embeddings
-
 
     logger = logging.getLogger(__name__)
 
@@ -294,7 +292,8 @@ class Embedder:
         return data_with_clusters
 
     @staticmethod
-    def visualize_embeddings(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization", output_dir=None):
+    def visualize_embeddings(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization",
+                             output_dir=None):
         """
         Visualize embeddings in 2D with Plotly and metadata as hypertext.
         Args:
@@ -335,7 +334,7 @@ class Embedder:
 
     @staticmethod
     def visualize_embeddings_2(embeddings, metadata, reduction_method="umap", plot_title="Embedding Visualization"):
-    # Dimensionality reduction with UMAP
+        # Dimensionality reduction with UMAP
         if reduction_method == "umap":
             reducer = umap.UMAP(random_state=42, metric='cosine')
         elif reduction_method == "tsne":
@@ -348,7 +347,6 @@ class Embedder:
         metadata_df = pd.DataFrame(metadata)
         metadata_df["x"] = reduced_embeddings[:, 0]
         metadata_df["y"] = reduced_embeddings[:, 1]
-
 
         # Map tasks to colors and labels to shapes
         task_colors = {task: color for task, color in zip(metadata_df["dataset_name"].unique(), cc.glasbey_light)}
@@ -384,4 +382,3 @@ class Embedder:
 
         fig.show()
         plt.show()
-

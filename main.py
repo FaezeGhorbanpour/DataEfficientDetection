@@ -1,4 +1,3 @@
-import argparse
 import sys
 import logging
 import os
@@ -11,11 +10,11 @@ from transformers import set_seed, HfArgumentParser, TrainingArguments
 from transformers.trainer_utils import is_main_process
 from dataclasses import dataclass, field
 from typing import Optional, List, Union
-from data_provider import DataProvider
-from embedder import Embedder
-from retriever import Retriever
-from finetuner import FineTuner
-from prompter import Prompter
+from src.data_provider import DataProvider
+from src.embedder import Embedder
+from src.retriever import Retriever
+from src.finetuner import FineTuner
+from src.prompter import Prompter
 
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
 os.environ['MKL_SERVICE_FORCE_INTEL'] = '1'

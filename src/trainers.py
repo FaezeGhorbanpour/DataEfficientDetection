@@ -6,9 +6,6 @@ from accelerate import DistributedType, skip_first_batches
 from datasets import concatenate_datasets
 from transformers import Trainer
 
-
-
-
 import contextlib
 import functools
 import math
@@ -16,7 +13,6 @@ import os
 import shutil
 import sys
 import time
-
 
 # Integrations must be imported before ML frameworks:
 # isort: off
@@ -52,6 +48,7 @@ from transformers.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 class WeightedTrainer(Trainer):
     def __init__(self, *args, class_weights, **kwargs):
@@ -98,6 +95,7 @@ class RetrievalWeightedTrainer(Trainer):
         final_loss = loss_main + loss_retrieved * self.retrieval_loss_weight
 
         return (final_loss, outputs) if return_outputs else final_loss
+
 
 class CurriculumLearningTrainer(Trainer):
     """
@@ -165,13 +163,13 @@ class CurriculumLearningTrainer(Trainer):
                 return 1.0
         elif self.schedule_type == "strict":
             if (epoch <= 5 and total_epochs > 6) or (epoch <= 3 and total_epochs <= 6):
-                return 0.0 # train first few epochs solely on target train set and then whole retrieved and target
+                return 0.0  # train first few epochs solely on target train set and then whole retrieved and target
             else:
                 return 1.0
         else:
             raise ValueError("Invalid schedule_type. Choose from 'linear', 'exponential', or 'stepwise'.")
 
-    def _update_train_dataset(self,):
+    def _update_train_dataset(self, ):
         """
         Gradually adds a percentage of retrieved instances to the training dataset.
 
@@ -181,7 +179,8 @@ class CurriculumLearningTrainer(Trainer):
         retrieval_ratio = self._get_retrieval_ratio()
         num_retrieved_to_add = min(int(len(self.retrieved_dataset) * retrieval_ratio), 50)
 
-        logger.info(f"Epoch {self.current_epoch + 1}: Adding {num_retrieved_to_add} retrieved samples ({retrieval_ratio * 100:.1f}%)")
+        logger.info(
+            f"Epoch {self.current_epoch + 1}: Adding {num_retrieved_to_add} retrieved samples ({retrieval_ratio * 100:.1f}%)")
 
         # Select top `num_retrieved_to_add` retrieved instances (sorted by score/dist)
         selected_retrieved_samples = self.retrieved_dataset.select(range(num_retrieved_to_add))
@@ -197,7 +196,6 @@ class CurriculumLearningTrainer(Trainer):
         if self.current_epoch is not None:
             self._update_train_dataset()
         return super().get_train_dataloader()
-
 
     def training_step(self, model, inputs, *args, **kwargs):
         """
@@ -253,9 +251,8 @@ class CurriculumLearningTrainer(Trainer):
 
         return max_steps
 
-
     def _inner_training_loop(
-        self, batch_size=None, args=None, resume_from_checkpoint=None, trial=None, ignore_keys_for_eval=None
+            self, batch_size=None, args=None, resume_from_checkpoint=None, trial=None, ignore_keys_for_eval=None
     ):
         self.accelerator.free_memory()
         self._train_batch_size = batch_size
@@ -303,12 +300,12 @@ class CurriculumLearningTrainer(Trainer):
                 num_train_samples = args.max_steps * total_train_batch_size
                 if args.include_tokens_per_second:
                     num_train_tokens = (
-                        self.num_tokens(train_dataloader, args.max_steps) * args.gradient_accumulation_steps
+                            self.num_tokens(train_dataloader, args.max_steps) * args.gradient_accumulation_steps
                     )
             else:
                 max_steps = self.compute_initial_max_steps(num_epoch=args.num_train_epochs,
                                                            batch_size=total_train_batch_size,
-                                                           grad_accumulation=args.gradient_accumulation_steps) #math.ceil(args.num_train_epochs * num_update_steps_per_epoch)
+                                                           grad_accumulation=args.gradient_accumulation_steps)  # math.ceil(args.num_train_epochs * num_update_steps_per_epoch)
                 num_train_epochs = math.ceil(args.num_train_epochs)
                 num_train_samples = self.num_examples(train_dataloader) * args.num_train_epochs
                 if args.include_tokens_per_second:
@@ -466,7 +463,7 @@ class CurriculumLearningTrainer(Trainer):
 
         # Check if continuing training from a checkpoint
         if resume_from_checkpoint is not None and os.path.isfile(
-            os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME)
+                os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME)
         ):
             self.state = TrainerState.load_from_json(os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME))
             self.compare_trainer_and_checkpoint_args(self.args, self.state)
@@ -521,7 +518,7 @@ class CurriculumLearningTrainer(Trainer):
             self._evaluate(trial, ignore_keys_for_eval, skip_scheduler=True)
 
         for epoch in range(epochs_trained, num_train_epochs):
-            epoch_dataloader = self.get_train_dataloader()#train_dataloader
+            epoch_dataloader = self.get_train_dataloader()  # train_dataloader
             if hasattr(epoch_dataloader, "set_epoch"):
                 epoch_dataloader.set_epoch(epoch)
 
@@ -605,16 +602,16 @@ class CurriculumLearningTrainer(Trainer):
                     context = (
                         functools.partial(self.accelerator.no_sync, model=model)
                         if i != len(batch_samples) - 1
-                        and self.accelerator.distributed_type != DistributedType.DEEPSPEED
+                           and self.accelerator.distributed_type != DistributedType.DEEPSPEED
                         else contextlib.nullcontext
                     )
                     with context():
                         tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
 
                     if (
-                        args.logging_nan_inf_filter
-                        and not is_torch_xla_available()
-                        and (torch.isnan(tr_loss_step) or torch.isinf(tr_loss_step))
+                            args.logging_nan_inf_filter
+                            and not is_torch_xla_available()
+                            and (torch.isnan(tr_loss_step) or torch.isinf(tr_loss_step))
                     ):
                         # if loss is nan or inf simply add the average of previous logged losses
                         tr_loss = tr_loss + tr_loss / (1 + self.state.global_step - self._globalstep_last_logged)
@@ -650,8 +647,8 @@ class CurriculumLearningTrainer(Trainer):
                                 )
 
                             if (
-                                is_accelerate_available()
-                                and self.accelerator.distributed_type == DistributedType.DEEPSPEED
+                                    is_accelerate_available()
+                                    and self.accelerator.distributed_type == DistributedType.DEEPSPEED
                             ):
                                 grad_norm = model.get_global_grad_norm()
                                 # In some cases the grad norm may not return a float

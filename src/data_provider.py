@@ -22,7 +22,7 @@ class DataProvider:
                 else:
                     data = load_dataset(dataset_name, cache_dir=cache_dir)
             except:
-                data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir)
+                data = load_dataset('../baseline_data', dataset_name, cache_dir=cache_dir)
 
             for split in data.keys():
                 ds = data[split]
