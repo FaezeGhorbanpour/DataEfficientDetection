@@ -53,7 +53,7 @@ class Embedder:
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
-            self.uncertainty_calculator = UncertaintyCalculator(model_name="", batch_size=1024, device=device)
+            self.uncertainty_calculator = UncertaintyCalculator(model_name=uncertainty_model, batch_size=1024, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
