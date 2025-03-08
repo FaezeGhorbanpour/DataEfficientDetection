@@ -1,5 +1,5 @@
 {
-  "datasets": ["bas19_es-1000-rs3"],
+  "datasets": ["bas19_es-20-rs3"],
   "languages": ["es"],
   "seed": 0,
   "do_embedding": true,
@@ -7,12 +7,17 @@
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/",
-  "num_retrieved": 2000,
+  "num_retrieved": 200,
   "exclude_datasets": ["bas19_es"],
 
   "dataloader_num_workers": 1,
-
   "combine_train_set": true,
+
+  "run_optuna": true,
+  "optuna_n_trials": 5,
+  "run_best_params": false,
+  "optuna_study_name": "temp",
+  "optuna_storage_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/optuna_temp/",
 
   "do_fine_tuning": true,
   "num_train_epochs": 10,
@@ -24,7 +29,7 @@
 
   "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
 
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/temp/mmr2/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/optuna_temp/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "optuna",

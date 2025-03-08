@@ -433,16 +433,24 @@ class MainArguments:
         default=False,
         metadata={"help": "Whether to run Optuna hyperparameter optimization"}
     )
-
     optuna_n_trials: int = field(
         default=20,
         metadata={"help": "Number of trials for Optuna optimization"}
     )
-
     run_best_params: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Whether to run with the best parameters after Optuna optimization"}
     )
+    optuna_study_name: str = field(
+        default='',
+        metadata={"help": "Which study to run"}
+    )
+    optuna_storage_path: str=field(
+        default='',
+        metadata={"help": "Which storage to use"}
+    )
+
+
     # seed: Optional[int] = field(
     #     default=None,
     #     metadata={"help": "Random seed!"}
@@ -489,13 +497,6 @@ def main(
             print(f"Error: The file {file_path} exist. Aborting the run.")
             sys.exit(1)  # Abort the run
 
-    # Setup logging
-    logging.basicConfig(
-        level=logging.INFO,  # Change to DEBUG if needed
-        format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO if is_main_process(finetuner_args.local_rank) else logging.WARN)
 
@@ -746,70 +747,161 @@ def main(
     logger.info("Pipeline execution completed.")
 
 
+import logging
+import os
+import sys
+from transformers import HfArgumentParser
+
+
 def objective(trial, parsed_args):
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting trial {trial.number}")
+
     # Unpack the parsed arguments
     main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
 
     # Modify arguments with Optuna suggestions
-    # Examples (adjust based on your actual parameters):
-    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
-    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
+    # The 4 requested parameters
+    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
+    finetuner_args.num_train_epochs = trial.suggest_int("num_epochs", 2, 30)
+    finetuner_args.weight_decay = trial.suggest_float("weight_decay", 1e-8, 1e-3, log=True)
+    finetuner_args.max_sequence_length = trial.suggest_categorical("max_sequence_length", [128, 256, 512])
+
+    logger.info(f"Trial {trial.number} parameters: "
+                f"lr={finetuner_args.learning_rate}, "
+                f"epochs={finetuner_args.num_train_epochs}, "
+                f"weight_decay={finetuner_args.weight_decay}, "
+                f"max_seq_len={finetuner_args.max_sequence_length}")
+
+    # finetuner_args.batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
+    # finetuner_args.dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.5)
+    # finetuner_args.warmup_ratio = trial.suggest_float("warmup_ratio", 0.0, 0.2)
+    # finetuner_args.use_class_weights = trial.suggest_categorical("use_class_weights", [True, False])
+    # finetuner_args.lr_scheduler = trial.suggest_categorical("lr_scheduler",
+    #                                                         ["linear", "cosine", "cosine_with_restarts"])
 
     # Call main with the modified arguments
-    macro_f1 = main(main_args=main_args, data_args=data_args, embedder_args=embedder_args, retriever_args=retriever_args,
-        retrieval_tuner_args=retrieval_tuner_args, finetuner_args=finetuner_args, prompter_args=prompter_args)
+    try:
+        logger.info(f"Running main function with trial {trial.number}")
+        macro_f1 = main(main_args=main_args, data_args=data_args, embedder_args=embedder_args,
+                        retriever_args=retriever_args,
+                        retrieval_tuner_args=retrieval_tuner_args, finetuner_args=finetuner_args,
+                        prompter_args=prompter_args)
+        logger.info(f"Trial {trial.number} completed with macro_f1={macro_f1}")
+    except Exception as e:
+        logger.error(f"Trial {trial.number} failed with error: {str(e)}", exc_info=True)
+        raise
 
     return macro_f1
 
+
 if __name__ == "__main__":
+    # Set up logging
+    # Configure logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt="%m/%d/%Y %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+    logger = logging.getLogger(__name__)
+    logger.info("Starting optimization script")
+
     # Parse arguments first
+    logger.info("Parsing arguments")
     parser = HfArgumentParser((MainArguments, DataArguments, EmbedderArguments, RetrieverArguments,
                                RetrievalTunerArguments, FineTunerArguments, PrompterArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         parsed_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        logger.info(f"Parsed arguments from JSON file: {sys.argv[1]}")
     else:
         parsed_args = parser.parse_args_into_dataclasses()
+        logger.info("Parsed arguments from command line")
 
     # Check if we should run hyperparameter tuning
     main_args = parsed_args[0]
     if hasattr(main_args, "run_optuna") and main_args.run_optuna:
         # Run Optuna optimization
+        logger.info("Starting Optuna hyperparameter optimization")
         import optuna
+        from optuna.samplers import TPESampler
+        from optuna.pruners import MedianPruner
+
+        # Set up Optuna storage directory
+        os.makedirs(main_args.optuna_storage_path, exist_ok=True)
+        logger.info(f"Created Optuna storage directory: {main_args.optuna_storage_path}")
 
         n_trials = main_args.optuna_n_trials if hasattr(main_args, "optuna_n_trials") else 20
-        study = optuna.create_study(direction="maximize")
-        study.optimize(lambda trial: objective(trial, parsed_args), n_trials=n_trials)
+        logger.info(f"Will run {n_trials} trials")
 
-        print("Best trial:")
-        trial = study.best_trial
-        print(f"  Value: {trial.value}")
-        print("  Params: ")
-        for key, value in trial.params.items():
-            print(f"    {key}: {value}")
+        db_path = f'sqlite:///{main_args.optuna_storage_path + "/optuna.db"}'
+        logger.info(f"Using database path: {db_path}")
 
-        # Optionally run with the best parameters
-        if hasattr(main_args, "run_best_params") and main_args.run_best_params:
-            # Unpack parsed arguments
-            main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
-
-            # Update with best parameters
-            for key, value in trial.params.items():
-                if key.startswith("retriever_"):
-                    setattr(retriever_args, key.replace("retriever_", ""), value)
-                elif key.startswith("embedder_"):
-                    setattr(embedder_args, key.replace("embedder_", ""), value)
-                # Add more conditions for other argument types as needed
-
-            # Run with best parameters
-            main(
-                main_args=main_args,
-                data_args=data_args,
-                embedder_args=embedder_args,
-                retriever_args=retriever_args,
-                retrieval_tuner_args=retrieval_tuner_args,
-                finetuner_args=finetuner_args,
-                prompter_args=prompter_args
+        # Create and configure study
+        try:
+            study = optuna.create_study(
+                study_name=main_args.optuna_study_name,
+                sampler=TPESampler(),
+                storage=db_path,
+                load_if_exists=True,
+                direction="maximize",
+                pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=5)
             )
+            logger.info(f"Created/loaded study '{main_args.optuna_study_name}'")
+
+            # Add Optuna logging callback
+            optuna_logger = optuna.logging.get_logger("optuna")
+            optuna_logger.addHandler(logging.FileHandler(os.path.join(main_args.optuna_storage_path, "optuna_internal.log")))
+
+            # Run optimization
+            logger.info("Starting optimization process")
+            study.optimize(lambda trial: objective(trial, parsed_args), n_trials=n_trials)
+
+            logger.info("Optimization completed")
+            logger.info("Best trial:")
+            trial = study.best_trial
+            logger.info(f"  Value: {trial.value}")
+            logger.info("  Params: ")
+            for key, value in trial.params.items():
+                logger.info(f"    {key}: {value}")
+
+            # Optionally run with the best parameters
+            if hasattr(main_args, "run_best_params") and main_args.run_best_params:
+                logger.info("Running with best parameters")
+                # Unpack parsed arguments
+                main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
+
+                # Update with best parameters
+                for key, value in trial.params.items():
+                    logger.info(f"Setting best parameter {key}={value}")
+                    if key.startswith("retriever_"):
+                        setattr(retriever_args, key.replace("retriever_", ""), value)
+                    elif key.startswith("embedder_"):
+                        setattr(embedder_args, key.replace("embedder_", ""), value)
+                    elif key.startswith("finetuner_"):
+                        setattr(embedder_args, key.replace("finetuner_", ""), value)
+                    # Add more conditions for other argument types as needed
+
+                # Run with best parameters
+                logger.info("Running main with best parameters")
+                main(
+                    main_args=main_args,
+                    data_args=data_args,
+                    embedder_args=embedder_args,
+                    retriever_args=retriever_args,
+                    retrieval_tuner_args=retrieval_tuner_args,
+                    finetuner_args=finetuner_args,
+                    prompter_args=prompter_args
+                )
+        except Exception as e:
+            logger.error(f"Error during Optuna study: {str(e)}", exc_info=True)
+            raise
     else:
         # Run normally
+        logger.info("Running in normal mode (no Optuna)")
         main()
+
+    logger.info("Script execution completed")
