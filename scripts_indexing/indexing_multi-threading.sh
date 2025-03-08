@@ -64,20 +64,31 @@ start_gpu=0
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}
-#$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+    #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
+    gpu_found=false
+
     for ((gpu_id=start_gpu; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "$dataset" "$lang" "$available_gpu" &
-            start_gpu=$((start_gpu + 1))
-            break 1
+            start_gpu=$((available_gpu + 1))  # Use the next GPU after the one just used
+            gpu_found=true
+            break
         fi
     done
+
+    if [ "$gpu_found" = false ]; then
+        echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
+        sleep $WAIT_TIME
+        start_gpu=0  # Reset to start checking from the first GPU again
+    fi
+
     if [ $start_gpu -ge $num_gpus ]; then
         echo "Reached the end of GPUs. Waiting for $WAIT_TIME seconds..."
         sleep $WAIT_TIME
+        start_gpu=0  # Reset to start checking from the first GPU again
     fi
 done
 # Wait for all background processes to finish
