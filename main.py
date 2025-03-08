@@ -208,9 +208,17 @@ class EmbedderArguments:
         default=False,
         metadata={"help": "Add perplexity."}
     )
+    perplexity_model: Optional[str] = field(
+        default="openai-community/gpt2-large",
+        metadata={"help": "Perplexity model name or path."},
+    )
     add_uncertainty: bool = field(
         default=False,
         metadata={"help": "Add uncertainty."}
+    )
+    uncertainty_model: Optional[str] = field(
+        default="cardiffnlp/twitter-roberta-base-hate",
+        metadata={"help": "Uncertainty model name or path."},
     )
 
 
@@ -552,7 +560,9 @@ def main(
     if main_args.do_embedding:
         embedder = Embedder(embedder_args.embedder_model_name_or_path,
                             add_perplexity=embedder_args.add_perplexity,
-                            add_uncertainty=embedder_args.add_uncertainty)
+                            perplexity_model=embedder_args.perplexity_model,
+                            add_uncertainty=embedder_args.add_uncertainty,
+                            uncertainty_model=embedder_args.uncertainty_model,)
         if main_args.enable_wandb:
             wandb.config.update(embedder_args, allow_val_change=True)
         logger.info("Embedding datasets...")
