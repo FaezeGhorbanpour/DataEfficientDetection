@@ -168,6 +168,11 @@ class CurriculumLearningTrainer(Trainer):
                 return 0.0 # train first few epochs solely on target train set and then whole retrieved and target
             else:
                 return 1.0
+        elif self.schedule_type == "strict_separate":
+            if epoch < 10:
+                return 0.0 
+            else:
+                return 1.0
         else:
             raise ValueError("Invalid schedule_type. Choose from 'linear', 'exponential', or 'stepwise'.")
 
@@ -179,7 +184,7 @@ class CurriculumLearningTrainer(Trainer):
             epoch (int): Current epoch.
         """
         retrieval_ratio = self._get_retrieval_ratio()
-        num_retrieved_to_add = min(int(len(self.retrieved_dataset) * retrieval_ratio), 50)
+        num_retrieved_to_add = int(len(self.retrieved_dataset) * retrieval_ratio)
 
         logger.info(f"Epoch {self.current_epoch + 1}: Adding {num_retrieved_to_add} retrieved samples ({retrieval_ratio * 100:.1f}%)")
 
@@ -187,7 +192,10 @@ class CurriculumLearningTrainer(Trainer):
         selected_retrieved_samples = self.retrieved_dataset.select(range(num_retrieved_to_add))
 
         # Merge with target dataset
-        self.train_dataset = concatenate_datasets([self.target_dataset, selected_retrieved_samples])
+        if self.schedule_type == "strict_separate" and retrieval_ratio == 1.0:
+            self.train_dataset = selected_retrieved_samples
+        else:
+            self.train_dataset = concatenate_datasets([self.target_dataset, selected_retrieved_samples])
         self.epoch_train_size.update({self.current_epoch: num_retrieved_to_add})
 
     def get_train_dataloader(self):
@@ -242,6 +250,8 @@ class CurriculumLearningTrainer(Trainer):
             avg_train_size = m + 0.75 * n
         elif self.schedule_type == "stepwise":
             avg_train_size = m + 0.48 * n
+        elif self.schedule_type == "strict_separate":
+            avg_train_size = (m-n) * 10 / num_epoch + n
         else:
             raise ValueError("Invalid schedule_type. Choose from 'linear', 'exponential', or 'stepwise'.")
 
