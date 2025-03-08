@@ -175,7 +175,7 @@ class Prompter:
         with torch.no_grad():
             outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=1, max_new_tokens=10, temperature=0, top_p=1)
+                                          num_beams=2, max_new_tokens=10)
 
         # do_sample = False, top_p = 1, temperature = 0)
         # Process predictions
@@ -256,35 +256,36 @@ class Prompter:
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 if "chain_of_thought" in prompt or 'role' in prompt or 'nli' in prompt:
                     batch_size = batch_size // 2
-                for translate_prompt in [False, True]:
-                    try:
-                        for i in range(self.num_rounds):
-                            logger.info("-" * 100)
-                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+                translate_prompt = False
+                # for translate_prompt in [False, True]:
+                try:
+                    for i in range(self.num_rounds):
+                        logger.info("-" * 100)
+                        logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
 
-                            # Save results
-                            output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
-                                                      data['language'] if translate_prompt else 'en', prompt, split, str(i))
-                            file_path = os.path.join(output_dir, "evaluation_results.json")
-                            if os.path.exists(file_path):
-                                print(f"Error: The file {file_path} exist. Aborting the run.")
-                                continue
+                        # Save results
+                        output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
+                                                  data['language'] if translate_prompt else 'en', prompt, split, str(i))
+                        file_path = os.path.join(output_dir, "evaluation_results.json")
+                        if os.path.exists(file_path):
+                            print(f"Error: The file {file_path} exist. Aborting the run.")
+                            continue
 
-                            predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
-                                                       translate_prompt=translate_prompt, lang=data["language"])
+                        predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
+                                                   translate_prompt=translate_prompt, lang=data["language"])
 
-                            # Process predictions
-                            processed_predictions = [
-                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
-                                for pred in predictions
-                            ]
+                        # Process predictions
+                        processed_predictions = [
+                            map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                            for pred in predictions
+                        ]
 
-                            results = self.compute_metrics(processed_predictions, dataset["label"])
+                        results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                            self.save_predictions(processed_predictions, dataset["label"], output_dir)
-                            self.save_results(results, output_dir)
-                    except Exception as e:
-                        logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+                        self.save_predictions(processed_predictions, dataset["label"], output_dir)
+                        self.save_results(results, output_dir)
+                except Exception as e:
+                    logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
 
     def compute_metrics(self, predictions, labels):
         """Compute classification metrics for hate speech detection."""
