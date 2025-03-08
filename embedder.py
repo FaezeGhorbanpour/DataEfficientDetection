@@ -49,7 +49,7 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name=perplexity_model, batch_size=32, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name=perplexity_model, batch_size=8, device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:

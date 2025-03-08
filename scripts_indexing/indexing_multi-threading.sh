@@ -5,6 +5,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' 'de' 'tr')
 SPLITS=('train')
+RSS=(rs1 rs2 rs3 rs4 rs5)
 
 # Function to process a single dataset
 run_dataset() {
@@ -14,36 +15,38 @@ run_dataset() {
 
     echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
-    OUTPUT_DIR="${BASE}/models/embedder/${dataset}/LaBSE-HNSW/"
-    CUDA_VISIBLE_DEVICES=${gpu} python main.py \
-        --finetuner_model_name_or_path "${MODEL_NAME}" \
-        --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-        --datasets "${dataset}" \
-        --languages "${lang}" \
-        --seed 0 \
-        --do_embedding \
-        --embedder_model_name_or_path "labse"\
-        --do_indexing\
-        --index_type "HNSW"\
-        --splits ${SPLITS[@]} \
-        --index_path $OUTPUT_DIR \
-        --output_dir $OUTPUT_DIR \
-        --add_uncertainty \
-        --uncertainty_model "/mounts/data/proj/faeze/data_efficient_hate/models/finetuner/twitter-roberta-english/fou18_en-20000/checkpoint-2500"\
-        --add_perplexity\
-        --cache_dir "${BASE}/cache/" \
-        --logging_dir "${BASE}/logs/" \
-        --overwrite_output_dir \
-        --wandb_run_name "embedding-${dataset}"
+    for ((i=0; i<${#RSS[@]}; i++)); do
+      OUTPUT_DIR="${BASE}/models/embedder/${dataset}/LaBSE-HNSW/${RSS[i]}"
+      CUDA_VISIBLE_DEVICES=${gpu} python main.py \
+          --finetuner_model_name_or_path "${MODEL_NAME}" \
+          --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+          --datasets "${dataset}-2000-${RSS[i]}"  \
+          --languages "${lang}" \
+          --seed "${RSS[i]}" \
+          --do_embedding \
+          --embedder_model_name_or_path "labse"\
+          --do_indexing\
+          --index_type "HNSW"\
+          --splits ${SPLITS[@]} \
+          --index_path $OUTPUT_DIR \
+          --output_dir $OUTPUT_DIR \
+          --add_uncertainty \
+          --uncertainty_model "/mounts/data/proj/faeze/data_efficient_hate/models/finetuner/twitter-roberta-english/fou18_en-20000/checkpoint-2500"\
+          --add_perplexity\
+          --cache_dir "${BASE}/cache/" \
+          --logging_dir "${BASE}/logs/" \
+          --overwrite_output_dir \
+          --wandb_run_name "embedding-${dataset}"
+    done
 
     echo "Finished dataset: ${dataset} on GPU: ${gpu}"
 }
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=10000
+MIN_MEM=30000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=500
+WAIT_TIME=90
 # Function to check available memory on a GPU
 check_gpu_memory() {
     local gpu_id=$1
