@@ -22,12 +22,12 @@ run_dataset() {
           --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
           --datasets "${dataset}-2000-${RSS[i]}"  \
           --languages "${lang}" \
-          --seed "${RSS[i]}" \
+          --seed ${RSS[i]//rs/}\
           --do_embedding \
           --embedder_model_name_or_path "labse"\
           --do_indexing\
           --index_type "HNSW"\
-          --splits ${RSS[i]//rs/}  \
+          --splits "train"  \
           --index_path $OUTPUT_DIR \
           --output_dir $OUTPUT_DIR \
           --add_uncertainty \
