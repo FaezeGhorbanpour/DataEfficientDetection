@@ -7,9 +7,9 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 class UncertaintyCalculator:
-    def __init__(self, model_name, batch_size=32, device: str = 'cuda'):
+    def __init__(self, model_name, tokenizer_model_name, batch_size=32, device: str = 'cuda'):
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_model_name)
         self.batch_size = batch_size
         self.device = device
 

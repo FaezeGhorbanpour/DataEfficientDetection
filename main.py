@@ -220,6 +220,10 @@ class EmbedderArguments:
         default="cardiffnlp/twitter-roberta-base-hate",
         metadata={"help": "Uncertainty model name or path."},
     )
+    uncertainty_tokenizer: Optional[str] = field(
+        default="cardiffnlp/twitter-roberta-base-hate",
+        metadata={"help": "Uncertainty model name or path."},
+    )
 
 
 
@@ -562,7 +566,8 @@ def main(
                             add_perplexity=embedder_args.add_perplexity,
                             perplexity_model=embedder_args.perplexity_model,
                             add_uncertainty=embedder_args.add_uncertainty,
-                            uncertainty_model=embedder_args.uncertainty_model,)
+                            uncertainty_model=embedder_args.uncertainty_model,
+                            uncertainty_tokenizer=embedder_args.uncertainty_tokenizer)
         if main_args.enable_wandb:
             wandb.config.update(embedder_args, allow_val_change=True)
         logger.info("Embedding datasets...")

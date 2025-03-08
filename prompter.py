@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Original Model configurations
 MODEL_CONFIGS = {
     "mt0-2": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
-            "context_length": 1024, "big_model": False, "batch_size": 256},
+            "context_length": 1024, "big_model": False, "batch_size": 1024},
     "mt0": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
             "context_length": 1024, "big_model": False, "batch_size": 1024},
     "aya101-2": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",

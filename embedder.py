@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class Embedder:
     def __init__(self, model_name, device="cuda", batch_size=256, add_perplexity=False, add_uncertainty=False,
-                 perplexity_model=None, uncertainty_model=None, ):
+                 perplexity_model=None, uncertainty_model=None, uncertainty_tokenizer=None):
         """
         Initialize the Embedder with a multilingual model.
         Args:
@@ -53,7 +53,9 @@ class Embedder:
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
-            self.uncertainty_calculator = UncertaintyCalculator(model_name=uncertainty_model, batch_size=1024, device=device)
+            self.uncertainty_calculator = UncertaintyCalculator(model_name=uncertainty_model,
+                                                                tokenizer_model_name=uncertainty_tokenizer,
+                                                                batch_size=1024, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
