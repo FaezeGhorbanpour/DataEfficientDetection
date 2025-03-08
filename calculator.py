@@ -66,8 +66,40 @@ class PerplexityCalculator:
         Returns:
             List[float]: List of perplexities corresponding to each sentence.
         """
-        return self.perplexity_metric.compute(predictions=sentences, model_id=self.model_name,
-                                              batch_size=self.batch_size, device=self.device)['perplexities']
+        # Filter out empty strings or strings that might tokenize to empty sequences
+        valid_sentences = []
+        invalid_indices = []
+
+        for i, sentence in enumerate(sentences):
+            # Skip completely empty strings or whitespace-only strings
+            if not sentence or sentence.isspace():
+                invalid_indices.append(i)
+            else:
+                valid_sentences.append(sentence)
+
+        if not valid_sentences:
+            return [float('inf')] * len(sentences)  # Return infinity for all if no valid sentences
+
+        # Calculate perplexity only for valid sentences
+        valid_perplexities = self.perplexity_metric.compute(
+            predictions=valid_sentences,
+            model_id=self.model_name,
+            batch_size=self.batch_size,
+            device=self.device
+        )['perplexities']
+
+        # Reconstruct the full results with placeholders for invalid sentences
+        result = []
+        valid_idx = 0
+
+        for i in range(len(sentences)):
+            if i in invalid_indices:
+                result.append(float('inf'))  # Use infinity for invalid sentences
+            else:
+                result.append(valid_perplexities[valid_idx])
+                valid_idx += 1
+
+        return result
 
     def rank_sentences_by_perplexity(self, sentences):
         """
