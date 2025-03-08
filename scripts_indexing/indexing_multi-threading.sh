@@ -27,7 +27,7 @@ run_dataset() {
           --embedder_model_name_or_path "labse"\
           --do_indexing\
           --index_type "HNSW"\
-          --splits ${SPLITS[@]} \
+          --splits ${RSS[i]//rs/}  \
           --index_path $OUTPUT_DIR \
           --output_dir $OUTPUT_DIR \
           --add_uncertainty \
@@ -46,7 +46,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=30000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=90
+WAIT_TIME=300
 # Function to check available memory on a GPU
 check_gpu_memory() {
     local gpu_id=$1
