@@ -841,64 +841,64 @@ if __name__ == "__main__":
         logger.info(f"Using database path: {db_path}")
 
         # Create and configure study
-        try:
-            study = optuna.create_study(
-                study_name=main_args.optuna_study_name,
-                sampler=TPESampler(),
-                storage=db_path,
-                load_if_exists=True,
-                direction="maximize",
-                pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=5)
-            )
-            logger.info(f"Created/loaded study '{main_args.optuna_study_name}'")
+        # try:
+        study = optuna.create_study(
+            study_name=main_args.optuna_study_name,
+            sampler=TPESampler(),
+            storage=db_path,
+            load_if_exists=True,
+            direction="maximize",
+            pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=5)
+        )
+        logger.info(f"Created/loaded study '{main_args.optuna_study_name}'")
 
-            # Add Optuna logging callback
-            optuna_logger = optuna.logging.get_logger("optuna")
-            optuna_logger.addHandler(logging.FileHandler(os.path.join(main_args.optuna_storage_path, "optuna_internal.log")))
+        # Add Optuna logging callback
+        optuna_logger = optuna.logging.get_logger("optuna")
+        optuna_logger.addHandler(logging.FileHandler(os.path.join(main_args.optuna_storage_path, "optuna_internal.log")))
 
-            # Run optimization
-            logger.info("Starting optimization process")
-            study.optimize(lambda trial: objective(trial, parsed_args), n_trials=n_trials)
+        # Run optimization
+        logger.info("Starting optimization process")
+        study.optimize(lambda trial: objective(trial, parsed_args), n_trials=n_trials)
 
-            logger.info("Optimization completed")
-            logger.info("Best trial:")
-            trial = study.best_trial
-            logger.info(f"  Value: {trial.value}")
-            logger.info("  Params: ")
+        logger.info("Optimization completed")
+        logger.info("Best trial:")
+        trial = study.best_trial
+        logger.info(f"  Value: {trial.value}")
+        logger.info("  Params: ")
+        for key, value in trial.params.items():
+            logger.info(f"    {key}: {value}")
+
+        # Optionally run with the best parameters
+        if hasattr(main_args, "run_best_params") and main_args.run_best_params:
+            logger.info("Running with best parameters")
+            # Unpack parsed arguments
+            main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
+
+            # Update with best parameters
             for key, value in trial.params.items():
-                logger.info(f"    {key}: {value}")
+                logger.info(f"Setting best parameter {key}={value}")
+                if key.startswith("retriever_"):
+                    setattr(retriever_args, key.replace("retriever_", ""), value)
+                elif key.startswith("embedder_"):
+                    setattr(embedder_args, key.replace("embedder_", ""), value)
+                elif key.startswith("finetuner_"):
+                    setattr(embedder_args, key.replace("finetuner_", ""), value)
+                # Add more conditions for other argument types as needed
 
-            # Optionally run with the best parameters
-            if hasattr(main_args, "run_best_params") and main_args.run_best_params:
-                logger.info("Running with best parameters")
-                # Unpack parsed arguments
-                main_args, data_args, embedder_args, retriever_args, retrieval_tuner_args, finetuner_args, prompter_args = parsed_args
-
-                # Update with best parameters
-                for key, value in trial.params.items():
-                    logger.info(f"Setting best parameter {key}={value}")
-                    if key.startswith("retriever_"):
-                        setattr(retriever_args, key.replace("retriever_", ""), value)
-                    elif key.startswith("embedder_"):
-                        setattr(embedder_args, key.replace("embedder_", ""), value)
-                    elif key.startswith("finetuner_"):
-                        setattr(embedder_args, key.replace("finetuner_", ""), value)
-                    # Add more conditions for other argument types as needed
-
-                # Run with best parameters
-                logger.info("Running main with best parameters")
-                main(
-                    main_args=main_args,
-                    data_args=data_args,
-                    embedder_args=embedder_args,
-                    retriever_args=retriever_args,
-                    retrieval_tuner_args=retrieval_tuner_args,
-                    finetuner_args=finetuner_args,
-                    prompter_args=prompter_args
-                )
-        except Exception as e:
-            logger.error(f"Error during Optuna study: {str(e)}", exc_info=True)
-            raise
+            # Run with best parameters
+            logger.info("Running main with best parameters")
+            main(
+                main_args=main_args,
+                data_args=data_args,
+                embedder_args=embedder_args,
+                retriever_args=retriever_args,
+                retrieval_tuner_args=retrieval_tuner_args,
+                finetuner_args=finetuner_args,
+                prompter_args=prompter_args
+            )
+        # except Exception as e:
+        #     logger.error(f"Error during Optuna study: {str(e)}", exc_info=True)
+        #     raise
     else:
         # Run normally
         logger.info("Running in normal mode (no Optuna)")
