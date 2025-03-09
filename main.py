@@ -713,7 +713,7 @@ def main(
             logger.info("Finetune-based inference on eval dataset metrics: %s", results)
 
             if main_args.run_optuna:
-                return results['eval-f1-macro']
+                return results['validation_f1-macro']
 
         if finetuner_args.do_test:
             # test_dataset = fine_tuner.prepare_data(dataset['test'])
