@@ -27,30 +27,22 @@ logger = logging.getLogger(__name__)
 
 # Original Model configurations
 MODEL_CONFIGS = {
-    "mt0-2": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
-            "context_length": 1024, "big_model": False, "batch_size": 1024},
     "mt0": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
-            "context_length": 1024, "big_model": False, "batch_size": 1024},
-    "aya101-2": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
-               "model_type": "seq2seq", "context_length": 4096, "batch_size": 64},
+            "context_length": 1024, "big_model": False, "batch_size": 512},
     "aya101": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
-               "model_type": "seq2seq", "context_length": 4096, "batch_size": 256},
+               "model_type": "seq2seq", "context_length": 4096, "batch_size": 125},
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
-              "context_length": 4096, "batch_size": 64},
+              "context_length": 4096, "batch_size": 32},
     "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 8000, "batch_size": 32}, #new
-    "bloomz-2": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
-               "batch_size": 32},
     "bloomz": {"name": "bigscience/bloomz-7b1", "prompt_template": "{instruction}", "context_length": 2048,
                "batch_size": 32},
     "mistral": {"name": "mistralai/Mistral-7B-Instruct-v0.2", "prompt_template": "<s>[INST] {instruction} [/INST]",
-                "context_length": 32768, "batch_size": 128},
+                "context_length": 32768, "batch_size": 64},
     "mistral8": {"name": "mistralai/Ministral-8B-Instruct-2410", "prompt_template": "<s>[INST] {instruction} [/INST]",
-                "context_length": 128000, "batch_size": 128}, #new
+                "context_length": 128000, "batch_size": 64}, #new
     "llama2": {"name": "meta-llama/Llama-2-7b-chat-hf", "prompt_template": "[INST] {instruction} [/INST]",
-               "context_length": 4096, "batch_size": 128},
-    "llama3-2": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
-               "context_length": 128000, "batch_size": 128},
+               "context_length": 4096, "batch_size": 64},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 128000, "batch_size": 128},
     "gemma": {"name": "google/gemma-7b-it",
@@ -59,9 +51,7 @@ MODEL_CONFIGS = {
     "gemma9": {"name": "google/gemma-2-9b",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16}, #new
-    "teuken-2": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
-               "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
-    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
+    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 32,
                "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 64, #new
                "prompt_template": "{instruction}", "context_length": 8192}
@@ -85,9 +75,13 @@ class Prompter:
 
         # Model configuration
         self.model_name = config.prompter_model_name_or_path
-        self.prompts_list = (
-            ["multilingual", "chain_of_thought", "nli", "classification",
-              "role_play", "general", "definition", ]
+        self.few_shot_prompts_list = (['few_shot', 'few_shot_cot', 'few_shot_role_play',
+                                       'few_shot_multilingual', 'few_shot_definition', ]
+            if config.prompts_list == 'all' else config.prompts_list
+        )
+        self.zero_shot_prompts_list = (['general', 'classification', 'definition', 'cot', 'multilingual', 'nli',
+                                        'role_play', 'multilingual_definition', 'role_play_cot', 'multilingual_cot',
+                                        'explanation_based', 'target_identification', 'contextual_analysis', 'cot-2']
             if config.prompts_list == 'all' else config.prompts_list
         )
 
@@ -175,9 +169,8 @@ class Prompter:
         with torch.no_grad():
             outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=2, max_new_tokens=10)
+                                          num_beams=2, max_new_tokens=64, temperature=None, top_p=None, top_k=None)
 
-        # do_sample = False, top_p = 1, temperature = 0)
         # Process predictions
         predictions = []
         template = self.model_config["prompt_template"].format(instruction="")
@@ -188,12 +181,12 @@ class Prompter:
 
         return predictions
 
-    def predict(self, dataset, prompt_template, max_length, batch_size, translate_prompt=False, lang='en', retrieved_metadata=None):
+    def predict(self, dataset, prompt_template, max_length, batch_size, translate_prompt=False, lang='en', examples=None):
         """Process dataset and generate predictions."""
         logger.info("Starting batch prediction...")
 
         # Create efficient dataloader
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True) #todo this should be in dataprovider not here!
 
         all_predictions = []
         total_batches = len(dataloader)
@@ -201,10 +194,11 @@ class Prompter:
         for batch_idx, batch in enumerate(tqdm(dataloader, desc="Processing batches")):
             # Prepare batch prompts
             batch_prompts = [
-                self.form_prompt(text, lang=lang, prompt_template=prompt_template, translate_prompt=translate_prompt,
-                    examples=retrieved_metadata.get(text, "") if retrieved_metadata else None
+                self.form_prompt(text=batch['text'][i], id=batch['id'][i], lang=lang, prompt_template=prompt_template,
+                                 translate_prompt=translate_prompt,
+                                 examples=examples if examples else None
                 )
-                for text in batch["text"]
+                for i in range(len(batch['text']))
             ]
 
             # Generate predictions
@@ -219,27 +213,47 @@ class Prompter:
 
         return all_predictions
 
-    def form_prompt(self, text, lang, prompt_template, translate_prompt=False, examples = None):
-        """Form prompt using specified template."""
-        prompt_functions = {
-            "general": general_prompt,
-            "definition": definition_prompt,
-            "classification": classification_prompt,
-            "chain_of_thought": chain_of_thought_prompt,
-            "few_shot": lambda txt, translate_to: few_shot_prompt(txt, examples, translate_to=translate_to) if examples else ValueError(
-                "Few-shot prompting requires examples."),
-            "multilingual": lambda txt, translate_to: multilingual_prompt(txt, language=lang, translate_to=translate_to) if lang else ValueError(
-                "Multilingual prompting requires language."),
-            "nli": nli_prompt,
-            "role_play": role_play_prompt
-        }
+    def form_prompt(self, text, id, lang, prompt_template, translate_prompt=False, examples=None):
+        """Form prompt using one of three general prompt categories based on input types."""
+        if examples is not None:
+            examples = examples[id]
 
-        if prompt_template not in prompt_functions:
-            raise ValueError(f"Unknown prompt template: {prompt_template}")
+        # Determine which general prompt category to use
+        if 'few_shot' in prompt_template and 'multilingual' in prompt_template:
+            if not examples:
+                raise ValueError("Few-shot prompting requires examples.")
+            prompt_method = example_and_language_based_prompt
+            extra_args = {"examples": examples, "language": lang}
+        elif 'few_shot' in prompt_template:
+            if not examples:
+                raise ValueError("Few-shot prompting requires examples.")
+            prompt_method = example_based_prompt
+            extra_args = {"examples": examples}
+        elif 'multilingual' in prompt_template:
+            if not lang:
+                raise ValueError("Multilingual prompting requires language.")
+            prompt_method = language_aware_prompt
+            extra_args = {"language": lang}
+        else:
+            # Standard prompts (general, definition, classification, chain_of_thought, nli, role_play)
+            prompt_method = standard_prompt
+            extra_args = {}
 
-        if translate_prompt:
-            return prompt_functions[prompt_template](text, translate_to=lang)
-        return prompt_functions[prompt_template](text, translate_to='en')
+        # Handle translation
+        target_lang = lang if translate_prompt else 'en'
+
+        # Call the appropriate prompt method with all necessary args
+        return prompt_method(text, variant=prompt_template, translate_to=target_lang, **extra_args)
+
+    def abort_run(self, data, translate_prompt, prompt, split, i):
+        # Save results
+        output_dir = os.path.join(self.config.prompter_output_dir, self.model_name, data['name'],
+                                  data['language'] if translate_prompt else 'en', prompt, split, str(i))
+        file_path = os.path.join(output_dir, "evaluation_results.json")
+        if os.path.exists(file_path):
+            print(f"Error: The file {file_path} exist. Aborting the run.")
+            return None
+        return output_dir
 
     def do_zero_shot_prompting(self, data):
         """Perform zero-shot prompting on dataset."""
@@ -251,11 +265,9 @@ class Prompter:
 
             dataset = data["data"][split]
 
-            for prompt in self.prompts_list:
+            for prompt in self.zero_shot_prompts_list:
                 max_length = (self.prompter_max_length or 650 if "chain_of_thought" in prompt else 512)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
-                if "chain_of_thought" in prompt or 'role' in prompt or 'nli' in prompt:
-                    batch_size = batch_size // 2
                 translate_prompt = False
                 # for translate_prompt in [False, True]:
                 try:
@@ -263,12 +275,8 @@ class Prompter:
                         logger.info("-" * 100)
                         logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
 
-                        # Save results
-                        output_dir = os.path.join( self.config.prompter_output_dir, self.model_name, data['name'],
-                                                  data['language'] if translate_prompt else 'en', prompt, split, str(i))
-                        file_path = os.path.join(output_dir, "evaluation_results.json")
-                        if os.path.exists(file_path):
-                            print(f"Error: The file {file_path} exist. Aborting the run.")
+                        output_dir = self.abort_run(data, translate_prompt, prompt, split, i)
+                        if output_dir is None:
                             continue
 
                         predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
@@ -282,10 +290,52 @@ class Prompter:
 
                         results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                        self.save_predictions(processed_predictions, dataset["label"], output_dir)
+                        self.save_predictions(predictions, processed_predictions, dataset["label"], output_dir)
                         self.save_results(results, output_dir)
                 except Exception as e:
                     logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+
+    def do_few_shot_prompting(self, data, shots):
+        """Perform few-shot prompting on dataset."""
+        logger.info(f"Starting zero-shot prompting for dataset: {data['name']}")
+        shot_numbers = [1, 3, 5, 10, 25, 50]
+
+        for split in ["test", "hate_check"]:
+            if split not in data['data']:
+                continue
+
+            dataset = data["data"][split]
+            for shot_number in shot_numbers:
+                examples = {key: value[:shot_number] for key, value in shots.items()}
+                for prompt in self.few_shot_prompts_list:
+                    max_length = (self.prompter_max_length or 650 if "chain_of_thought" in prompt else 512)
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
+                    translate_prompt = False
+                    # for translate_prompt in [False, True]:
+                    try:
+                        for i in range(self.num_rounds):
+                            logger.info("-" * 100)
+                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+
+                            output_dir = self.abort_run(data, translate_prompt, prompt, split, i)
+                            if output_dir is None:
+                                continue
+
+                            predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size, examples=examples,
+                                                       translate_prompt=translate_prompt, lang=data["language"])
+
+                            # Process predictions
+                            processed_predictions = [
+                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                                for pred in predictions
+                            ]
+
+                            results = self.compute_metrics(processed_predictions, dataset["label"])
+
+                            self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"], output_dir)
+                            self.save_results(results, output_dir)
+                    except Exception as e:
+                        logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
 
     def compute_metrics(self, predictions, labels):
         """Compute classification metrics for hate speech detection."""
@@ -337,16 +387,17 @@ class Prompter:
             logger.error(f"Error saving results: {str(e)}")
             raise
 
-    def save_predictions(self, predictions, labels, output_dir):
+    def save_predictions(self, ids, raw_predictions, predictions, labels, output_dir):
         """Save predictions and labels."""
         try:
             os.makedirs(output_dir, exist_ok=True)
             predictions_serializable = convert_to_serializable(predictions)
+            raw_predictions_serializable = convert_to_serializable(raw_predictions)
             labels_serializable = convert_to_serializable(labels)
             with open(os.path.join(output_dir, "predictions.txt"), "w") as f:
-                f.write("Predicted\tTrue\n")
-                for pred, label in zip(predictions_serializable, labels_serializable):
-                    f.write(f"{pred}\t{label}\n")
+                f.write("ID, Raw Predicted, Predicted, True\n")
+                for id, raw_pred, pred, label in zip(ids, raw_predictions_serializable, predictions_serializable, labels_serializable):
+                    f.write(f"{id}, {raw_pred}, {pred}, {label}\n")
             logger.info("Predictions consist of: %s", ", ".join(map(str, np.unique(predictions_serializable))))
             logger.info(f"Predictions saved. ")
         except Exception as e:

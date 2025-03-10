@@ -1,22 +1,25 @@
 {
-"prompter_model_name_or_path": "aya101-2",
+"prompter_model_name_or_path": "llama3",
   "datasets": ["bas19_es"],
   "languages": ["es"],
   "seed": 0,
-
+  "balance_labels": true,
   "do_embedding": true,
-  "embedder_model_name_or_path": "m3",
+  "embedder_model_name_or_path": "labse",
   "do_searching": true,
-  "splits": ["test"],
-  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/bas19_es_m3_HNSW/",
-  "num_retrieved": 10,
-
+  "splits": ["test", "hate_check"],
+  "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/bas19_es/train/LaBSE-HNSW/",
+  "k": 50,
+  "retrieve_per_instance": true,
   "do_prompting": true,
+  "prompts_list": ["few_shot"],
   "num_rounds": 1,
-  "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/aya101-2/",
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/",
+  "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama3/bas19_es/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama3/bas19_es/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "overwrite_output_dir": true,
-  "wandb_run_name": "prompter_baseline"
+  "wandb_run_name": "prompter_baseline",
+  "enable_wandb": false,
+  "report_to": []
 }

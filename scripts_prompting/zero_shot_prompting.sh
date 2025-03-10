@@ -22,10 +22,10 @@ CUDA_VISIBLE_DEVICES=$GPU_CORE python main.py \
     --num_rounds 3 \
     --datasets ${DATASETS[@]} \
     --languages ${LANGUAGES[@]} \
-    --do_prompting true \
+    --do_prompting \
     --prompter_output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/zero_shot_prompting/" \
     --output_dir "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/zero_shot_prompting/" \
     --cache_dir "/mounts/data/proj/faeze/data_efficient_hate/cache/" \
     --logging_dir "/mounts/data/proj/faeze/data_efficient_hate/logs/" \
-    --overwrite_output_dir true \
+    --overwrite_output_dir \
     --wandb_run_name "prompter_zero_shot: ${MODEL_PATH}"

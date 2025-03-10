@@ -5,15 +5,46 @@
         "hateful": "hateful",
         "no": "no",
         "non_hateful": "non-hateful",
-        "general": "Is this comment hateful? (don't explain and answer only {yn1} or {yn2})\nComment: \"{text}\"\nAnswer:",
-        "classification": "Here is a social media post: {text}. Classify this post as “yes” if it is hateful or “no” if it is not hateful. (don't explain and answer only {yn1} or {yn2})\nAnswer:",
-        "definition": "Hate speech is speech that attacks a person or group based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\n\nIs this comment hateful? (don't explain and answer only {yn1} or {yn2})\nComment: \"{text}\"\nAnswer:",
-        "cot": "Analyze the following comment to determine if it contains hate speech.\n\nComment: \"{text}\"\n\n Step 1: Identify any offensive or harmful language targeting a person or group.\n Step 2: Determine if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\n Step 3: Conclude whether it is hate speech.\n (don't explain and answer only {yn1} or {yn2}).\nAnswer:",
-        "few_shot": "Classify the following text as hate speech or not hate speech. Here are some examples:\n\n{examples}\n Now, classify the following text:\n\nText: \"{text}\"\nAnswer:",
-        "multilingual": "Analyze the following text written in {language} and determine if it contains hate speech.  Consider cultural nuances and context specific to {language}-speaking communities.\n\n Text: \"{text}\"\n\n Does this text contain hate speech? (don't explain and answer only {yn1} or {yn2}).\nAnswer:",
-        "nli": "Premise: \"{text}\"\nHypothesis: \"This statement expresses hate speech.\"\nDoes the premise entail the hypothesis? (Only don't explain and answer only {yn1} or {yn2})\nAnswer:",
-        "role_play": "Imagine you are a moderator for an online community. Your task is to ensure that all content adheres to community guidelines, which prohibit hate speech. Analyze the following text and determine if it violates these guidelines.\n\nText: \"{text}\"\n\n Does this text violate the community guidelines on hate speech? (don't explain and answer only {yn1} or {yn2}).\nAnswer:"
-    },
+
+    "general": "Is the following comment hateful? Respond only with {yn1} or {yn2}. No explanations.\nComment: \"{text}\"\nAnswer:",
+
+    "classification": "Classify the following comment as either hateful or non-hateful. Respond with {yn1} for hateful and {yn2} for non-hateful.\nComment: \"{text}\"\nAnswer:",
+
+    "definition": "Hate speech is language that expresses discrimination, hostility, or violence against individuals or groups based on race, religion, ethnicity, nationality, gender, sexual orientation, or disability.\n\nDoes the following comment contain hate speech? Answer only {yn1} or {yn2}.\nComment: \"{text}\"\nAnswer:",
+
+    "cot": "Analyze the following comment step by step to determine if it contains hate speech.\n\nStep 1: Identify if the comment **targets a specific person or group** based on race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity. If no target is identified, the comment is not hate speech.\n\nStep 2: Assess whether the language expresses **hostility, discrimination, incitement to violence, dehumanization, or derogatory stereotypes** toward the target.\n\nStep 3: Consider **contextual factors** such as sarcasm, historical significance, and coded language. Does the comment still qualify as hate speech when context is considered?\n\nStep 4: Based on the above steps, **conclude whether this is hate speech** (answer only {yn1} or {yn2}).\n\nComment: \"{text}\"\n\nAnswer:",
+
+    "multilingual": "Analyze the following text written in {language}.\nConsider cultural context, idioms, and societal norms in {language}-speaking communities.\n\nText: \"{text}\"\n\nDoes this text contain hate speech? Answer only {yn1} or {yn2}.\nAnswer:",
+
+    "nli": "Premise: \"{text}\"\nHypothesis: \"This statement contains hate speech as defined by social and legal standards.\"\nDoes the premise entail the hypothesis? (answer only {yn1} or {yn2})\nAnswer:",
+
+    "role_play": "You are a community moderator responsible for ensuring compliance with hate speech policies.\nAnalyze the following text and determine if it violates the guidelines.\n\nText: \"{text}\"\n\nDoes this text violate the community’s hate speech policy? (answer only {yn1} or {yn2}).\nAnswer:",
+
+    "few_shot": "Classify the following comment as either hateful or non-hateful. Respond with 'yes' for hateful and 'no' for non-hateful, considering following examples:\n\n{examples}\n\nNow, classify this comment:\nComment: \"{text}\"\nAnswer:",
+
+    "few_shot_cot": "Here are some examples of comments and their classifications as 'yes' if it is hateful or 'no' if not:\n\n{examples}\n\nNow, analyze the following comment step by step and determine if it is hateful.\n\nComment: \"{text}\"\n\nStep 1: Identify any offensive or harmful language targeting a person or group.\nStep 2: Determine if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\nStep 3: Conclude whether it is hate speech (answer only {yn1} or {yn2}).\n\nAnswer:",
+
+    "few_shot_role_play": "As a community moderator, you have previously handled the following cases if they include hate speech or not:\n\n{examples}\n\nBased on these examples, analyze the following comment and determine if it violates the community’s hate speech policy.\n\nComment: \"{text}\"\n\nDoes this comment violate the community guidelines on hate speech? (answer only {yn1} or {yn2})\nAnswer:",
+
+    "multilingual_definition": "In {language}-speaking communities, hate speech is defined as language that expresses discrimination, hostility, or violence against individuals or groups based on race, religion, ethnicity, nationality, gender, sexual orientation, or disability.\n\nAnalyze the following text written in {language} considering cultural context, idioms, and societal norms.\n\nText: \"{text}\"\n\nDoes this text contain hate speech? Answer only {yn1} or {yn2}.\nAnswer:",
+
+    "role_play_cot": "You are a community moderator responsible for enforcing hate speech policies. Analyze the following comment step by step to determine if it violates these policies.\n\nComment: \"{text}\"\n\nStep 1: Identify any offensive or harmful language targeting a person or group.\nStep 2: Assess if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\nStep 3: Determine if the comment violates the community’s hate speech policy.\n\nDoes this comment violate the community guidelines on hate speech? (answer only {yn1} or {yn2})\nAnswer:",
+
+    "few_shot_multilingual": "Here are examples of comments in {language} and their classifications as 'yes' if it is hateful or 'no' if not::\n\n{examples}\n\nNow, analyze the following comment written in {language} and determine if it is hateful.\n\nComment: \"{text}\"\n\nIs this comment hateful? (answer only {yn1} or {yn2})\nAnswer:",
+
+    "few_shot_definition": "Hate speech is defined as language that expresses discrimination, hostility, or violence against individuals or groups based on race, religion, ethnicity, nationality, gender, sexual orientation, or disability. Here are some examples:\n\n{examples}\n\nNow, classify the following comment:\n\nComment: \"{text}\"\n\nIs this comment hateful? Answer only {yn1} or {yn2}\nAnswer:",
+
+    "multilingual_cot": "Analyze the following text written in {language} step by step, considering cultural context, idioms, and societal norms in {language}-speaking communities.\n\nText: \"{text}\"\n\nStep 1: Identify any offensive or harmful language targeting a person or group.\nStep 2: Determine if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\nStep 3: Conclude whether it is hate speech.\n\nDoes this text contain hate speech? (answer only {yn1} or {yn2})\nAnswer:",
+
+    "explanation_based": "Analyze the following comment and determine if it contains hate speech. Provide a brief explanation for your decision.\n\nComment: \"{text}\"\n\nIs this comment hateful? (answer only {yn1} or {yn2})\nAnswer:\nExplanation:",
+
+    "target_identification": "Identify the target group, if any, in the following comment. Then, determine if it contains hate speech.\n\nComment: \"{text}\"\n\nHate speech? (answer only {yn1} or {yn2})\nAnswer:\nTarget group (if applicable):",
+
+    "contextual_analysis": "Consider the context of the following comment, including the target audience and potential impact. Does this comment contain hate speech? Answer only {yn1} or {yn2}.\nComment: \"{text}\"\nAnswer:",
+
+     "cot-2": "Analyze the following comment step by step to determine if it contains hate speech.\n\nStep 1: Identify if the comment **targets a specific person or group** based on race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity. If no target is identified, the comment is not hate speech.\n\nStep 2: Assess whether the language expresses **hostility, discrimination, incitement to violence, dehumanization, or derogatory stereotypes** toward the target.\n\nStep 3: Consider **contextual factors** such as sarcasm, historical significance, and coded language. Does the comment still qualify as hate speech when context is considered?\n\nStep 4: Based on the above steps, **conclude whether this is hate speech** (answer only {yn1} or {yn2}).\n\nComment: \"{text}\"\n\nAnswer:"
+
+},
     "es": {
         "answer": "Respuesta:",
         "comment": "Comentario",

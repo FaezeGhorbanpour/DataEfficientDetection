@@ -50,6 +50,16 @@ class DataProvider:
         scores = [item.get("score", None) for item in retrieved_data]
         return Dataset.from_dict({"text": sentences, "label": labels, "score": scores})
 
+    def extract_text_and_label(self, retrieved_data):
+        """
+        Convert retrieved sentences into Hugging Face dataset format.
+        Args:
+            retrieved_data (dict[list]): Retrieved data with metadata and sentences.
+        Returns:
+            datasets.Dataset: Hugging Face Dataset object.
+        """
+        return {key:[{'text': value['metadata']['text'], 'label': value['metadata']['label']} for value in values] for key, values in retrieved_data.items() }
+
     def aggregate_splits(self, datasets, just_aggregate=[]):
         splits = set([split for ds in datasets for split in ds])
 

@@ -238,6 +238,12 @@ class RetrieverArguments:
     exclude_datasets: Optional[List[str]] = field(
         default=None, metadata={"help": "Datasets to exclude in retrieval."}
     )
+    include_languages: Optional[List[str]] = field(
+        default=None, metadata={"help": "Only include these languages in retrieved data."}
+    )
+    include_datasets: Optional[List[str]] = field(
+        default=None, metadata={"help": "Only include these datasets in retrieval."}
+    )
     index_type: str = field(
         default="HNSW",
         metadata={"help": "index_type"},
@@ -281,6 +287,14 @@ class RetrieverArguments:
     mmr_threshold: float = field(
         default=0.0,
         metadata={"help": "Threshold for the MMR."},
+    )
+    random_retrieve: bool = field(
+        default=False,
+        metadata={"help": "Combine retrieved data with training set."}
+    )
+    retrieve_per_instance: bool = field(
+        default=False,
+        metadata={"help": ""}
     )
 
 
@@ -330,14 +344,6 @@ class RetrievalTunerArguments:
     combine_train_set: bool = field(
         default=False,
         metadata={"help": "Combine retrieved data with training set."}
-    )
-    random_retrieve: bool = field(
-        default=False,
-        metadata={"help": "Combine retrieved data with training set."}
-    )
-    do_mmr: bool = field(
-        default=False,
-        metadata={"help": "Do MMR."}
     )
 
 
@@ -591,7 +597,7 @@ def main(
         retriever.save_index(retriever_args.index_path)
         logger.info("Indexing is done...")
 
-    retrieved_dataset = None
+    retrieved = None
     if main_args.do_searching:
         if main_args.enable_wandb:
             wandb.config.update(retriever_args, allow_val_change=True)
@@ -605,15 +611,32 @@ def main(
             import math
             retriever_args.k = max(math.ceil(3 * retriever_args.num_retrieved / len(embeddings)),
                                    math.ceil(2000 / len(embeddings)), 2)
-        if retrieval_tuner_args.random_retrieve:
-            retrieved_data = retriever.retrieve_random_metadata(num_retrieved=retriever_args.num_retrieved,
+        retrieved = None
+        if retriever_args.random_retrieve:
+            retrieved = retriever.retrieve_random_metadata(num_retrieved=retriever_args.num_retrieved,
                                                 exclude_datasets=retriever_args.exclude_datasets,
                                                 exclude_languages=retriever_args.exclude_languages,
                                                 unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
                                                 cluster_criteria_weight=retriever_args.cluster_criteria_weight,
                                                 balance_labels=retriever_args.balance_labels,)
+        elif retriever_args.retrieve_per_instance:
+            retrieved = dict()
+            for i in range(embeddings.shape[0]):
+                # id = meta_datas[i]['dataset_name'] +'-'+ meta_datas[i]['id'] +'-'+ meta_datas[i]['split']
+                id = meta_datas[i]['id']
+                retrieved[id] = retriever.retrieve_one_query(
+                    query_embedding=embeddings[i],
+                    k=retriever_args.k,
+                    unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
+                    cluster_criteria_weight=retriever_args.cluster_criteria_weight,
+                    perplexity_weight=retriever_args.perplexity_weight,
+                    uncertainty_weight=retriever_args.uncertainty_weight,
+                    margin_weight=retriever_args.margin_weight,
+                    balance_labels=retriever_args.balance_labels,
+                    mmr_threshold=retriever_args.mmr_threshold
+                )
         else:
-            retrieved_data = retriever.retrieve_multiple_queries(
+            retrieved = retriever.retrieve_multiple_queries(
                 query_embeddings=embeddings,
                 k=retriever_args.k,
                 num_retrieved=retriever_args.num_retrieved,
@@ -627,11 +650,8 @@ def main(
                 balance_labels=retriever_args.balance_labels,
                 mmr_threshold=retriever_args.mmr_threshold
             )
-        retriever.save_meta_to_file(retrieved_data, finetuner_args.output_dir)
-        logger.info("Retrieved %d instances based on query.", len(retrieved_data))
-
-        # Convert retrieved data to dataset format
-        retrieved_dataset = data_provider.convert_to_dataset(retrieved_data)
+        retriever.save_meta_to_file(retrieved, finetuner_args.output_dir)
+        logger.info("Retrieved %d instances based on query.", len(retrieved))
 
     if embedder:
         # Free GPU memory by deleting the model and calling garbage collection
@@ -641,14 +661,20 @@ def main(
         torch.cuda.empty_cache()
         logger.info("Embedding model deleted and GPU memory cleared.")
 
-    if not main_args.do_searching and retrieval_tuner_args.combine_train_set:
+    if main_args.do_searching and (main_args.do_fine_tuning or main_args.do_retrieval_tuning):
+        # Convert retrieved data to dataset format
+        retrieved_dataset = data_provider.convert_to_dataset(retrieved)
+        if retrieval_tuner_args.combine_train_set:
+            dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+            dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset,
+                                                        repeat=finetuner_args.repeat_target_train_set)
+    if not main_args.do_searching and (main_args.do_fine_tuning and retrieval_tuner_args.combine_train_set):
+        #TODO Why? For baseline and rotger's combine train sets experiments
         dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets], just_aggregate=['train'])
-    else:
-        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
+    shots = None
+    if main_args.do_searching and main_args.do_prompting:
+        shots = data_provider.extract_text_and_label(retrieved)
 
-    if main_args.do_searching and retrieval_tuner_args.combine_train_set:
-        dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset,
-                                                 repeat=finetuner_args.repeat_target_train_set)
 
     retrieval_tuning_model_path = ''
     if main_args.do_retrieval_tuning:
@@ -738,8 +764,12 @@ def main(
         prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         for i, data in enumerate(datasets):
+            if shots:
+                prompter.do_few_shot_prompting(data, shots)
+                logger.info("Prompt-based few-shot inference metrics for %s finished. ", data['name'])
             prompter.do_zero_shot_prompting(data)
-            logger.info("Prompt-based inference metrics for %s finished. ", data['name'])
+            logger.info("Prompt-based zero-shot inference metrics for %s finished. ", data['name'])
+
 
     # Finish Wandb
     if main_args.enable_wandb:

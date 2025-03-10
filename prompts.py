@@ -14,58 +14,64 @@ LANGUAGES = {
     'ar': 'Arabic',
     'de': 'German'
 }
+LABEL_MAP={
+    1: 'yes',
+    0: 'no'
+}
+
+
 def get_random_yes_no(yes='yes', no='no'):
+    """Return yes/no options in random order."""
     return (yes, no) if random.choice([True, False]) else (no, yes)
 
-def general_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["general"].format(text=text, yn1=yn1, yn2=yn2)
 
-def classification_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["classification"].format(text=text, yn1=yn1, yn2=yn2)
+def standard_prompt(text, variant, translate_to="en"):
+    """Handle standard prompts with no additional parameters beyond the text."""
+    yn1, yn2 = get_random_yes_no(
+        yes=translations.get(translate_to, translations["en"])["yes"],
+        no=translations.get(translate_to, translations["en"])["no"]
+    )
+    template = translations.get(translate_to, translations["en"])[variant]
 
-def definition_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["definition"].format(text=text, yn1=yn1, yn2=yn2)
+    return template.format(text=text, yn1=yn1, yn2=yn2)
 
-def chain_of_thought_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["cot"].format(text=text, yn1=yn1, yn2=yn2)
 
-def few_shot_prompt(text, examples, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    formatted_examples = "\n".join([f"Text: \"{ex['text']}\"{ex['label']}" for ex in examples])
-    return translations.get(translate_to, translations["en"])["few_shot"].format(examples=formatted_examples,
-                                                                                 text=text, yn1=yn1, yn2=yn2)
+def language_aware_prompt(text, language, variant, translate_to="en"):
+    """Handle prompts that need language information."""
+    yn1, yn2 = get_random_yes_no(
+        yes=translations.get(translate_to, translations["en"])["yes"],
+        no=translations.get(translate_to, translations["en"])["no"]
+    )
 
-def multilingual_prompt(text, language, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["multilingual"].format(language=LANGUAGES[language],
-                                                                                     text=text, yn1=yn1, yn2=yn2)
+    # Choose the appropriate template based on variant
+    template = translations.get(translate_to, translations["en"])[variant]
 
-def nli_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["nli"].format(text=text, yn1=yn1, yn2=yn2)
+    return template.format(language=LANGUAGES[language], text=text, yn1=yn1, yn2=yn2)
 
-def multilingual_chain_of_thought_prompt(text, language, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["multilingual_cot"].format(language=LANGUAGES[language],
-                                                                                         text=text, yn1=yn1, yn2=yn2)
 
-def role_play_prompt(text, translate_to="en"):
-    yn1, yn2 = get_random_yes_no(yes=translations.get(translate_to, translations["en"])["yes"], 
-                                 no=translations.get(translate_to, translations["en"])["no"])
-    return translations.get(translate_to, translations["en"])["role_play"].format(text=text, yn1=yn1, yn2=yn2)
+def example_based_prompt(text, examples, variant, translate_to="en"):
+    """Handle prompts that require examples for few-shot learning."""
+    yn1, yn2 = get_random_yes_no(
+        yes=translations.get(translate_to, translations["en"])["yes"],
+        no=translations.get(translate_to, translations["en"])["no"]
+    )
 
+    formatted_examples = "\n".join([f"Comment: \"{ex['text']}\t\"Answer: {LABEL_MAP[ex['label']]}" for ex in examples])
+    template = translations.get(translate_to, translations["en"])[variant]
+
+    return template.format(examples=formatted_examples, text=text, yn1=yn1, yn2=yn2)
+
+def example_and_language_based_prompt(text, examples, language, variant, translate_to="en"):
+    """Handle prompts that require examples for few-shot learning."""
+    yn1, yn2 = get_random_yes_no(
+        yes=translations.get(translate_to, translations["en"])["yes"],
+        no=translations.get(translate_to, translations["en"])["no"]
+    )
+
+    formatted_examples = "\n".join([f"Comment: \"{ex['text']}\t\"Answer: {LABEL_MAP[ex['label']]}" for ex in examples])
+    template = translations.get(translate_to, translations["en"])[variant]
+
+    return template.format(examples=formatted_examples, language=LANGUAGES[language], text=text, yn1=yn1, yn2=yn2)
 
 def clean_output(input_text):
     """
@@ -85,8 +91,9 @@ def clean_output(input_text):
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
         "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone", "the comment is"
-        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**",
-        "in this case,", "the text is", "the text", "the", "text", "comment", "post",
+        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**", 'the final answer is'
+        "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", '[', ']', '/',
+        'the answer is'
 
         # Spanish phrases
         "la publicación es", "el comentario es", "en este caso, el comentario es",
@@ -184,6 +191,7 @@ def clean_output(input_text):
 
     # Extract only the first part of text before certain delimiters
     delimiters = ["</s>", ",", ".", "।", "|", "\n", " "]
+    delimiters += ['target', 'explanation']
     for delimiter in delimiters:
         if delimiter in output:
             output = output.split(delimiter)[0]

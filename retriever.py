@@ -100,18 +100,17 @@ class Retriever:
 
         logger.info("Embeddings added successfully.")
 
-    def retrieve_one_query(self, query_embedding, k=5, exclude_datasets=None, exclude_languages=None,
-                           cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
-                           uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0,
-                           balance_labels=False, mmr_threshold=0.0):
+    def retrieve_one_query(self, query_embedding, k=5, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
+                           uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0, balance_labels=False,
+                           mmr_threshold=0.0):
         """
         Retrieve top-k nearest neighbors for a single query embedding, incorporating additional scoring weights.
 
         Args:
             query_embedding (np.ndarray): Query embedding vector (1 x embedding_dim).
             k (int): Number of nearest neighbors to retrieve.
-            exclude_datasets (list[str]): Datasets to exclude from results.
-            exclude_languages (list[str]): Languages to exclude from results.
+            include_datasets (list[str]): Datasets to include from results.
+            include_languages (list[str]): Languages to include from results.
             cluster_criteria_weight (float): Weight for clustering score in final ranking.
             unique_word_criteria_weight (float): Weight for unique word count in final ranking.
             uncertainty_weight (float): Weight for uncertainty in final ranking.
@@ -123,7 +122,7 @@ class Retriever:
         Returns:
             list[dict]: Top results based on combined scores, with optional filtering.
         """
-        logger.info("Performing retrieval for a single query.")
+        # logger.info("Performing retrieval for a single query.")
 
         # Ensure query_embedding is 2D for consistency with faiss interface
         if len(query_embedding.shape) == 1:
@@ -133,35 +132,35 @@ class Retriever:
         if self.normalize_index:
             faiss.normalize_L2(query_embedding)
 
-        # Perform search
-        distances, indices = self.index.search(query_embedding, k*5)
+        retrieval_number = k * 3
+        results = []
+        while len(results) < k * 3:
+            # Perform search
+            distances, indices = self.index.search(query_embedding, retrieval_number)
 
-        # Filter out invalid indices (-1)
-        valid_mask = indices[0] != -1
-        distances, indices = distances[0][valid_mask], indices[0][valid_mask]
+            # Filter out invalid indices (-1)
+            valid_mask = indices[0] != -1
+            distances, indices = distances[0][valid_mask], indices[0][valid_mask]
 
-        # Fetch metadata for all valid indices
-        metadata = [self.metadata[idx] for idx in indices]
+            # Fetch metadata for all valid indices
+            metadata = [self.metadata[idx] for idx in indices]
 
-        # Apply filtering by language and dataset
-        metadata, distances, indices = self._apply_filters(
-            metadata, distances, indices, exclude_languages, exclude_datasets
-        )
+            # Normalize distances
+            norm_distances = self._min_max_scale(distances)
 
-        # Normalize distances
-        norm_distances = self._min_max_scale(distances)
+            # Construct initial result list
+            results = [{"metadata": meta, "score": float(dist), "index": index}
+                       for meta, dist, index in zip(metadata, norm_distances, indices)]
 
-        # Construct initial result list
-        results = [{"metadata": meta, "score": float(dist), "index": index}
-                   for meta, dist, index in zip(metadata, norm_distances, indices)]
+            # Deduplicate results
+            results = self._deduplicate_results(results)
+            # logger.info(f"Total unique results after deduplication: {len(results)}")
 
-        # Deduplicate results
-        results = self._deduplicate_results(results)
-        logger.info(f"Total unique results after deduplication: {len(results)}")
+            # Apply MMR if threshold is provided
+            if mmr_threshold > 0.0:
+                results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, min_remained_amount=k, lambda_param=0.5)
 
-        # Apply MMR if threshold is provided
-        if mmr_threshold > 0.0:
-            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5)
+            retrieval_number *= 2
 
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
@@ -188,7 +187,7 @@ class Retriever:
         else:
             results = results[:k]
 
-        logger.info(f"Returning {len(results)} results.")
+        # logger.info(f"Returning {len(results)} results.")
 
         return results
 
@@ -247,7 +246,7 @@ class Retriever:
             logger.info(f"Total unique meta after searching: {len(metadata)}")
 
             # Apply filtering by language and dataset
-            metadata, flattened_distances, flattened_indices = self._apply_filters(
+            metadata, flattened_distances, flattened_indices = self._apply_exclude_filters(
                 metadata, flattened_distances, flattened_indices, exclude_languages, exclude_datasets
             )
             logger.info(f"Total unique results after excluding: {len(metadata)}")
@@ -297,7 +296,7 @@ class Retriever:
 
     # --------------- 🛠️ HELPER FUNCTIONS -----------------
 
-    def _apply_filters(self, metadata, distances, indices, exclude_languages, exclude_datasets):
+    def _apply_exclude_filters(self, metadata, distances, indices, exclude_languages, exclude_datasets):
         """Apply language and dataset filters to metadata and distances."""
         if exclude_languages:
             metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'language',
@@ -305,6 +304,16 @@ class Retriever:
         if exclude_datasets:
             metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'dataset_name',
                                                                  exclude_datasets)
+        return metadata, distances, indices
+
+    def _apply_include_filters(self, metadata, distances, indices, include_languages, include_datasets):
+        """Apply language and dataset filters to metadata and distances."""
+        if include_languages:
+            metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'language',
+                                                                 include_languages)
+        if include_datasets:
+            metadata, distances, indices = self._filter_metadata(metadata, distances, indices, 'dataset_name',
+                                                                 include_datasets)
         return metadata, distances, indices
 
     def _compute_word_count_scores(self, results, unique_word_criteria_weight):
@@ -346,22 +355,23 @@ class Retriever:
                 cluster_criteria_weight + unique_word_criteria_weight + uncertainty_weight + margin_weight + perplexity_weight)
 
         return [
-            {**res,
-             "score": (weight_sum * res['score'] +
-                       norm_word_counts[i] * unique_word_criteria_weight +
-                       norm_cluster_scores[i] * cluster_criteria_weight +
-                       norm_uncertainty_scores[i] * uncertainty_weight +
-                       norm_margin_scores[i] * margin_weight +
-                       norm_perplexity_scores[i] * perplexity_weight),
-             "dist": res['score'],
-             "length_score": norm_word_counts[i],
-             "cluster_score": norm_cluster_scores[i],
-             "uncertainty_score": norm_uncertainty_scores[i],
-             "perplexity_score": norm_perplexity_scores[i]
-             }
+            {
+                **res,
+                "score": (weight_sum * res['score'] +
+                          norm_word_counts[i] * unique_word_criteria_weight +
+                          norm_cluster_scores[i] * cluster_criteria_weight +
+                          norm_uncertainty_scores[i] * uncertainty_weight +
+                          norm_margin_scores[i] * margin_weight +
+                          norm_perplexity_scores[i] * perplexity_weight),
+                "dist": res['score'],
+                **({'length_score': norm_word_counts[i]} if unique_word_criteria_weight > 0 else {}),
+                **({'cluster_score': norm_cluster_scores[i]} if cluster_criteria_weight > 0 else {}),
+                **({'uncertainty_score': norm_uncertainty_scores[i]} if uncertainty_weight > 0 else {}),
+                **({'margin_score': norm_margin_scores[i]} if margin_weight > 0 else {}),
+                **({'perplexity_score': norm_perplexity_scores[i]} if perplexity_weight > 0 else {})
+            }
             for i, res in enumerate(results)
         ]
-
     # def _compute_unique_word_count(self, text):
     #     """Compute the number of unique words in a text."""
     #     return 1.0/len(set(text.lower().split()))
@@ -405,9 +415,10 @@ class Retriever:
         # Efficiently fetch the balanced results using the selected and sorted indices
         return [results[i] for i in balanced_indices]
 
-    def _filter_metadata(self, metadata, distances, indices, key, exclude_values):
+    def _filter_metadata(self, metadata, distances, indices, key, values, include_vs_exclude='exclude'):
         """Filter metadata based on exclude values."""
-        mask = [meta.get(key) not in exclude_values for meta in metadata]
+        mask = [meta.get(key) not in values for meta in metadata] \
+            if include_vs_exclude == 'exclude' else [meta.get(key) in values for meta in metadata]
         filtered_metadata = [meta for meta, keep in zip(metadata, mask) if keep]
         filtered_distances = distances[mask]
         flattened_indices = indices[mask]
