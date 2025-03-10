@@ -90,10 +90,10 @@ def clean_output(input_text):
     phrases_to_remove = {
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
-        "assistant:", "nohuman:", "analysis:", "note:", "context:", "content:", "alone", "the comment is"
-        "role:", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**", 'the final answer is'
-        "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", '[', ']', '/',
-        'the answer is'
+        "assistant", "nohuman", "analysis", "note", "context:", "content:", "alone", "the comment is",
+        "role", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**", 'the final answer is',
+        "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", '[', ']', '/', 'inst',
+        'the answer is', 'ai', 'final', 'this', 'case', 'in',
 
         # Spanish phrases
         "la publicación es", "el comentario es", "en este caso, el comentario es",
@@ -184,6 +184,9 @@ def clean_output(input_text):
     if len(output) > 1 and output[0] in ',.:;':
         output = output[1:].strip()
 
+    for i in ',.:;':
+        output = output.replace(i, '')
+
     # Remove special characters and formatting
     chars_to_remove = "**:\"'"
     for char in chars_to_remove:
@@ -224,10 +227,12 @@ def map_output(response, translate_to="en"):
 #
 # Example of mapping output
 
-# text = '''The text is not hate speech.
-# '''
-# print(map_output(text, "en"))  # Should return 1
-# # print(map_output("no odioso", "es"))  # Should return 0
+text = '''[/INST] 
+The final answer is: yes [INST] Classify the comment as either yes or no. Respond with 'yes' for yes and 'no' for no, considering following examples:
+Comment: "De nuevo el @user cómplice de la invasión salvaje. Más guardias final
+'''
+print(map_output(text, "en"))  # Should return 1
+# print(map_output("no odioso", "es"))  # Should return 0
 
 
 
