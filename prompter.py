@@ -297,7 +297,7 @@ class Prompter:
 
     def do_few_shot_prompting(self, data, shots):
         """Perform few-shot prompting on dataset."""
-        logger.info(f"Starting zero-shot prompting for dataset: {data['name']}")
+        logger.info(f"Starting few-shot prompting for dataset: {data['name']}")
         shot_numbers = [1, 3, 5, 10, 25, 50]
 
         for split in ["test", "hate_check"]:
