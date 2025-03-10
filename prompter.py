@@ -81,7 +81,8 @@ class Prompter:
         )
         self.zero_shot_prompts_list = (['general', 'classification', 'definition', 'cot', 'multilingual', 'nli',
                                         'role_play', 'multilingual_definition', 'role_play_cot', 'multilingual_cot',
-                                        'explanation_based', 'target_identification', 'contextual_analysis', 'cot-2']
+                                        'explanation_based', 'target_identification', 'contextual_analysis', 'cot-2',
+                                        'translate_then_classify']
             if config.prompts_list == 'all' else config.prompts_list
         )
 
@@ -229,7 +230,7 @@ class Prompter:
                 raise ValueError("Few-shot prompting requires examples.")
             prompt_method = example_based_prompt
             extra_args = {"examples": examples}
-        elif 'multilingual' in prompt_template:
+        elif 'multilingual' in prompt_template or 'translate' in prompt_template:
             if not lang:
                 raise ValueError("Multilingual prompting requires language.")
             prompt_method = language_aware_prompt
@@ -308,8 +309,13 @@ class Prompter:
             for shot_number in shot_numbers:
                 examples = {key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
-                    max_length = (self.prompter_max_length or 650 if "chain_of_thought" in prompt else 512)
-                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
+                    max_length = (self.prompter_max_length or 650 if "cot" in prompt else 512)
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
+                    if shot_number > 3:
+                        max_length += (shot_number - 2)*50
+                        batch_size = batch_size // 2
+
+
                     translate_prompt = False
                     # for translate_prompt in [False, True]:
                     try:

@@ -227,11 +227,11 @@ def map_output(response, translate_to="en"):
 #
 # Example of mapping output
 
-text = '''[/INST] 
-The final answer is: yes [INST] Classify the comment as either yes or no. Respond with 'yes' for yes and 'no' for no, considering following examples:
-Comment: "De nuevo el @user cómplice de la invasión salvaje. Más guardias final
-'''
-print(map_output(text, "en"))  # Should return 1
+# text = '''[/INST]
+# The final answer is: yes [INST] Classify the comment as either yes or no. Respond with 'yes' for yes and 'no' for no, considering following examples:
+# Comment: "De nuevo el @user cómplice de la invasión salvaje. Más guardias final
+# '''
+# print(map_output(text, "en"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
 
 

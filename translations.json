@@ -42,9 +42,11 @@
 
     "contextual_analysis": "Consider the context of the following comment, including the target audience and potential impact. Does this comment contain hate speech? Answer only {yn1} or {yn2}. No explanations.\nComment: \"{text}\"\nAnswer:",
 
-     "cot-2": "Analyze the following comment step by step to determine if it contains hate speech.\n\nStep 1: Identify if the comment **targets a specific person or group** based on race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity. If no target is identified, the comment is not hate speech.\n\nStep 2: Assess whether the language expresses **hostility, discrimination, incitement to violence, dehumanization, or derogatory stereotypes** toward the target.\n\nStep 3: Consider **contextual factors** such as sarcasm, historical significance, and coded language. Does the comment still qualify as hate speech when context is considered?\n\nStep 4: Based on the above steps, **conclude whether this is hate speech** (answer only {yn1} or {yn2}).\n No explanations.\nComment: \"{text}\"\n\nAnswer:"
+     "cot-2": "Analyze the following comment step by step to determine if it contains hate speech.\n\nStep 1: Identify if the comment **targets a specific person or group** based on race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity. If no target is identified, the comment is not hate speech.\n\nStep 2: Assess whether the language expresses **hostility, discrimination, incitement to violence, dehumanization, or derogatory stereotypes** toward the target.\n\nStep 3: Consider **contextual factors** such as sarcasm, historical significance, and coded language. Does the comment still qualify as hate speech when context is considered?\n\nStep 4: Based on the above steps, **conclude whether this is hate speech** (answer only {yn1} or {yn2}).\n No explanations.\nComment: \"{text}\"\n\nAnswer:",
 
-},
+    "translate_then_classify": "Translate the following text from {language} to English:\n\nText: \"{text}\"\n\n\nNow, classify the text as either hateful or non-hateful. No explanations. Respond with {yn1} for hateful and {yn2} for non-hateful.\nAnswer:"
+
+    },
     "es": {
         "answer": "Respuesta:",
         "comment": "Comentario",
