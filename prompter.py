@@ -45,6 +45,8 @@ MODEL_CONFIGS = {
                "context_length": 4096, "batch_size": 64},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 128000, "batch_size": 256},
+    "llama3-abliterated": {"name": "mlabonne/Meta-Llama-3.1-8B-Instruct-abliterated", "prompt_template": "[INST] {instruction} [/INST]",
+               "context_length": 128000, "batch_size": 256},
     "gemma": {"name": "google/gemma-7b-it",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16},
@@ -79,7 +81,7 @@ class Prompter:
                                        'few_shot_multilingual', 'few_shot_definition', ]
             if config.prompts_list == 'all' else config.prompts_list
         )
-        self.zero_shot_prompts_list = (['general', 'classification', 'definition', 'cot', 'multilingual', 'nli',
+        self.zero_shot_prompts_list = (['general', 'classification', 'definition', 'cot', 'multilingual', 'nli', 'sole',
                                         'role_play', 'multilingual_definition', 'role_play_cot', 'multilingual_cot',
                                         'explanation_based', 'target_identification', 'contextual_analysis', 'cot-2',
                                         'translate_then_classify']
@@ -170,7 +172,7 @@ class Prompter:
         with torch.no_grad():
             outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
                                           pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=2, max_new_tokens=64, temperature=None, top_p=None, top_k=None)
+                                          num_beams=2, max_new_tokens=1, temperature=None, top_p=None, top_k=None)
 
         # Process predictions
         predictions = []
@@ -208,7 +210,7 @@ class Prompter:
             all_predictions.extend(batch_predictions)
 
             # Memory management
-            if (batch_idx + 1) % 10 == 0:
+            if (batch_idx + 1) % 50 == 0:
                 self.check_memory_usage()
                 logger.info(f"Processed {batch_idx + 1}/{total_batches} batches")
 
@@ -246,10 +248,10 @@ class Prompter:
         # Call the appropriate prompt method with all necessary args
         return prompt_method(text, variant=prompt_template, translate_to=target_lang, **extra_args)
 
-    def abort_run(self, data, translate_prompt, prompt, split, i):
+    def abort_run(self, data, translate_prompt, prompt, split, shot_number, i):
         # Save results
         output_dir = os.path.join(self.config.prompter_output_dir, self.model_name, data['name'],
-                                  data['language'] if translate_prompt else 'en', prompt, split, str(i))
+                                  data['language'] if translate_prompt else 'en', split, prompt, shot_number, str(i))
         file_path = os.path.join(output_dir, "evaluation_results.json")
         if os.path.exists(file_path):
             print(f"Error: The file {file_path} exist. Aborting the run.")
@@ -295,6 +297,25 @@ class Prompter:
                         self.save_results(results, output_dir)
                 except Exception as e:
                     logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+    @staticmethod
+    def get_shots(shots, shot_number):
+        # Filter shots by label
+        label_0_shots = [shot for shot in shots if shot['label'] == 0]
+        label_1_shots = [shot for shot in shots if shot['label'] == 1]
+
+        # Get the requested number of each label
+        selected_0_shots = label_0_shots[:shot_number]
+        selected_1_shots = label_1_shots[:shot_number]
+
+        # Interleave the shots in alternating pattern
+        result = []
+        for i in range(shot_number):
+            if i < len(selected_0_shots):
+                result.append(selected_0_shots[i])  # Add a label 0 shot
+            if i < len(selected_1_shots):
+                result.append(selected_1_shots[i])  # Add a label 1 shot
+
+        return result
 
     def do_few_shot_prompting(self, data, shots):
         """Perform few-shot prompting on dataset."""
@@ -307,7 +328,7 @@ class Prompter:
 
             dataset = data["data"][split]
             for shot_number in shot_numbers:
-                examples = {key: value[:shot_number] for key, value in shots.items()}
+                examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
                     max_length = (self.prompter_max_length or 650 if "cot" in prompt else 512)
                     batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
@@ -315,15 +336,14 @@ class Prompter:
                         max_length += (shot_number - 2)*50
                         batch_size = batch_size // 2
 
-
                     translate_prompt = False
                     # for translate_prompt in [False, True]:
                     try:
                         for i in range(self.num_rounds):
                             logger.info("-" * 100)
-                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: {batch_size}")
 
-                            output_dir = self.abort_run(data, translate_prompt, prompt, split, i)
+                            output_dir = self.abort_run(data, translate_prompt, prompt, split, shot_number, i)
                             if output_dir is None:
                                 continue
 

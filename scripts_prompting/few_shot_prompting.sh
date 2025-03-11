@@ -25,7 +25,7 @@ for ((i=0; i<${#DATASETS[@]}; i++)); do
   # Run the Python script with only the model path argument
   CUDA_VISIBLE_DEVICES=$GPU_CORE python main.py \
       --prompter_model_name_or_path "$MODEL_PATH" \
-      --num_rounds 3 \
+      --num_rounds 1 \
       --datasets ${dataset}\
       --languages ${language} \
       --do_embedding\

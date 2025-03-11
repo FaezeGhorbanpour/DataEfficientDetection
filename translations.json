@@ -6,6 +6,8 @@
         "no": "no",
         "non_hateful": "non-hateful",
 
+    "sole": "{text}",
+
     "general": "Is the following comment hateful? Respond only with {yn1} or {yn2}. Don't provide explanations or any other information. \nComment: \"{text}\"\nAnswer:",
 
     "classification": "Classify the following comment as either hateful or non-hateful. Respond with {yn1} for hateful and {yn2} for non-hateful. Answer only {yn1} or {yn2}. Don't provide explanations or any other information.\nComment: \"{text}\"\nAnswer:",
@@ -22,7 +24,7 @@
 
     "few_shot": "Classify the following comment as either hateful or non-hateful. Respond with 'yes' for hateful and 'no' for non-hateful, considering following examples:\n\n{examples}\n\nNow, classify this comment: Don't provide explanations or any other information.\nComment: \"{text}\"\nAnswer:",
 
-    "few_shot_cot": "Here are some examples of comments and their classifications as 'yes' if it is hateful or 'no' if not:\n\n{examples}\n\nNow, analyze the following comment step by step and determine if it is hateful.\n Don't provide explanations or any other information.\nComment: \"{text}\"\n\nStep 1: Identify any offensive or harmful language targeting a person or group.\nStep 2: Determine if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\nStep 3: Conclude whether it is hate speech Don't provide explanations or any other information. Answer only {yn1} or {yn2}.\n\nAnswer:",
+    "few_shot_cot": "Here are some examples of comments and their classifications as 'yes' if it is hateful or 'no' if not:\n\n{examples}\n\nNow, analyze the following comment step by step and determine if it is hateful.\n Don't provide explanations or any other information.\nComment: \"{text}\"\n\nStep 1: Identify any offensive or harmful language targeting a person or group.\nStep 2: Determine if the language attacks based on attributes such as race, religion, ethnic origin, national origin, sex, disability, sexual orientation, or gender identity.\nStep 3: Conclude whether it is hate speech. Don't provide explanations or any other information. Answer only {yn1} or {yn2}.\n\nAnswer:",
 
     "few_shot_role_play": "As a community moderator, you have previously handled the following cases if they include hate speech or not:\n\n{examples}\n\nBased on these examples, analyze the following comment and determine if it violates the community’s hate speech policy.\n\nComment: \"{text}\"\n\nDoes this comment violate the community guidelines on hate speech? Don't provide explanations or any other information. Answer only {yn1} or {yn2}.\nAnswer:",
 
