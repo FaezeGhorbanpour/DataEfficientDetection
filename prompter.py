@@ -251,7 +251,7 @@ class Prompter:
     def abort_run(self, data, translate_prompt, prompt, split, shot_number=None, i=0):
         # Save results
         output_dir = os.path.join(self.config.prompter_output_dir, self.model_name, data['name'],
-                                  data['language'] if translate_prompt else 'en', split, prompt, shot_number if shot_number else '', str(i))
+                                  data['language'] if translate_prompt else 'en', split, prompt, str(shot_number) if shot_number else '', str(i))
         file_path = os.path.join(output_dir, "evaluation_results.json")
         if os.path.exists(file_path):
             print(f"Error: The file {file_path} exist. Aborting the run.")
