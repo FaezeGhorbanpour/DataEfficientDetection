@@ -635,6 +635,9 @@ def main(
                     balance_labels=retriever_args.balance_labels,
                     mmr_threshold=retriever_args.mmr_threshold
                 )
+
+            retriever.save_meta_to_file(retrieved, finetuner_args.output_dir+'/'+meta_datas[0]['id'])
+            logger.info("Retrieved %d instances based on query.", len(retrieved))
         else:
             retrieved = retriever.retrieve_multiple_queries(
                 query_embeddings=embeddings,
@@ -650,8 +653,8 @@ def main(
                 balance_labels=retriever_args.balance_labels,
                 mmr_threshold=retriever_args.mmr_threshold
             )
-        retriever.save_meta_to_file(retrieved, finetuner_args.output_dir)
-        logger.info("Retrieved %d instances based on query.", len(retrieved))
+            retriever.save_meta_to_file(retrieved, finetuner_args.output_dir)
+            logger.info("Retrieved %d instances based on query.", len(retrieved))
 
     if embedder:
         # Free GPU memory by deleting the model and calling garbage collection
