@@ -92,7 +92,7 @@ def clean_output(input_text):
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
         "assistant", "nohuman", "analysis", "note", "context:", "content:", "alone", "the comment is",
         "role", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**", 'the final answer is',
-        "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", '[', ']', '/', 'inst',
+        "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", 'inst',
         'the answer is', 'ai', 'final', 'this', 'case', 'in',
 
         # Spanish phrases
@@ -188,7 +188,7 @@ def clean_output(input_text):
         output = output.replace(i, '')
 
     # Remove special characters and formatting
-    chars_to_remove = "**:\"'"
+    chars_to_remove = "**:\"')([]\\"
     for char in chars_to_remove:
         output = output.replace(char, '')
 
