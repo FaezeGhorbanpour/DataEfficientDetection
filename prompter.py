@@ -299,21 +299,27 @@ class Prompter:
                     logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
     @staticmethod
     def get_shots(shots, shot_number):
-        # Filter shots by label
-        label_0_shots = [shot for shot in shots if shot['label'] == 0]
-        label_1_shots = [shot for shot in shots if shot['label'] == 1]
+        result = {}
 
-        # Get the requested number of each label
-        selected_0_shots = label_0_shots[:shot_number]
-        selected_1_shots = label_1_shots[:shot_number]
+        for key, items in shots.items():
+            label_0_items = []
+            label_1_items = []
 
-        # Interleave the shots in alternating pattern
-        result = []
-        for i in range(shot_number):
-            if i < len(selected_0_shots):
-                result.append(selected_0_shots[i])  # Add a label 0 shot
-            if i < len(selected_1_shots):
-                result.append(selected_1_shots[i])  # Add a label 1 shot
+            for item in items:
+                if item['label'] == 0 and len(label_0_items) < shot_number:
+                    label_0_items.append(item)
+                elif item['label'] == 1 and len(label_1_items) < shot_number:
+                    label_1_items.append(item)
+
+                if len(label_0_items) >= shot_number and len(label_1_items) >= shot_number:
+                    break
+
+            interleaved = []
+            for i in range(min(len(label_0_items), len(label_1_items))):
+                interleaved.append(label_0_items[i])
+                interleaved.append(label_1_items[i])
+
+            result[key] = interleaved
 
         return result
 
