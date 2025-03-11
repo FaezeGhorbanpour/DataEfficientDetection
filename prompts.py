@@ -91,9 +91,9 @@ def clean_output(input_text):
         # English phrases
         "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
         "assistant", "nohuman", "analysis", "note", "context:", "content:", "alone", "the comment is",
-        "role", "system", "user", "the post is", "the comment is", "it", "it is", "is", "**", 'the final answer is',
+        "role", "system", "user", "the post is", "the comment is", " it ", "it is", " is ", "**", 'the final answer is',
         "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", 'inst',
-        'the answer is', 'ai', 'final', 'this', 'case', 'in',
+        'the answer is', ' ai ', 'final', 'this', 'case', ' in ',
 
         # Spanish phrases
         "la publicación es", "el comentario es", "en este caso, el comentario es",
@@ -153,6 +153,7 @@ def clean_output(input_text):
         # Language-specific content indicators
         "no contiene": "no",  # Spanish
         "contiene": "sí",  # Spanish
+        "si": "sí",  # Spanish
         "não contém": "não",  # Portuguese
         "contém": "sim",  # Portuguese
         "non contiene": "no",  # Italian
@@ -188,10 +189,11 @@ def clean_output(input_text):
         output = output.replace(i, '')
 
     # Remove special characters and formatting
-    chars_to_remove = "**:\"')([]\\"
+    chars_to_remove = "**:\"')([]\\/"
     for char in chars_to_remove:
         output = output.replace(char, '')
 
+    output = output.strip()
     # Extract only the first part of text before certain delimiters
     delimiters = ["</s>", ",", ".", "।", "|", "\n", " "]
     delimiters += ['target', 'explanation']
@@ -203,61 +205,31 @@ def clean_output(input_text):
 
 def map_output(response, lang='en', translate_prompt=False):
     """Maps model response to binary labels (0 = non-hate, 1 = hate)"""
-    if not translate_prompt:
-        t = translations["en"]
-        response = response.split(t['answer'])[-1]  # remove everything before "Answer:"
-        response = response.split(t['answer'].lower())[-1]  # remove everything before "Answer:"
-        response = response.replace(t["non_hateful"], t["no"])
-        response = response.replace(t["hateful"], t["yes"])
+    en = translations["en"]
+    response = response.split(en['answer'])[-1]  # remove everything before "Answer:"
+    response = response.split(en['answer'].lower())[-1]  # remove everything before "Answer:"
+    response = response.replace(en["non_hateful"], en["no"])
+    response = response.replace(en["hateful"], en["yes"])
 
-    t = translations.get(lang, translations["en"])
-    response = response.split(t['answer'])[-1]  # remove everything before "Answer:"
-    response = response.split(t['answer'].lower())[-1]  # remove everything before "Answer:"
-    response = response.replace(t["non_hateful"], t["no"])
-    response = response.replace(t["hateful"], t["yes"])
+    lang = translations.get(lang, translations["en"])
+    response = response.split(lang['answer'])[-1]  # remove everything before "Answer:"
+    response = response.split(lang['answer'].lower())[-1]  # remove everything before "Answer:"
+    response = response.replace(lang["non_hateful"], lang["no"])
+    response = response.replace(lang["hateful"], lang["yes"])
 
     response_cleaned = clean_output(response)
     response_lower = response_cleaned.strip().lower()
 
-    if response_lower == t["yes"].lower() or response_lower == "yes":
+    if response_lower == lang["yes"].lower() or response_lower == en["yes"].lower() or response_lower == "yes":
         return 1
-    elif response_lower == t["no"].lower() or response_lower == "no":
+    elif response_lower == lang["no"].lower() or response_lower == en["yes"].lower() or response_lower == "no":
         return 0
     else:
         print("invalid prediction:", response, response_lower)
         return -1  # Handle uncertain cases
 
-# Example Usage
-# text_sample = "This is a test comment"
-# print(general_prompt(text_sample, "es"))  # Spanish
-# print(chain_of_thought_prompt(text_sample, "es"))  # Spanish
-#
-# Example of mapping output
 
-# text = '''[/INST]
-# The final answer is: yes [INST] Classify the comment as either yes or no. Respond with 'yes' for yes and 'no' for no, considering following examples:
-# Comment: "De nuevo el @user cómplice de la invasión salvaje. Más guardias final
-# '''
-# print(map_output(text, "en"))  # Should return 1
+text = '''[/INST] yes[/ yes/'''
+print(map_output(text, "es"))  # Should return 1
 # print(map_output("no odioso", "es"))  # Should return 0
-
-
-
-# def context_aware_prompt(text, context):
-#     prompt = (
-#         f"Given the following context: \"{context}\", analyze the subsequent text to determine if it contains hate speech.\n\n"
-#         f"Text: \"{text}\"\n\n"
-#         f"Does this text contain hate speech? Answer 'Yes' or 'No'."
-#     )
-#     return prompt
-
-#
-# def comparative_prompt(text, non_hate_example):
-#     prompt = (
-#         f"Compare the following two texts and determine which one contains hate speech.\n\n"
-#         f"Text A: \"{text}\"\n"
-#         f"Text B: \"{non_hate_example}\"\n\n"
-#         f"Which text contains hate speech? Answer 'A', 'B', or 'Neither'."
-#     )
-#     return prompt
 
