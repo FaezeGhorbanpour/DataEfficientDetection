@@ -248,10 +248,10 @@ class Prompter:
         # Call the appropriate prompt method with all necessary args
         return prompt_method(text, variant=prompt_template, translate_to=target_lang, **extra_args)
 
-    def abort_run(self, data, translate_prompt, prompt, split, shot_number, i):
+    def abort_run(self, data, translate_prompt, prompt, split, shot_number=None, i=0):
         # Save results
         output_dir = os.path.join(self.config.prompter_output_dir, self.model_name, data['name'],
-                                  data['language'] if translate_prompt else 'en', split, prompt, shot_number, str(i))
+                                  data['language'] if translate_prompt else 'en', split, prompt, shot_number if shot_number else '', str(i))
         file_path = os.path.join(output_dir, "evaluation_results.json")
         if os.path.exists(file_path):
             print(f"Error: The file {file_path} exist. Aborting the run.")
@@ -278,7 +278,8 @@ class Prompter:
                         logger.info("-" * 100)
                         logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
 
-                        output_dir = self.abort_run(data, translate_prompt, prompt, split, i)
+                        output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
+                                                    split=split, i=i)
                         if output_dir is None:
                             continue
 
@@ -349,7 +350,8 @@ class Prompter:
                             logger.info("-" * 100)
                             logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: {batch_size}")
 
-                            output_dir = self.abort_run(data, translate_prompt, prompt, split, shot_number, i)
+                            output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
+                                                        split=split, shot_number=shot_number, i=i)
                             if output_dir is None:
                                 continue
 
