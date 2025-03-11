@@ -636,7 +636,7 @@ def main(
                     mmr_threshold=retriever_args.mmr_threshold
                 )
 
-            retriever.save_meta_to_file(retrieved, finetuner_args.output_dir+'/'+meta_datas[0]['id'])
+            retriever.save_meta_to_file(retrieved, finetuner_args.output_dir+'/'+meta_datas[0]['dataset_name'])
             logger.info("Retrieved %d instances based on query.", len(retrieved))
         else:
             retrieved = retriever.retrieve_multiple_queries(
