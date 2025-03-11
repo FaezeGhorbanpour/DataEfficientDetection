@@ -338,8 +338,8 @@ class Prompter:
                 examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
                     max_length = (self.prompter_max_length or 650 if "cot" in prompt else 512)
-                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
-                    if shot_number > 3:
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 4
+                    if shot_number > 5:
                         max_length += (shot_number - 2)*50
                         batch_size = batch_size // 2
 
