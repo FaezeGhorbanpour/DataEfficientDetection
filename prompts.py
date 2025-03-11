@@ -201,11 +201,18 @@ def clean_output(input_text):
 
     return output.strip()
 
-def map_output(response, translate_to="en"):
+def map_output(response, lang='en', translate_prompt=False):
     """Maps model response to binary labels (0 = non-hate, 1 = hate)"""
-    t = translations.get(translate_to, translations["en"])
-    response = response.split(t['answer'])[-1] # remove everything before "Answer:"
-    response = response.split(t['answer'].lower())[-1] # remove everything before "Answer:"
+    if not translate_prompt:
+        t = translations["en"]
+        response = response.split(t['answer'])[-1]  # remove everything before "Answer:"
+        response = response.split(t['answer'].lower())[-1]  # remove everything before "Answer:"
+        response = response.replace(t["non_hateful"], t["no"])
+        response = response.replace(t["hateful"], t["yes"])
+
+    t = translations.get(lang, translations["en"])
+    response = response.split(t['answer'])[-1]  # remove everything before "Answer:"
+    response = response.split(t['answer'].lower())[-1]  # remove everything before "Answer:"
     response = response.replace(t["non_hateful"], t["no"])
     response = response.replace(t["hateful"], t["yes"])
 

@@ -285,13 +285,13 @@ class Prompter:
 
                         # Process predictions
                         processed_predictions = [
-                            map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                            map_output(pred, lang=data['language'], translate_prompt=translate_prompt)
                             for pred in predictions
                         ]
 
                         results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                        self.save_predictions(predictions, processed_predictions, dataset["label"], output_dir)
+                        self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"], output_dir)
                         self.save_results(results, output_dir)
                 except Exception as e:
                     logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
@@ -338,7 +338,8 @@ class Prompter:
 
                             results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                            self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"], output_dir)
+                            self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"],
+                                                  output_dir)
                             self.save_results(results, output_dir)
                     except Exception as e:
                         logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
