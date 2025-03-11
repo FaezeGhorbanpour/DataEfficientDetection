@@ -53,7 +53,7 @@ MODEL_CONFIGS = {
               "context_length": 8192, "batch_size": 16}, #new
     "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 32,
                "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
-    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
+    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 256, #new
                "prompt_template": "{instruction}", "context_length": 8192}
 }
 
@@ -310,7 +310,7 @@ class Prompter:
                 examples = {key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
                     max_length = (self.prompter_max_length or 650 if "cot" in prompt else 512)
-                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
                     if shot_number > 3:
                         max_length += (shot_number - 2)*50
                         batch_size = batch_size // 2
