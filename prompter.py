@@ -282,7 +282,7 @@ class Prompter:
             dataset = data["data"][split]
 
             for prompt in self.zero_shot_prompts_list:
-                max_length = (self.prompter_max_length or 512 if "cot" in prompt else 256)
+                max_length = (self.prompter_max_length or 1024 if "cot" in prompt else 512)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 translate_prompt = False
                 # for translate_prompt in [False, True]:
@@ -350,7 +350,7 @@ class Prompter:
             for shot_number in shot_numbers:
                 examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
-                    max_length = (self.prompter_max_length or 512 if "cot" in prompt else 256) * 2
+                    max_length = (self.prompter_max_length or 1024 if "cot" in prompt else 512) * 2
                     batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
                     if shot_number >= 5:
                         max_length = max_length * 2
