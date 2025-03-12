@@ -118,6 +118,10 @@ class FineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Run the hate check evaluation."}
     )
+    do_hate_day: bool = field(
+        default=False,
+        metadata={"help": "Run the hate day evaluation."}
+    )
     use_class_weights: Optional[str] = field(
         default=False,
         metadata = {"help": "PR custom: decide whether to use class weighting when calculating loss"}
@@ -163,6 +167,10 @@ class FineTunerArguments(TrainingArguments):
     )
     load_best_model_at_end: bool=field(
         default=True,
+        metadata={"help": ""}
+    )
+    label_smoothing_factor: float=field(
+        default=0.0,
         metadata={"help": ""}
     )
 
@@ -745,20 +753,25 @@ def main(
                 return results['validation_f1-macro']
 
         if finetuner_args.do_test:
-            # test_dataset = fine_tuner.prepare_data(dataset['test'])
             results = fine_tuner.evaluate(dataset['test'], save_results=True)
-            # results = {'fine_tuner_'+i: j for i, j in results.items()}
             if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Finetune-based inference on test dataset metrics: %s", results)
 
         if finetuner_args.do_hate_check and 'hate_check' in dataset:
-            # test_dataset = fine_tuner.prepare_data(dataset['hate_check'])
-            results = fine_tuner.evaluate(dataset['hate_check'], save_results=True, key='hate_check', metric_key_prefix='hate_check')
-            # results = {'fine_tuner_'+i: j for i, j in results.items()}
+            results = fine_tuner.evaluate(dataset['hate_check'], save_results=True, key='hate_check',
+                                          metric_key_prefix='hate_check')
             if main_args.enable_wandb:
                 wandb.log(results)
             logger.info("Finetune-based inference on hate-check metrics: %s", results)
+
+        if finetuner_args.do_hate_day and 'hate_day' in dataset:
+            results = fine_tuner.evaluate(dataset['hate_day'], save_results=True, key='hate_day',
+                                          metric_key_prefix='hate_day')
+            if main_args.enable_wandb:
+                wandb.log(results)
+            logger.info("Finetune-based inference on hate-day metrics: %s", results)
+
 
     # Step 5: Prompt-based inference
     if main_args.do_prompting:
