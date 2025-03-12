@@ -77,14 +77,14 @@ class Prompter:
 
         # Model configuration
         self.model_name = config.prompter_model_name_or_path
-        self.few_shot_prompts_list = (['few_shot', 'few_shot_cot', 'few_shot_role_play',
+        self.few_shot_prompts_list = (['few_shot', 'few_shot_cot', 'few_shot_role_play', 'few_shot_sole',
                                        'few_shot_multilingual', 'few_shot_definition', ]
             if config.prompts_list == 'all' else config.prompts_list
         )
         self.zero_shot_prompts_list = (['general', 'classification', 'definition', 'cot', 'multilingual', 'nli', 'sole',
                                         'role_play', 'multilingual_definition', 'role_play_cot', 'multilingual_cot',
                                         'explanation_based', 'target_identification', 'contextual_analysis', 'cot-2',
-                                        'translate_then_classify']
+                                        'translate_then_classify', 'distinction']
             if config.prompts_list == 'all' else config.prompts_list
         )
 
@@ -176,8 +176,10 @@ class Prompter:
                 pad_token_id=self.tokenizer.pad_token_id,
                 do_sample=False,         # Ensure deterministic output
                 num_beams=1,             # Use greedy decoding
-                max_new_tokens=10,        # Allow enough tokens for "yes" or "no"
-                temperature=0.0,         # Force deterministic output
+                max_new_tokens=3,        # Allow enough tokens for "yes" or "no"
+                temperature=None,         # Force deterministic output
+                top_p=None,
+                top_k=None,
                 min_length=inputs["input_ids"].shape[1] + 1,  # Ensure at least one token is generated
                 eos_token_id=self.tokenizer.eos_token_id
             )
@@ -249,7 +251,7 @@ class Prompter:
             prompt_method = language_aware_prompt
             extra_args = {"language": lang}
         else:
-            # Standard prompts (general, definition, classification, chain_of_thought, nli, role_play)
+            # Standard prompts (general, definition, classification, cot, nli, role_play)
             prompt_method = standard_prompt
             extra_args = {}
 
@@ -280,7 +282,7 @@ class Prompter:
             dataset = data["data"][split]
 
             for prompt in self.zero_shot_prompts_list:
-                max_length = (self.prompter_max_length or 650 if "chain_of_thought" in prompt else 512)
+                max_length = (self.prompter_max_length or 256 if "cot" in prompt else 218)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 translate_prompt = False
                 # for translate_prompt in [False, True]:
@@ -348,10 +350,13 @@ class Prompter:
             for shot_number in shot_numbers:
                 examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
-                    max_length = (self.prompter_max_length or 650 if "cot" in prompt else 512)
-                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 4
+                    max_length = (self.prompter_max_length or 256 if "cot" in prompt else 218) * 2
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
                     if shot_number > 5:
-                        max_length += (shot_number - 2)*50
+                        max_length = max_length * 2
+                        batch_size = batch_size // 2
+                    if shot_number > 25:
+                        max_length = max_length * 2
                         batch_size = batch_size // 2
 
                     translate_prompt = False
@@ -371,7 +376,7 @@ class Prompter:
 
                             # Process predictions
                             processed_predictions = [
-                                map_output(pred, translate_to=data['language']) if translate_prompt else map_output(pred)
+                                map_output(pred, lang=data['language']) if translate_prompt else map_output(pred)
                                 for pred in predictions
                             ]
 
