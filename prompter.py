@@ -275,7 +275,7 @@ class Prompter:
         """Perform zero-shot prompting on dataset."""
         logger.info(f"Starting zero-shot prompting for dataset: {data['name']}")
 
-        for split in ["test", "hate_check"]:
+        for split in ["test", "hate_check", "hate_day"]:
             if split not in data['data']:
                 continue
 
