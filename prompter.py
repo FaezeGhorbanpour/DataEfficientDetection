@@ -176,7 +176,7 @@ class Prompter:
                 pad_token_id=self.tokenizer.pad_token_id,
                 do_sample=False,         # Ensure deterministic output
                 num_beams=1,             # Use greedy decoding
-                max_new_tokens=3,        # Allow enough tokens for "yes" or "no"
+                max_new_tokens=10,        # Allow enough tokens for "yes" or "no"
                 temperature=None,         # Force deterministic output
                 top_p=None,
                 top_k=None,
