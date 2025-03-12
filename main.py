@@ -780,11 +780,11 @@ def main(
         prompter = Prompter(prompter_args)
         logger.info("Running prompt-based inference with model: %s", prompter_args.prompter_model_name_or_path)
         for i, data in enumerate(datasets):
+            prompter.do_zero_shot_prompting(data)
+            logger.info("Prompt-based zero-shot inference metrics for %s finished. ", data['name'])
             if shots:
                 prompter.do_few_shot_prompting(data, shots)
                 logger.info("Prompt-based few-shot inference metrics for %s finished. ", data['name'])
-            prompter.do_zero_shot_prompting(data)
-            logger.info("Prompt-based zero-shot inference metrics for %s finished. ", data['name'])
 
 
     # Finish Wandb
