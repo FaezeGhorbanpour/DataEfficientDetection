@@ -165,6 +165,8 @@ class Embedder:
             logger.info(f"Processing dataset: {dataset['name']} in language {language}")
 
             for split in splits:
+                if split not in dataset["data"]:
+                    continue
                 data = dataset["data"][split]
                 texts = data["text"]
                 labels = data["label"]
