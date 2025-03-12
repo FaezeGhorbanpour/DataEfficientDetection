@@ -170,9 +170,20 @@ class Prompter:
 
         # Generate outputs
         with torch.no_grad():
-            outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], 
-                                          pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
-                                          num_beams=2, max_new_tokens=1, temperature=None, top_p=None, top_k=None)
+            outputs = self.model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                pad_token_id=self.tokenizer.pad_token_id,
+                do_sample=False,         # Ensure deterministic output
+                num_beams=1,             # Use greedy decoding
+                max_new_tokens=10,        # Allow enough tokens for "yes" or "no"
+                temperature=0.0,         # Force deterministic output
+                min_length=inputs["input_ids"].shape[1] + 1,  # Ensure at least one token is generated
+                eos_token_id=self.tokenizer.eos_token_id
+            )
+            # outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
+            #                               pad_token_id=self.tokenizer.pad_token_id, do_sample=False,
+            #                               num_beams=2, max_new_tokens=1, temperature=None, top_p=None, top_k=None)
 
         # Process predictions
         predictions = []

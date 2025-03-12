@@ -228,8 +228,8 @@ def map_output(response, lang='en', translate_prompt=False):
         print("invalid prediction:", response, response_lower)
         return -1  # Handle uncertain cases
 
-
-text = '''[/INST] yes[/ yes/'''
-print(map_output(text, "es"))  # Should return 1
-# print(map_output("no odioso", "es"))  # Should return 0
+if __name__ == '__main__':
+    text = '''[/INST] yes[/ yes/'''
+    print(map_output(text, "es"))  # Should return 1
+    # print(map_output("no odioso", "es"))  # Should return 0
 
