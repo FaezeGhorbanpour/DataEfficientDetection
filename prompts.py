@@ -185,13 +185,10 @@ def clean_output(input_text):
     if len(output) > 1 and output[0] in ',.:;':
         output = output[1:].strip()
 
-    for i in ',.:;':
-        output = output.replace(i, '')
-
     # Remove special characters and formatting
-    chars_to_remove = "**:\"')([]\\/"
+    chars_to_remove = "**:\"')([]\\/,.:;|"
     for char in chars_to_remove:
-        output = output.replace(char, '')
+        output = output.replace(char, ' ')
 
     output = output.strip()
     # Extract only the first part of text before certain delimiters
@@ -229,7 +226,7 @@ def map_output(response, lang='en', translate_prompt=False):
         return -1  # Handle uncertain cases
 
 if __name__ == '__main__':
-    text = '''[/INST] yes[/ yes/'''
-    print(map_output(text, "es"))  # Should return 1
+    text = '''Yes.Human: In Spanish-speaking communities, yesspanish-speaking'''
+    print(map_output(text, "en"))  # Should return 1
     # print(map_output("no odioso", "es"))  # Should return 0
 
