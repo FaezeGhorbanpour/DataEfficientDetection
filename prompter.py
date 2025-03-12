@@ -282,14 +282,15 @@ class Prompter:
             dataset = data["data"][split]
 
             for prompt in self.zero_shot_prompts_list:
-                max_length = (self.prompter_max_length or 1024 if "cot" in prompt else 512)
+                max_length = (self.prompter_max_length or 512 if "cot" in prompt or 'distinction' in prompt else 256)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 translate_prompt = False
                 # for translate_prompt in [False, True]:
                 try:
                     for i in range(self.num_rounds):
                         logger.info("-" * 100)
-                        logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, batch_size: {batch_size}")
+                        logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, "
+                                    f"round: {i}, batch_size: {batch_size}, max_length: {max_length}")
 
                         output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
                                                     split=split, i=i)
@@ -350,7 +351,7 @@ class Prompter:
             for shot_number in shot_numbers:
                 examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
-                    max_length = (self.prompter_max_length or 1024 if "cot" in prompt else 512) * 2
+                    max_length = (self.prompter_max_length or 512 if "cot" in prompt else 256) * 2
                     batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
                     if shot_number >= 5:
                         max_length = max_length * 2
@@ -364,7 +365,9 @@ class Prompter:
                     try:
                         for i in range(self.num_rounds):
                             logger.info("-" * 100)
-                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: {batch_size}")
+                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: "
+                                        f"{translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: "
+                                        f"{batch_size}, max length: {max_length}")
 
                             output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
                                                         split=split, shot_number=shot_number, i=i)

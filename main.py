@@ -372,11 +372,11 @@ class PrompterArguments:
         metadata={"help": ""},
     )
     prompter_batch_size: int = field(
-        default=64,
+        default=None,
         metadata={"help": "Batch size for training and evaluation."}
     )
     prompter_max_length: int = field(
-        default=128,
+        default=None,
         metadata={"help": "."}
     )
     prompts_list: Union[List[str], str] = field(

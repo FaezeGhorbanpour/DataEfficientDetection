@@ -12,7 +12,7 @@
   "k": 50,
   "retrieve_per_instance": true,
   "do_prompting": true,
-  "prompts_list": ["few_shot"],
+  "prompts_list": ["cot"],
   "num_rounds": 1,
   "prompter_output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama3/ous19_ar/",
   "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/prompter/llama3/ous19_ar/",
