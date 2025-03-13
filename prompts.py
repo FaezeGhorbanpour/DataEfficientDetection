@@ -93,7 +93,7 @@ def clean_output(input_text):
         "assistant", "nohuman", "analysis", "note", "context:", "content:", "alone", "the comment is",
         "role", "system", "user", "the post is", "the comment is", " it ", "it is", " is ", "**", 'the final answer is',
         "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", 'inst',
-        'the answer is', ' ai ', 'final', 'this', 'case', ' in ',
+        'the answer is', ' ai ', 'final', 'this', 'case', ' in ', ' a ', 'sentence',
 
         # Spanish phrases
         "la publicación es", "el comentario es", "en este caso, el comentario es",
@@ -138,9 +138,13 @@ def clean_output(input_text):
         "does not contain": "no",
         "not yes": "no",
         "not hate speech": "no",
+        "not hate comment": "no",
+        "not hateful comment": "no",
         "contains": "yes",
         "maybe": "yes",
         "hate speech": "yes",
+        "hate comment": "yes",
+        "hateful comment": "yes",
         "tal vez": "yes",  # Spanish
         "talvez": "yes",  # Portuguese
         "forse": "yes",  # Italian
