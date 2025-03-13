@@ -30,7 +30,7 @@ MODEL_CONFIGS = {
     "mt0": {"name": "bigscience/mt0-large", "prompt_template": "Input: {instruction}\nOutput:", "model_type": "seq2seq",
             "context_length": 1024, "big_model": False, "batch_size": 512},
     "aya101": {"name": "CohereForAI/aya-101", "prompt_template": "Human: {instruction}\n\nnohuman:",
-               "model_type": "seq2seq", "context_length": 4096, "batch_size": 125},
+               "model_type": "seq2seq", "context_length": 4096, "batch_size": 128},
     "aya23": {"name": "CohereForAI/aya-23-8B", "prompt_template": "Human: {instruction}\n\nnohuman:",
               "context_length": 4096, "batch_size": 32},
     "aya8": {"name": "CohereForAI/aya-expanse-8b", "prompt_template": "Human: {instruction}\n\nnohuman:",
@@ -180,7 +180,7 @@ class Prompter:
                 temperature=None,         # Force deterministic output
                 top_p=None,
                 top_k=None,
-                min_length=inputs["input_ids"].shape[1] + 3,  # Ensure at least one token is generated
+#                min_length=inputs["input_ids"].shape[1] + 3,  # Ensure at least one token is generated
                 eos_token_id=self.tokenizer.eos_token_id
             )
             # outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
