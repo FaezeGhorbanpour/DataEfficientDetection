@@ -2,15 +2,15 @@
 BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
-#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
-DATASETS=('gahd24_de' 'xdomain_tr')
-#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-LANGUAGES=('de' 'tr')
+DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+#DATASETS=()
+LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+#LANGUAGES=('de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="mono_baseline"
+FOLDER_SUBNAME="mono_baseline_again"
 
 # Function to process a single dataset
 run_dataset() {
@@ -33,6 +33,7 @@ run_dataset() {
                 --do_train \
                 --do_test \
                 --do_hate_check\
+                --do_hate_day\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --num_train_epochs 10\

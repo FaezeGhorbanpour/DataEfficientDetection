@@ -2,17 +2,15 @@
 BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 # Configuration
-#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it')
-DATASETS=('gahd24_de' 'xdomain_tr')
-DATASETS=('bas19_es')
-#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-LANGUAGES=('de' 'tr')
-LANGUAGES=('es')
-RSS=(rs1 rs2 rs3 rs4 rs5)
+#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
+DATASETS=('bas19_es' 'ous19_ar')
+#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' 'de' 'tr')
+LANGUAGES=('es' 'ar')
+RSS=(rs3)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="twitter-roberta"
-FOLDER_SUBNAME="combine_dyn21_with_shuffling"
+FOLDER_SUBNAME="optuna"
 
 # Function to process a single dataset
 run_dataset() {
@@ -23,26 +21,27 @@ run_dataset() {
 
     echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 20 200 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
-            datas=("dyn21_en-20000-${RSS[i]}" "${dataset}-${split}-${RSS[i]}")
-            langs=("en" "${lang}")
             OUTPUT_DIR="${BASE}/models/finetuner/${FOLDER_NAME}-${FOLDER_SUBNAME}/${dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                --datasets "${datas[@]}" \
-                --languages "${langs[@]}" \
+		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		            --datasets "${dataset}-${split}-${RSS[i]}" \
+                --languages "${lang}" \
                 --seed ${RSS[i]//rs/} \
                 --combine_train_set\
                 --do_fine_tuning \
                 --do_train \
                 --do_test \
                 --do_hate_check\
+                --do_hate_day\
+                --run_optuna\
+                --optuna_n_trials 30\
+                --optuna_study_name "${FOLDER_NAME}-${dataset}-${split}-rs3"\
+                --optuna_storage_path $OUTPUT_DIR \
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
-                --num_train_epochs 3 \
-                --max_seq_length 128 \
                 --output_dir $OUTPUT_DIR \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
@@ -81,7 +80,7 @@ check_gpu_memory() {
 
 # Main loop
 num_gpus=8
-start_gpu=7
+start_gpu=0
 for i in "${!DATASETS[@]}"; do
     dataset=${DATASETS[$i]}
     lang=${LANGUAGES[$i]}
