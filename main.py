@@ -679,9 +679,11 @@ def main(
             dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
             dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset,
                                                         repeat=finetuner_args.repeat_target_train_set)
-    if not main_args.do_searching and (main_args.do_fine_tuning and retrieval_tuner_args.combine_train_set):
+    elif not main_args.do_searching and (main_args.do_fine_tuning and retrieval_tuner_args.combine_train_set):
         #TODO Why? For baseline and rotger's combine train sets experiments
         dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets], just_aggregate=['train'])
+    else:
+        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
     shots = None
     if main_args.do_searching and main_args.do_prompting:
         shots = data_provider.extract_text_and_label(retrieved)
