@@ -90,7 +90,7 @@ class Retriever:
             remained_indices = self.mmr_diversity_filter(embeddings=embeddings,  indices=indices, scores=scores,
                                                          similarity_threshold=mmr_threshold, batch_size=40000)
             embeddings = embeddings[remained_indices]
-            metadata = metadata[remained_indices]
+            metadata = [metadata[i] for i in remained_indices]
 
         # Add embeddings to the FAISS index
         self.index.add(embeddings)

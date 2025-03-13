@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="en-margin=0.4"
+FOLDER_NAME="mmr-margin"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -17,7 +17,8 @@ FOLDER_NAME="en-margin=0.4"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 #KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-KS=(20 200 2000 20000)
+KS=(20 200 2000)
+# 20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -37,7 +38,7 @@ run_dataset() {
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
+    for split in 20 200 2000 1000 500 400 300 100 50 40 30 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -47,18 +48,20 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-		 --margin_weight 0.4\
                 --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --do_fine_tuning \
+                --mmr_threshold 0.99\
+		--margin_weight 0.4\
                 --num_train_epochs ${epoch} \
+                --do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -68,7 +71,7 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --report_to None \
+                --report_to None\
                 --wandb_run_name ${FOLDER_NAME}
 
             for dir in "${OUTPUT_DIR}"check*; do
@@ -85,7 +88,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=6400
+MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=10
 
@@ -107,7 +110,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=2; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

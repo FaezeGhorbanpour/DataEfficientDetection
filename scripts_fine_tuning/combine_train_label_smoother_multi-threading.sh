@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="en-margin=0.4"
+FOLDER_NAME="label_smoother"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -26,14 +26,14 @@ run_dataset() {
     # Determine epoch based on k
     local epoch
     if [ "$k" -lt 9999 ]; then
-        epoch=10
-    else
         epoch=5
+    else
+        epoch=3
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -47,18 +47,19 @@ run_dataset() {
                 --do_embedding \
                 --embedder_model_name_or_path "m3" \
                 --do_searching \
-		 --margin_weight 0.4\
                 --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW/" \
+                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --do_fine_tuning \
                 --num_train_epochs ${epoch} \
+		--label_smoothing_factor 0.1\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -85,7 +86,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=6400
+MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=10
 
@@ -104,10 +105,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=4
+    num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=2; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

@@ -9,7 +9,7 @@ fi
 
 DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-SPLITS=('test' 'hate_check')
+SPLITS=('test' 'hate_check' 'hate_day')
 
 # Get arguments
 MODEL_PATH=$1
