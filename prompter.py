@@ -351,14 +351,22 @@ class Prompter:
             for shot_number in shot_numbers:
                 examples = self.get_shots(shots, shot_number)#{key: value[:shot_number] for key, value in shots.items()}
                 for prompt in self.few_shot_prompts_list:
-                    max_length = (self.prompter_max_length or 512 if "cot" in prompt else 256) * 2
-                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size) // 2
+                    max_length = (self.prompter_max_length or 512 if "cot" in prompt else 256)
+                    batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
+                    # Calculate scaling factors based on shot_number
+                    scaling_factor = 2
                     if shot_number >= 5:
-                        max_length = max_length * 2
-                        batch_size = batch_size // 2
+                        scaling_factor *= 2
+                    if shot_number >= 10:
+                        scaling_factor *= 2
                     if shot_number >= 25:
-                        max_length = max_length * 2
-                        batch_size = batch_size // 2
+                        scaling_factor *= 2
+                    if shot_number >= 50:
+                        scaling_factor *= 2
+
+                    # Apply scaling factors
+                    max_length *= scaling_factor
+                    batch_size //= scaling_factor
 
                     translate_prompt = False
                     # for translate_prompt in [False, True]:
