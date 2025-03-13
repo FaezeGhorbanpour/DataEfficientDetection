@@ -180,7 +180,7 @@ class Prompter:
                 temperature=None,         # Force deterministic output
                 top_p=None,
                 top_k=None,
-                #min_length=inputs["input_ids"].shape[1] + 3,  # Ensure at least one token is generated
+#                min_length=inputs["input_ids"].shape[1] + 3,  # Ensure at least one token is generated
                 eos_token_id=self.tokenizer.eos_token_id
             )
             # outputs = self.model.generate(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],

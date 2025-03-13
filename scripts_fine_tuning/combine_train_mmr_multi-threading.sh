@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_fr"
-    lang="ous19_fr"
-    excluded_datasets=("ous19_fr")
+    dataset="san20_it"
+    lang="it"
+    excluded_datasets=("san20_ir")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -104,10 +104,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=1
+    num_gpus=2
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
