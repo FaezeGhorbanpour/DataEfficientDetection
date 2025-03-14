@@ -89,7 +89,7 @@ def clean_output(input_text):
     # Define phrases to remove, grouped by category
     phrases_to_remove = {
         # English phrases
-        "based on", "given", "provided", "[/inst]", "human", "comment", "[inst]", "premise", "context", "information",
+        "based on", "given", "provided", "inst", "human", "comment", "premise", "context", "information",
         "assistant", "nohuman", "analysis", "note", "context:", "content:", "alone", "the comment is",
         "role", "system", "user", "the post is", "the comment is", " it ", "it is", " is ", "**", 'the final answer is',
         "in this case,", "the text is", "the text", "the", "text", "comment", 'answer', "post", 'inst',
@@ -230,7 +230,7 @@ def map_output(response, lang='en', translate_prompt=False):
         return -1  # Handle uncertain cases
 
 if __name__ == '__main__':
-    text = '''Yes.Human: In Spanish-speaking communities, yesspanish-speaking'''
+    text = '''[/INST]no[/INST][/INST]no[/INST nono'''
     print(map_output(text, "en"))  # Should return 1
     # print(map_output("no odioso", "es"))  # Should return 0
 

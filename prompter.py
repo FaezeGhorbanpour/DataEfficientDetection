@@ -366,7 +366,7 @@ class Prompter:
 
                     # Apply scaling factors
                     max_length *= scaling_factor
-                    batch_size //= scaling_factor
+                    batch_size = max(batch_size // scaling_factor, 1)
 
                     translate_prompt = False
                     # for translate_prompt in [False, True]:
