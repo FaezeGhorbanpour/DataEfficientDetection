@@ -138,13 +138,14 @@ def clean_output(input_text):
         "does not contain": "no",
         "not yes": "no",
         "not hate speech": "no",
-        "not hate comment": "no",
-        "not hateful comment": "no",
+        "not hate": "no",
+        "not hateful": "no",
+        "non hateful": "no",
         "contains": "yes",
         "maybe": "yes",
         "hate speech": "yes",
-        "hate comment": "yes",
-        "hateful comment": "yes",
+        "hate": "yes",
+        "hateful": "yes",
         "tal vez": "yes",  # Spanish
         "talvez": "yes",  # Portuguese
         "forse": "yes",  # Italian
@@ -196,7 +197,7 @@ def clean_output(input_text):
 
     output = output.strip()
     # Extract only the first part of text before certain delimiters
-    delimiters = ["</s>", ",", ".", "।", "|", "\n", " "]
+    delimiters = ["</s>", ",", ".", "।", "|", "\n", " ", '-']
     delimiters += ['target', 'explanation']
     for delimiter in delimiters:
         if delimiter in output:
