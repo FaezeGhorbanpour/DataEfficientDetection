@@ -82,15 +82,8 @@ class DataProvider:
             with_indices=True
         )
 
-        # Add source information to the original train dataset
-        dataset["train"] = dataset["train"].map(lambda example: {"source": 0, 'score': float(0)})
-        dataset["test"] = dataset["test"].map(lambda example: {"source": 0, 'score': float(0)})
-        dataset["validation"] = dataset["validation"].map(lambda example: {"source": 0, 'score': float(0)})
-        if 'hate_check' in dataset:
-            dataset["hate_check"] = dataset["hate_check"].map(lambda example: {"source": 0, 'score': float(0)})
-        if 'hate_day' in dataset:
-            dataset["hate_day"] = dataset["hate_day"].map(lambda example: {"source": 0, 'score': float(0)})
-
+        for split in dataset:
+            dataset[split] = dataset[split].map(lambda example: {**example, "source": 0, 'score': float(0)})
         # Ensure retrieved data has the same features as the train dataset
         retrieved_data = retrieved_data.cast(dataset["train"].features)
 
