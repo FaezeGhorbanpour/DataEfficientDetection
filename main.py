@@ -788,6 +788,20 @@ def main(
                 prompter.do_few_shot_prompting(data, shots)
                 logger.info("Prompt-based few-shot inference metrics for %s finished. ", data['name'])
 
+    if main_args.do_prompting:
+        main_args.do_prompting = False
+        data_args.datasets = ["dyn21_en", "fou18_en", "ken20_en", "xplain_en", "implicit_en", "xdomain_en"]
+        data_args.languages = ["en", "en", "en", "en", "en", "en"]
+        main_args.do_embedding = True
+        embedder_args.embedder_model_name_or_path = "m3"
+        main_args.do_indexing = True
+        embedder_args.add_perplexity = True
+        embedder_args.add_uncertainty = True
+        embedder_args.splits = ["train", "validation", "test"]
+        retriever_args.mmr_threshold = 0.80
+        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
+        finetuner_args.output_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
+        main_args.wandb_run_name = "embedding_english"
 
     # Finish Wandb
     if main_args.enable_wandb:
