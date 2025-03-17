@@ -53,6 +53,7 @@ run_dataset() {
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --num_train_epochs ${epoch} \
+		--do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
