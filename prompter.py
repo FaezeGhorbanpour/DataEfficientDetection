@@ -285,33 +285,33 @@ class Prompter:
                 max_length = (self.prompter_max_length or 512 if "cot" in prompt or 'distinction' in prompt else 256)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 translate_prompt = False
-                # for translate_prompt in [False, True]:
-                try:
-                    for i in range(self.num_rounds):
-                        logger.info("-" * 100)
-                        logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, "
-                                    f"round: {i}, batch_size: {batch_size}, max_length: {max_length}")
+                for translate_prompt in [False, True]:
+                    try:
+                        for i in range(self.num_rounds):
+                            logger.info("-" * 100)
+                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: {translate_prompt}, "
+                                        f"round: {i}, batch_size: {batch_size}, max_length: {max_length}")
 
-                        output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
-                                                    split=split, i=i)
-                        if output_dir is None:
-                            continue
+                            output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
+                                                        split=split, i=i)
+                            if output_dir is None:
+                                continue
 
-                        predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
-                                                   translate_prompt=translate_prompt, lang=data["language"])
+                            predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size,
+                                                       translate_prompt=translate_prompt, lang=data["language"])
 
-                        # Process predictions
-                        processed_predictions = [
-                            map_output(pred, lang=data['language'], translate_prompt=translate_prompt)
-                            for pred in predictions
-                        ]
+                            # Process predictions
+                            processed_predictions = [
+                                map_output(pred, lang=data['language'], translate_prompt=translate_prompt)
+                                for pred in predictions
+                            ]
 
-                        results = self.compute_metrics(processed_predictions, dataset["label"])
+                            results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                        self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"], output_dir)
-                        self.save_results(results, output_dir)
-                except Exception as e:
-                    logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+                            self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"], output_dir)
+                            self.save_results(results, output_dir)
+                    except Exception as e:
+                        logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
     @staticmethod
     def get_shots(shots, shot_number):
         result = {}
