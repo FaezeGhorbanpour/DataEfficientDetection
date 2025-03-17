@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="mmr=0.95"
+FOLDER_NAME="curriculum_strict_separate_mmr"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -27,9 +27,9 @@ run_dataset() {
     # Determine epoch based on k
     local epoch
     if [ "$k" -lt 9999 ]; then
-        epoch=10
+        epoch=20
     else
-        epoch=5
+        epoch=15
     fi
 
     dataset="ous19_ar"
@@ -38,7 +38,7 @@ run_dataset() {
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 20 200 2000 1000 500 400 300 100 50 40 30 10; do
+    for split in 2000 200 20 1000 500 400 300 100 50 40 30 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -53,13 +53,18 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --mmr_threshold 0.95\
+		--mmr_threshold 0.99\
+                --use_curriculum_learning\
+		--curriculum_schedule "strict_separate"\
+                --curriculum_order "ascending"\
+                --save_more \
+                --do_fine_tuning \
                 --num_train_epochs ${epoch} \
-                --do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -69,7 +74,8 @@ run_dataset() {
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
-                --report_to None\
+		--remove_unused_columns 0\
+		--report_to 'wandb'\
                 --wandb_run_name ${FOLDER_NAME}
 
             for dir in "${OUTPUT_DIR}"check*; do
@@ -105,10 +111,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
