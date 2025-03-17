@@ -802,6 +802,14 @@ def main(
         retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
         finetuner_args.output_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
         main_args.wandb_run_name = "embedding_english"
+        main(
+            main_args,
+            data_args,
+            embedder_args,
+            retriever_args,
+            retrieval_tuner_args,
+            finetuner_args,
+            prompter_args)
 
     # Finish Wandb
     if main_args.enable_wandb:
