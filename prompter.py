@@ -369,35 +369,35 @@ class Prompter:
                     batch_size = max(batch_size // scaling_factor, 1)
 
                     translate_prompt = False
-                    # for translate_prompt in [False, True]:
-                    try:
-                        for i in range(self.num_rounds):
-                            logger.info("-" * 100)
-                            logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: "
-                                        f"{translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: "
-                                        f"{batch_size}, max length: {max_length}")
+                    for translate_prompt in [False, True]:
+                        try:
+                            for i in range(self.num_rounds):
+                                logger.info("-" * 100)
+                                logger.info(f"Starting split: {split}, prompt: {prompt}, translate_prompt: "
+                                            f"{translate_prompt}, round: {i}, shot_number:{shot_number}, batch_size: "
+                                            f"{batch_size}, max length: {max_length}")
 
-                            output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
-                                                        split=split, shot_number=shot_number, i=i)
-                            if output_dir is None:
-                                continue
+                                output_dir = self.abort_run(data, translate_prompt=translate_prompt, prompt=prompt,
+                                                            split=split, shot_number=shot_number, i=i)
+                                if output_dir is None:
+                                    continue
 
-                            predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size, examples=examples,
-                                                       translate_prompt=translate_prompt, lang=data["language"])
+                                predictions = self.predict(dataset, prompt, max_length=max_length, batch_size=batch_size, examples=examples,
+                                                           translate_prompt=translate_prompt, lang=data["language"])
 
-                            # Process predictions
-                            processed_predictions = [
-                                map_output(pred, lang=data['language']) if translate_prompt else map_output(pred)
-                                for pred in predictions
-                            ]
+                                # Process predictions
+                                processed_predictions = [
+                                    map_output(pred, lang=data['language']) if translate_prompt else map_output(pred)
+                                    for pred in predictions
+                                ]
 
-                            results = self.compute_metrics(processed_predictions, dataset["label"])
+                                results = self.compute_metrics(processed_predictions, dataset["label"])
 
-                            self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"],
-                                                  output_dir)
-                            self.save_results(results, output_dir)
-                    except Exception as e:
-                        logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
+                                self.save_predictions(dataset["id"], predictions, processed_predictions, dataset["label"],
+                                                      output_dir)
+                                self.save_results(results, output_dir)
+                        except Exception as e:
+                            logger.info(f"Error in data:{data['name']} split: {split}, prompt: {prompt}!\nError: {str(e)}")
 
     def compute_metrics(self, predictions, labels):
         """Compute classification metrics for hate speech detection."""
