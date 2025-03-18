@@ -788,28 +788,29 @@ def main(
                 prompter.do_few_shot_prompting(data, shots)
                 logger.info("Prompt-based few-shot inference metrics for %s finished. ", data['name'])
 
-    if main_args.do_prompting:
-        main_args.do_prompting = False
-        data_args.datasets = ["dyn21_en", "fou18_en", "ken20_en", "xplain_en", "implicit_en", "xdomain_en"]
-        data_args.languages = ["en", "en", "en", "en", "en", "en"]
+    if prompter_args.prompter_model_name_or_path == 'llama3-abliterated':
+        prompter_args.prompter_model_name_or_path = 'llama3'
+        data_args.datasets = 'xdomain_tr'
+        data_args.languages = 'tr'
         main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "m3"
-        main_args.do_indexing = True
-        embedder_args.add_perplexity = True
-        embedder_args.add_uncertainty = True
-        embedder_args.splits = ["train", "validation", "test"]
-        retriever_args.mmr_threshold = 0.80
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
-        finetuner_args.output_path = "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/en_m3_HNSW-mmr/"
-        main_args.wandb_run_name = "embedding_english"
-        #main(
-        #    main_args,
-        #    data_args,
-        #    embedder_args,
-        #    retriever_args,
-        #    retrieval_tuner_args,
-        #    finetuner_args,
-        #    prompter_args)
+        embedder_args.embedder_model_name_or_path = "labse"
+        main_args.do_searching = True
+        embedder_args.splits = ['test', 'hate_check', 'hate_day']
+        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/xdomain_tr/train/LaBSE-HNSW/"
+        retriever_args.k = 50
+        retriever_args.retrieve_per_instance = True
+        retriever_args.balance_labels = True
+
+        main_args.do_prompting = True
+        main_args.wandb_run_name = "prompter_xdomain_tr"
+        main(
+           main_args,
+           data_args,
+           embedder_args,
+           retriever_args,
+           retrieval_tuner_args,
+           finetuner_args,
+           prompter_args)
 
     # Finish Wandb
     if main_args.enable_wandb:
