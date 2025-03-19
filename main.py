@@ -797,8 +797,8 @@ def main(
 
     if prompter_args.prompter_model_name_or_path == 'teuken':
         prompter_args.prompter_model_name_or_path = 'qwan'
-        data_args.datasets = 'xdomain_tr'
-        data_args.languages = 'tr'
+        data_args.datasets = ['xdomain_tr']
+        data_args.languages = ['tr']
         main_args.do_embedding = True
         embedder_args.embedder_model_name_or_path = "labse"
         main_args.do_searching = True
@@ -809,7 +809,30 @@ def main(
         retriever_args.balance_labels = True
 
         main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_xdomain_tr"
+        main_args.wandb_run_name = "prompter_xdomain_tr_qwan"
+        main(
+           main_args,
+           data_args,
+           embedder_args,
+           retriever_args,
+           retrieval_tuner_args,
+           finetuner_args,
+           prompter_args)
+
+	prompter_args.prompter_model_name_or_path = 'llama3'
+        data_args.datasets = ['xdomain_tr']
+        data_args.languages = ['tr']
+        main_args.do_embedding = True
+        embedder_args.embedder_model_name_or_path = "labse"
+        main_args.do_searching = True
+        embedder_args.splits = ['test', 'hate_check', 'hate_day']
+        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/xdomain_tr/train/LaBSE-HNSW/"
+        retriever_args.k = 50
+        retriever_args.retrieve_per_instance = True
+        retriever_args.balance_labels = True
+
+        main_args.do_prompting = True
+        main_args.wandb_run_name = "prompter_xdomain_tr_llama3"
         main(
            main_args,
            data_args,
