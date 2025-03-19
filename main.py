@@ -794,7 +794,6 @@ def main(
         wandb.finish()
     logger.info("Pipeline execution completed.")
 
-
     if prompter_args.prompter_model_name_or_path == 'teuken':
         prompter_args.prompter_model_name_or_path = 'qwan'
         data_args.datasets = ['xdomain_tr']
@@ -819,7 +818,8 @@ def main(
            finetuner_args,
            prompter_args)
 
-	prompter_args.prompter_model_name_or_path = 'llama3'
+    if prompter_args.prompter_model_name_or_path == 'qwan':
+        prompter_args.prompter_model_name_or_path = 'llama3'
         data_args.datasets = ['xdomain_tr']
         data_args.languages = ['tr']
         main_args.do_embedding = True
