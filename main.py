@@ -788,8 +788,15 @@ def main(
                 prompter.do_few_shot_prompting(data, shots)
                 logger.info("Prompt-based few-shot inference metrics for %s finished. ", data['name'])
 
-    if prompter_args.prompter_model_name_or_path == 'llama3-abliterated':
-        prompter_args.prompter_model_name_or_path = 'llama3'
+
+        # Finish Wandb
+    if main_args.enable_wandb:
+        wandb.finish()
+    logger.info("Pipeline execution completed.")
+
+
+    if prompter_args.prompter_model_name_or_path == 'teuken':
+        prompter_args.prompter_model_name_or_path = 'qwan'
         data_args.datasets = 'xdomain_tr'
         data_args.languages = 'tr'
         main_args.do_embedding = True
@@ -811,11 +818,6 @@ def main(
            retrieval_tuner_args,
            finetuner_args,
            prompter_args)
-
-    # Finish Wandb
-    if main_args.enable_wandb:
-        wandb.finish()
-    logger.info("Pipeline execution completed.")
 
 
 import logging
