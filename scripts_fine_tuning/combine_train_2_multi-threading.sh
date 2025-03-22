@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="for19_pt"
-    lang="pt"
-    excluded_datasets=("for19_pt")
+    dataset="xdomain_tr"
+    lang="tr"
+    excluded_datasets=("xdomain_tr" "xdomain_en")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -53,7 +53,7 @@ run_dataset() {
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --num_train_epochs ${epoch} \
-		--fine_tuning\
+		--do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
@@ -85,7 +85,7 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=10000
+MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
 WAIT_TIME=500
 
@@ -107,7 +107,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

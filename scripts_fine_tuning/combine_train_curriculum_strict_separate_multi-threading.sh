@@ -31,9 +31,9 @@ run_dataset() {
         epoch=15
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
-    excluded_datasets=("ous19_fr")
+    dataset="has21_hi"
+    lang="hi"
+    excluded_datasets=("has21_hi")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
