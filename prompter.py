@@ -53,7 +53,7 @@ MODEL_CONFIGS = {
     "gemma9": {"name": "google/gemma-2-9b",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16}, #new
-    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 32,
+    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
                "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
     "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
                "prompt_template": "{instruction}", "context_length": 8192}
@@ -282,8 +282,9 @@ class Prompter:
             dataset = data["data"][split]
 
             for prompt in self.zero_shot_prompts_list:
-                max_length = (self.prompter_max_length or 512 if "cot" in prompt or 'distinction' in prompt else 256)
+                max_length = (self.prompter_max_length or 1024 if "cot" in prompt or 'distinction' in prompt else 256)
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
+                batch_size = (batch_size//2 or 1024 if "cot" in prompt or 'distinction' in prompt else batch_size)
                 translate_prompt = False
                 for translate_prompt in [False, True]:
                     try:
