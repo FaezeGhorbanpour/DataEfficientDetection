@@ -44,7 +44,7 @@ MODEL_CONFIGS = {
     "llama2": {"name": "meta-llama/Llama-2-7b-chat-hf", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 4096, "batch_size": 64},
     "llama3": {"name": "meta-llama/Llama-3.1-8B-Instruct", "prompt_template": "[INST] {instruction} [/INST]",
-               "context_length": 128000, "batch_size": 256},
+               "context_length": 128000, "batch_size": 128},
     "llama3-abliterated": {"name": "mlabonne/Meta-Llama-3.1-8B-Instruct-abliterated", "prompt_template": "[INST] {instruction} [/INST]",
                "context_length": 128000, "batch_size": 32},
     "gemma": {"name": "google/gemma-7b-it",
@@ -53,9 +53,9 @@ MODEL_CONFIGS = {
     "gemma9": {"name": "google/gemma-2-9b",
               "prompt_template": "<start_of_turn>\n{instruction}<end_of_turn>\n<start_of_turn>",
               "context_length": 8192, "batch_size": 16}, #new
-    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 64,
+    "teuken": {"name": "openGPT-X/Teuken-7B-instruct-research-v0.4", "batch_size": 32,
                "prompt_template": "System: translate_to\nUser: {instruction}\nAssistant:", "context_length": 8192},
-    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 256, #new
+    "qwan": {"name": "Qwen/Qwen2.5-7B-Instruct", "batch_size": 128, #new
                "prompt_template": "{instruction}", "context_length": 8192}
 }
 
