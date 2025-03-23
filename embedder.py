@@ -49,13 +49,13 @@ class Embedder:
 
         self.add_perplexity = add_perplexity
         if add_perplexity:
-            self.perplexity_calculator = PerplexityCalculator(model_name=perplexity_model, batch_size=8, device=device)
+            self.perplexity_calculator = PerplexityCalculator(model_name=perplexity_model, batch_size=1, device=device)
 
         self.add_uncertainty = add_uncertainty
         if add_uncertainty:
             self.uncertainty_calculator = UncertaintyCalculator(model_name=uncertainty_model,
                                                                 tokenizer_model_name=uncertainty_tokenizer,
-                                                                batch_size=1024, device=device)
+                                                                batch_size=128, device=device)
 
         model_mapping = {
             'labse': 'sentence-transformers/LaBSE',
