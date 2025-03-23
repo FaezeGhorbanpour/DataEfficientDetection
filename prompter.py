@@ -286,7 +286,7 @@ class Prompter:
                 batch_size = self.model_config.get("batch_size", self.config.prompter_batch_size)
                 batch_size = (batch_size//2 or 1024 if "cot" in prompt or 'distinction' in prompt else batch_size)
                 translate_prompt = False
-                for translate_prompt in [False, True]:
+                for translate_prompt in [False]:
                     try:
                         for i in range(self.num_rounds):
                             logger.info("-" * 100)
@@ -370,7 +370,7 @@ class Prompter:
                     batch_size = max(batch_size // scaling_factor, 1)
 
                     translate_prompt = False
-                    for translate_prompt in [False, True]:
+                    for translate_prompt in [False]:
                         try:
                             for i in range(self.num_rounds):
                                 logger.info("-" * 100)
