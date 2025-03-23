@@ -532,6 +532,11 @@ def main(
         level=logging.INFO
     )
 
+    # TODO Remove this
+    finetuner_args.report_to = []
+    if main_args.do_fine_tuning:
+        main_args.enable_wandb = False
+
     # Parse arguments
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
     #print(main_args.wandb_project)
@@ -551,11 +556,6 @@ def main(
         finetuner_args.report_to = []
     elif finetuner_args.report_to == 'wandb':
         finetuner_args.report_to = ['wandb']
-
-    # TODO Remove this
-    finetuner_args.report_to = []
-    if main_args.do_fine_tuning:
-        main_args.enable_wandb = False
 
     # Set seed before initializing model.
     set_seed(finetuner_args.seed)
