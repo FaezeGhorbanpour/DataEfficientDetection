@@ -551,7 +551,7 @@ def main(
         finetuner_args.report_to = []
     elif finetuner_args.report_to == 'wandb':
         finetuner_args.report_to = ['wandb']
-    
+    finetuner_args.report_to = []
     print('excluded_datasets', retriever_args.exclude_datasets)
     # Set seed before initializing model.
     set_seed(finetuner_args.seed)
