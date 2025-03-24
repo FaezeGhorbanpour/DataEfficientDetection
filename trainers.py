@@ -149,7 +149,8 @@ class CurriculumLearningTrainer(Trainer):
             float: Ratio of retrieved samples to include.
         """
         epoch = self.current_epoch + 1
-        total_epochs = self.total_epochs - 1
+        total_epochs = self.total_epochs
+        print('jjjjj', epoch, total_epochs)
         if self.schedule_type == "linear":
             return epoch / total_epochs  # Gradually increase from 0% to 100%
         elif self.schedule_type == "exponential":
@@ -251,7 +252,11 @@ class CurriculumLearningTrainer(Trainer):
         elif self.schedule_type == "stepwise":
             avg_train_size = m + 0.48 * n
         elif self.schedule_type == "strict_separate":
-            avg_train_size = (m-n) * 10 / num_epoch + n
+            # avg_train_size = (m-n) * 10 / num_epoch + n
+            if num_epoch < 10:
+                avg_train_size = m  # Only target dataset used for training
+            else:
+                avg_train_size = (m * 10 + n * (num_epoch - 10)) / num_epoch  # First 10 epochs on target, then retrieval
         else:
             raise ValueError("Invalid schedule_type. Choose from 'linear', 'exponential', or 'stepwise'.")
 
