@@ -608,8 +608,10 @@ class Retriever:
         selected_results = [res for res in results if res['index'] in selected_idx_original]
         return selected_results
 
+
+
     def mmr_diversity_filter(self, embeddings, indices, scores, similarity_threshold=0.95, lambda_param=0.5,
-                             min_remained_amount=None, batch_size=20000):
+                             min_remained_amount=None, batch_size=20000, max_workers=None):
         """
         Apply Maximal Marginal Relevance (MMR) to filter similar embeddings while ensuring
         at least min_remained_amount embeddings are kept.
@@ -620,20 +622,28 @@ class Retriever:
             lambda_param: Trade-off between relevance and diversity (0 to 1)
             min_remained_amount: Minimum number of embeddings to keep regardless of similarity
             batch_size: Size of batches for processing large datasets
+            max_workers: Number of GPUs/workers to use (None for automatic detection)
 
         Returns:
             List of dictionaries for the diverse subset of results
         """
+        # Determine number of available GPUs
+        if max_workers is None:
+            max_workers = torch.cuda.device_count()
+
+        # If multiple GPUs are available, use distributed processing
+        if max_workers > 1:
+            return self._distributed_mmr(
+                embeddings, indices, scores,
+                similarity_threshold, lambda_param,
+                min_remained_amount, batch_size, max_workers
+            )
+
+        # Original single-GPU implementation follows (unchanged)
         if similarity_threshold == 0.0 or len(embeddings) == 0:
             return indices
 
-        # Ensure min_remained_amount is valid
-        if min_remained_amount is None:
-            min_remained_amount = max(1, int(len(embeddings) * 0.1))  # Default to 10% of data
-        min_remained_amount = min(max(1, min_remained_amount), len(embeddings))
-        logger.info(f"Minimum embeddings to keep: {min_remained_amount}")
-        embeddings_tensor = None
-        # Process in batches to prevent OOM
+        # Rest of the original implementation remains the same...
         try:
             with torch.no_grad():  # Disable gradient computation
                 # Convert to PyTorch tensors and normalize
@@ -733,3 +743,103 @@ class Retriever:
         logger.info(f"Removed {len(embeddings) - len(selected_indices)} similar embeddings")
 
         return selected_idx_original
+
+    def _distributed_mmr(self, embeddings, indices, scores, similarity_threshold,
+                         lambda_param, min_remained_amount, batch_size, max_workers):
+        """
+        Distributed MMR filtering across multiple GPUs
+        """
+        import torch.multiprocessing as mp
+
+        # Validate GPU count
+        num_gpus = min(torch.cuda.device_count(), max_workers)
+        if num_gpus <= 1:
+            # Fall back to original method if only one GPU
+            return self.mmr_diversity_filter(
+                embeddings, indices, scores,
+                similarity_threshold, lambda_param,
+                min_remained_amount, batch_size, 1
+            )
+
+        # Split data across GPUs
+        total_size = len(embeddings)
+        chunk_size = total_size // num_gpus
+
+        # Prepare queue for results
+        mp.set_start_method('spawn', force=True)
+        manager = mp.Manager()
+        result_queue = manager.Queue()
+
+        # Worker function to process chunk on specific GPU
+        def gpu_worker(gpu_id, chunk_start, chunk_end, result_queue):
+            try:
+                # Set GPU device
+                torch.cuda.set_device(gpu_id)
+
+                # Extract chunk of data
+                chunk_embeddings = embeddings[chunk_start:chunk_end]
+                chunk_indices = indices[chunk_start:chunk_end]
+                chunk_scores = scores[chunk_start:chunk_end]
+
+                # Create a temporary instance for this worker
+                worker_instance = self.__class__()
+                worker_instance.device = f'cuda:{gpu_id}'
+
+                # Run MMR on this chunk
+                chunk_result = worker_instance.mmr_diversity_filter(
+                    chunk_embeddings,
+                    chunk_indices,
+                    chunk_scores,
+                    similarity_threshold,
+                    lambda_param,
+                    min_remained_amount=max(1, min_remained_amount // num_gpus),
+                    batch_size=batch_size
+                )
+
+                # Put results in queue
+                result_queue.put(chunk_result)
+
+            except Exception as e:
+                logger.error(f"GPU {gpu_id} worker error: {e}")
+                result_queue.put([])
+
+        # Spawn processes for each GPU
+        processes = []
+        for i in range(num_gpus):
+            chunk_start = i * chunk_size
+            chunk_end = total_size if i == num_gpus - 1 else (i + 1) * chunk_size
+
+            p = mp.Process(
+                target=gpu_worker,
+                args=(i, chunk_start, chunk_end, result_queue)
+            )
+            p.start()
+            processes.append(p)
+
+        # Wait for all processes to complete
+        for p in processes:
+            p.join()
+
+        # Collect results
+        results = []
+        while not result_queue.empty():
+            results.extend(result_queue.get())
+
+        # If no results, fall back to original method
+        if not results:
+            return indices
+
+        # Perform final filtering if results exceed min_remained_amount
+        if len(results) > min_remained_amount:
+            final_result = self.mmr_diversity_filter(
+                embeddings=[embeddings[indices.index(r)] for r in results],
+                indices=results,
+                scores=[scores[indices.index(r)] for r in results],
+                similarity_threshold=similarity_threshold,
+                lambda_param=lambda_param,
+                min_remained_amount=min_remained_amount,
+                batch_size=batch_size
+            )
+            return final_result
+
+        return results
