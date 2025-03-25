@@ -536,6 +536,8 @@ def main(
     finetuner_args.report_to = []
     if main_args.do_fine_tuning:
         main_args.enable_wandb = False
+    gc.collect()
+    torch.cuda.empty_cache()
 
     # Parse arguments
     # main_args, data_args, embedder_args, retriever_args, finetuner_args, prompter_args = parse_arguments()
@@ -798,218 +800,83 @@ def main(
         wandb.finish()
     logger.info("Pipeline execution completed.")
 
+    data = None
     if prompter_args.prompter_model_name_or_path == 'teuken':
         prompter_args.prompter_model_name_or_path = 'qwan'
-        data_args.datasets = ['xdomain_tr']
-        data_args.languages = ['tr']
         main_args.do_embedding = True
         embedder_args.embedder_model_name_or_path = "labse"
         main_args.do_searching = True
         embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/xdomain_tr/train/LaBSE-HNSW/"
         retriever_args.k = 50
         retriever_args.retrieve_per_instance = True
         retriever_args.balance_labels = True
+        for data in ['bas19_es', 'for19_pt', 'has21_hi', 'ous19_ar', 'ous19_fr', 'san20_it', 'gahd24_de', 'xdomain_tr']:
+            data_args.datasets = [data, ]
+            data_args.languages = [data.split('_')[-1], ]
+            retriever_args.index_path = f"/mounts/data/proj/faeze/data_efficient_hate/models/embedder/{data}/train/LaBSE-HNSW/"
 
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_xdomain_tr_qwan"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
+            main_args.do_prompting = True
+            main_args.wandb_run_name = f"prompter_{data}_qwan"
+            main(
+               main_args,
+               data_args,
+               embedder_args,
+               retriever_args,
+               retrieval_tuner_args,
+               finetuner_args,
+               prompter_args)
 
-    if prompter_args.prompter_model_name_or_path == 'qwan':
+    if prompter_args.prompter_model_name_or_path == 'qwan' and data=='xdomain_tr':
         prompter_args.prompter_model_name_or_path = 'llama3'
-        data_args.datasets = ['xdomain_tr']
-        data_args.languages = ['tr']
         main_args.do_embedding = True
         embedder_args.embedder_model_name_or_path = "labse"
         main_args.do_searching = True
         embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/xdomain_tr/train/LaBSE-HNSW/"
         retriever_args.k = 50
         retriever_args.retrieve_per_instance = True
         retriever_args.balance_labels = True
+        for data in ['bas19_es', 'for19_pt', 'has21_hi', 'ous19_ar', 'ous19_fr', 'san20_it', 'gahd24_de', 'xdomain_tr']:
+            data_args.datasets = [data, ]
+            data_args.languages = [data.split('_')[-1], ]
+            retriever_args.index_path = f"/mounts/data/proj/faeze/data_efficient_hate/models/embedder/{data}/train/LaBSE-HNSW/"
 
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_xdomain_tr_llama3"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
-
-        prompter_args.prompter_model_name_or_path = 'llama3'
-        data_args.datasets = ['gahd24_de']
-        data_args.languages = ['de']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/gahd24_de/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
-
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_gahd24_de_llama3"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
-
-        prompter_args.prompter_model_name_or_path = 'llama3'
-        data_args.datasets = ['has21_hi']
-        data_args.languages = ['hi']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/has21_hi/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
-
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_has21_hi_llama3"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
+            main_args.do_prompting = True
+            main_args.wandb_run_name = f"prompter_{data}_llama3"
+            main(
+               main_args,
+               data_args,
+               embedder_args,
+               retriever_args,
+               retrieval_tuner_args,
+               finetuner_args,
+               prompter_args)
 
 
-        prompter_args.prompter_model_name_or_path = 'llama3'
-        data_args.datasets = ['san20_it']
-        data_args.languages = ['it']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/san20_it/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
 
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_san20_it_llama3"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
-
-
-    if prompter_args.prompter_model_name_or_path == 'llama3':
+    if prompter_args.prompter_model_name_or_path == 'llama3' and data=='xdomain_tr':
         prompter_args.prompter_model_name_or_path = 'aya101'
-        data_args.datasets = ['gahd24_de']
-        data_args.languages = ['de']
         main_args.do_embedding = True
         embedder_args.embedder_model_name_or_path = "labse"
         main_args.do_searching = True
         embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/gahd24_de/train/LaBSE-HNSW/"
         retriever_args.k = 50
         retriever_args.retrieve_per_instance = True
         retriever_args.balance_labels = True
+        for data in ['bas19_es', 'for19_pt', 'has21_hi', 'ous19_ar', 'ous19_fr', 'san20_it', 'gahd24_de', 'xdomain_tr']:
+            data_args.datasets = [data, ]
+            data_args.languages = [data.split('_')[-1], ]
+            retriever_args.index_path = f"/mounts/data/proj/faeze/data_efficient_hate/models/embedder/{data}/train/LaBSE-HNSW/"
 
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_gahd24_de_aya101"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
-
-
-        prompter_args.prompter_model_name_or_path = 'aya101'
-        data_args.datasets = ['has21_hi']
-        data_args.languages = ['hi']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/has21_hi/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
-
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_has21_hi_aya101"
-        main(
-           main_args,
-           data_args,
-           embedder_args,
-           retriever_args,
-           retrieval_tuner_args,
-           finetuner_args,
-           prompter_args)
-
-        prompter_args.prompter_model_name_or_path = 'aya101'
-        data_args.datasets = ['san20_it']
-        data_args.languages = ['it']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/san20_it/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
-
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_san20_it_aya101"
-        main(
-            main_args,
-            data_args,
-            embedder_args,
-            retriever_args,
-            retrieval_tuner_args,
-            finetuner_args,
-            prompter_args)
-
-        prompter_args.prompter_model_name_or_path = 'aya101'
-        data_args.datasets = ['xdomain_tr']
-        data_args.languages = ['tr']
-        main_args.do_embedding = True
-        embedder_args.embedder_model_name_or_path = "labse"
-        main_args.do_searching = True
-        embedder_args.splits = ['test', 'hate_check', 'hate_day']
-        retriever_args.index_path = "/mounts/data/proj/faeze/data_efficient_hate/models/embedder/xdomain_tr/train/LaBSE-HNSW/"
-        retriever_args.k = 50
-        retriever_args.retrieve_per_instance = True
-        retriever_args.balance_labels = True
-
-        main_args.do_prompting = True
-        main_args.wandb_run_name = "prompter_xdomain_tr_aya101"
-        main(
-            main_args,
-            data_args,
-            embedder_args,
-            retriever_args,
-            retrieval_tuner_args,
-            finetuner_args,
-            prompter_args)
+            main_args.do_prompting = True
+            main_args.wandb_run_name = f"prompter_{data}_aya101"
+            main(
+               main_args,
+               data_args,
+               embedder_args,
+               retriever_args,
+               retrieval_tuner_args,
+               finetuner_args,
+               prompter_args)
 
 
 import logging
