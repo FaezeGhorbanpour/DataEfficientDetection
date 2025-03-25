@@ -408,7 +408,7 @@ class PrompterArguments:
 @dataclass
 class MainArguments:
     wandb_project: str = field(
-        default="DataEfficient",
+        default="DataEfficient2",
         metadata={"help": "Wandb project name."}
     )
     wandb_run_name: Optional[str] = field(
@@ -535,7 +535,7 @@ def main(
     # TODO Remove this
     finetuner_args.report_to = []
     if main_args.do_fine_tuning:
-        main_args.enable_wandb = False
+        main_args.enable_wandb = True
     gc.collect()
     torch.cuda.empty_cache()
 

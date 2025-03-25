@@ -34,7 +34,7 @@ run_dataset() {
 
     dataset="xdomain_tr"
     lang="tr"
-    excluded_datasets=("xdomain_tr" "xdomain_en")
+    excluded_datasets=("xdomain_tr")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
