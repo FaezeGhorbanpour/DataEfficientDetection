@@ -344,7 +344,7 @@ class Prompter:
         logger.info(f"Starting few-shot prompting for dataset: {data['name']}")
         shot_numbers = [1, 3, 5, 10, 25, 50]
 
-        for split in ["test", "hate_check"]:
+        for split in ["test", "hate_check", "hate_day"]:
             if split not in data['data']:
                 continue
 
