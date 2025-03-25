@@ -17,7 +17,7 @@ FOLDER_NAME="mmr"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 #KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-KS=(20 200 2000)
+KS=(20000 2000 200 20)
 # 20000)
 # Function to process a single dataset
 run_dataset() {
@@ -32,9 +32,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="xdomain_tr"
-    lang="tr"
-    excluded_datasets=("xdomain_tr")
+    dataset="has21_hi"
+    lang="hi"
+    excluded_datasets=("has21_hi")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -53,7 +53,7 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --mmr_threshold 0.95\
+                --mmr_threshold 0.99\
                 --num_train_epochs ${epoch} \
                 --do_fine_tuning\
                 --do_train\
@@ -108,7 +108,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
