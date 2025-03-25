@@ -639,6 +639,9 @@ class Retriever:
                 min_remained_amount, batch_size, max_workers
             )
 
+        if min_remained_amount is None:
+            min_remained_amount = len(embeddings) // 10
+
         # Original single-GPU implementation follows (unchanged)
         if similarity_threshold == 0.0 or len(embeddings) == 0:
             return indices
