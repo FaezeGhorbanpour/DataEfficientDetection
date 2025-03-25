@@ -5,15 +5,13 @@ from collections import Counter
 import faiss
 import torch
 import numpy as np
-from datasets import Dataset, tqdm
 import json
 import logging
 
-import math
-
 from sklearn.cluster import MiniBatchKMeans
+from tqdm import tqdm
 from transformers import AutoTokenizer
-
+''
 from utils import convert_to_serializable
 
 logger = logging.getLogger(__name__)
@@ -202,7 +200,7 @@ class Retriever:
     def retrieve_multiple_queries(self, query_embeddings, k=5, num_retrieved=None, exclude_datasets=None,
                                   exclude_languages=None, cluster_criteria_weight=0.0, unique_word_criteria_weight=0.0,
                                   uncertainty_weight=0.0, margin_weight=0.0, perplexity_weight=0.0,
-                                  balance_labels=False, mmr_threshold=0.0):
+                                  balance_labels=False, mmr_threshold=0.0, lambda_param=0.5):
         """
         Retrieve top-k nearest neighbors for multiple query embeddings, incorporating additional scoring weights.
 
@@ -263,12 +261,14 @@ class Retriever:
             results = self._deduplicate_results(results)
             logger.info(f"Total unique results after deduplication: {len(results)}")
 
-            k = k*3//2
+            k = k * 2
             num_search += 1
 
         if mmr_threshold > 0:
-            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
+            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=lambda_param,
                                                 min_remained_amount=num_retrieved)
+
+            logger.info(f"Total results after MMR: {len(results)} with mmr threshold: {mmr_threshold}")
 
         # Compute additional feature scores
         norm_word_counts = self._compute_word_count_scores(results, unique_word_criteria_weight)
@@ -591,7 +591,7 @@ class Retriever:
         logger.info("Index loaded successfully.")
 
 
-    def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5, batch_size=20000):
+    def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5):
 
 
         # Check input data
@@ -599,115 +599,113 @@ class Retriever:
         scores = self._min_max_scale(np.array([-1 * res["score"] for res in results]), )
         embeddings = self._retrieve_vectors(indices)
 
-        selected_idx_original = self.mmr_diversity_filter(embeddings=embeddings, indices=indices, scores=scores,
+        selected_idx_original = self.mmr_diversity_filter_fast(embeddings=embeddings, indices=indices, scores=scores,
                                                            similarity_threshold=similarity_threshold,
                                                            min_remained_amount=min_remained_amount,
-                                                           lambda_param=lambda_param, batch_size=batch_size)
+                                                           lambda_param=lambda_param, device=self.device
+                                                            )
 
 
         selected_results = [res for res in results if res['index'] in selected_idx_original]
         return selected_results
 
-
-
     def mmr_diversity_filter(self, embeddings, indices, scores, similarity_threshold=0.95, lambda_param=0.5,
-                             min_remained_amount=None, batch_size=20000, max_workers=None):
+                             min_remained_amount=None, batch_size=20000, device='cuda'):
         """
-        Apply Maximal Marginal Relevance (MMR) to filter similar embeddings while ensuring
-        at least min_remained_amount embeddings are kept.
+        Optimized Maximal Marginal Relevance (MMR) implementation for large datasets
+        using batch processing and multi-GPU support.
 
         Args:
-            results: List of dictionaries containing indices and scores
+            embeddings: List or array of embeddings
+            indices: Original indices of the embeddings
+            scores: Relevance scores for each embedding
             similarity_threshold: Similarity threshold above which embeddings are considered too similar
             lambda_param: Trade-off between relevance and diversity (0 to 1)
-            min_remained_amount: Minimum number of embeddings to keep regardless of similarity
-            batch_size: Size of batches for processing large datasets
-            max_workers: Number of GPUs/workers to use (None for automatic detection)
+            min_remained_amount: Minimum number of embeddings to keep
+            batch_size: Size of batches for processing
+            max_workers: Number of GPUs to use (if available)
 
         Returns:
-            List of dictionaries for the diverse subset of results
+            List of original indices for the diverse subset of results
         """
-        # Determine number of available GPUs
-        if max_workers is None:
-            max_workers = torch.cuda.device_count()
-
-        # If multiple GPUs are available, use distributed processing
-        if max_workers > 1:
-            return self._distributed_mmr(
-                embeddings, indices, scores,
-                similarity_threshold, lambda_param,
-                min_remained_amount, batch_size, max_workers
-            )
-
-        if min_remained_amount is None:
-            min_remained_amount = len(embeddings) // 10
-
-        # Original single-GPU implementation follows (unchanged)
         if similarity_threshold == 0.0 or len(embeddings) == 0:
             return indices
 
-        # Rest of the original implementation remains the same...
+        # Ensure min_remained_amount is valid
+        if min_remained_amount is None:
+            min_remained_amount = max(1, int(len(embeddings) * 0.1))  # Default to 10% of data
+
+        min_remained_amount = min(max(1, min_remained_amount), len(embeddings))
+        logger.info(f"Minimum embeddings to keep: {min_remained_amount}")
+
         try:
             with torch.no_grad():  # Disable gradient computation
-                # Convert to PyTorch tensors and normalize
+                # Convert to PyTorch tensors and normalize (keep on CPU initially)
                 embeddings_tensor = torch.tensor(embeddings, dtype=torch.float32)
-                embeddings_norm = embeddings_tensor / torch.norm(embeddings_tensor, dim=1, keepdim=True)
-                embeddings_norm = embeddings_norm.to(self.device)
-                scores = torch.tensor(scores, dtype=torch.float32).to(self.device)
+                norms = torch.norm(embeddings_tensor, dim=1, keepdim=True)
+                embeddings_norm = embeddings_tensor / norms
+                scores_tensor = torch.tensor(scores, dtype=torch.float32)
 
-                # Initialize with the first embedding
-                selected_indices = [0]
-                selected_idx_original = [indices[0]]
+                # Get the index of highest scoring embedding
+                first_idx = torch.argmax(scores_tensor).item()
 
-                # Process remaining embeddings
-                remaining_indices = list(range(1, len(embeddings)))
+                # Initialize with the highest scoring embedding
+                selected_indices = [first_idx]
+                selected_idx_original = [indices[first_idx]]
 
-                # Keep track of selected embeddings (but keep on CPU when not in use)
-                selected_embeddings_cpu = embeddings_norm[selected_indices].clone().cpu()
+                # Create mask for remaining embeddings
+                mask = torch.ones(len(embeddings), dtype=torch.bool)
+                mask[first_idx] = False
+                remaining_count = len(embeddings) - 1
 
-                while remaining_indices:
-                    # Calculate scores in batches
+                # Move selected embedding to device
+                selected_embeddings = embeddings_norm[selected_indices].to(device)
+
+                # Main loop
+                pbar = tqdm(total=min(len(embeddings), min_remained_amount * 2))
+                pbar.update(1)
+
+                while remaining_count > 0 and len(selected_indices) < len(embeddings):
+                    # Process in manageable batches
                     max_score = float('-inf')
                     max_idx = -1
 
-                    for batch_start in range(0, len(remaining_indices), batch_size):
-                        batch_indices = remaining_indices[batch_start:batch_start + batch_size]
-                        batch_embeddings = embeddings_norm[batch_indices]
+                    # Get remaining indices
+                    remaining_indices = torch.where(mask)[0]
 
-                        # Move selected embeddings to GPU for this computation
-                        selected_embeddings = selected_embeddings_cpu.to(self.device)
+                    for start_idx in range(0, remaining_count, batch_size):
+                        end_idx = min(start_idx + batch_size, remaining_count)
+                        batch_indices = remaining_indices[start_idx:end_idx]
 
-                        # Relevance term
-                        relevance_scores = scores[batch_indices]
+                        # Move batch to device
+                        batch_embeddings = embeddings_norm[batch_indices].to(device)
+                        batch_scores = scores_tensor[batch_indices].to(device)
 
-                        # Diversity term: Max similarity to already selected embeddings
-                        similarity_matrix = torch.matmul(batch_embeddings, selected_embeddings.T)
+                        # Calculate similarity matrix for the batch against selected embeddings
+                        similarity_matrix = torch.mm(batch_embeddings, selected_embeddings.T)
+
+                        # Get maximum similarity for each embedding in batch to any selected embedding
                         max_similarities, _ = torch.max(similarity_matrix, dim=1)
 
-                        # MMR score: balance between relevance and diversity
-                        batch_scores = lambda_param * relevance_scores - (1 - lambda_param) * max_similarities
+                        # Calculate MMR scores
+                        mmr_scores = lambda_param * batch_scores - (1 - lambda_param) * max_similarities
 
                         # Find best candidate in batch
-                        batch_max_val, batch_max_idx = torch.max(batch_scores, dim=0)
+                        batch_max_val, batch_max_idx = torch.max(mmr_scores, dim=0)
                         batch_max_score = batch_max_val.item()
-                        batch_max_index = batch_max_idx.item()
 
                         if batch_max_score > max_score:
                             max_score = batch_max_score
-                            max_idx = batch_indices[batch_max_index]
+                            max_idx = batch_indices[batch_max_idx].item()
 
-                        # Clear GPU memory for this batch
-                        del similarity_matrix, max_similarities, batch_scores
-                        selected_embeddings = selected_embeddings.cpu()  # Move back to CPU
-
-                        # Force CUDA memory cleanup
-                        if self.device == 'cuda':
+                        # Clean up GPU memory
+                        del batch_embeddings, batch_scores, similarity_matrix, max_similarities, mmr_scores
+                        if device == 'cuda':
                             torch.cuda.empty_cache()
 
                     # Check if best candidate is too similar to any selected embedding
-                    candidate_embedding = embeddings_norm[max_idx].unsqueeze(0)
-                    selected_embeddings = selected_embeddings_cpu.to(self.device)
-                    similarity_values = torch.matmul(candidate_embedding, selected_embeddings.T)
+                    candidate_embedding = embeddings_norm[max_idx].unsqueeze(0).to(device)
+                    similarity_values = torch.mm(candidate_embedding, selected_embeddings.T)
                     max_similarity = torch.max(similarity_values).item()
 
                     # Only stop if we have enough embeddings AND the next best is too similar
@@ -719,26 +717,32 @@ class Retriever:
                     # Add the embedding with the highest score
                     selected_indices.append(max_idx)
                     selected_idx_original.append(indices[max_idx])
-                    remaining_indices.remove(max_idx)
+                    mask[max_idx] = False
+                    remaining_count -= 1
 
-                    # Update selected embeddings tensor (on CPU)
-                    selected_embeddings_cpu = torch.cat([selected_embeddings_cpu, candidate_embedding.cpu()], dim=0)
+                    # Update selected embeddings tensor
+                    selected_embeddings = torch.cat([selected_embeddings, candidate_embedding], dim=0)
 
-                    # Clean up GPU
-                    del similarity_values, candidate_embedding
-                    if self.device == 'cuda':
+                    # Clean up
+                    del candidate_embedding, similarity_values
+                    if device == 'cuda':
                         torch.cuda.empty_cache()
 
-                    # Log progress at intervals
-                    if len(selected_indices) % 1000 == 0:
-                        logger.info(f"Selected {len(selected_indices)}/{len(embeddings)} embeddings")
+                    # Update progress bar
+                    pbar.update(1)
 
+
+                pbar.close()
+
+        except Exception as e:
+            logger.error(f"Error in MMR filtering: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # In case of error, return original indices
+            return indices
         finally:
-            # Final cleanup - delete all tensors and clear cache
-            if self.device == 'cuda' and embeddings_tensor is not None:
-                del embeddings_tensor, embeddings_norm, scores
-                if 'selected_embeddings' in locals():
-                    del selected_embeddings
+            # Final cleanup
+            if device == 'cuda':
                 torch.cuda.empty_cache()
 
         # Final logging
@@ -747,8 +751,65 @@ class Retriever:
 
         return selected_idx_original
 
+
+    def mmr_diversity_filter_fast(self, embeddings, indices, scores, similarity_threshold=0.99,
+                                  lambda_param=0.5, min_remained_amount=None, device='cuda'):
+        if similarity_threshold == 0.0 or len(embeddings) == 0:
+            return indices
+
+        if min_remained_amount is None:
+            min_remained_amount = max(1, int(len(embeddings) * 0.75))
+
+        embeddings_tensor = torch.tensor(embeddings, dtype=torch.float16).to(device)
+        embeddings_tensor = torch.nn.functional.normalize(embeddings_tensor, dim=1)
+        scores_tensor = torch.tensor(scores, dtype=torch.float16).to(device)
+
+        N = len(embeddings)
+        selected_mask = torch.zeros(N, dtype=torch.bool, device=device)
+        selected_indices = []
+
+        # Precompute full similarity matrix
+        similarity_matrix = embeddings_tensor @ embeddings_tensor.T
+        similarity_matrix.fill_diagonal_(-float('inf'))
+
+        # Select the highest scoring embedding first
+        current_idx = torch.argmax(scores_tensor).item()
+        selected_indices.append(current_idx)
+        selected_mask[current_idx] = True
+
+        # Initialize max similarities to the already-selected embedding
+        max_similarities = similarity_matrix[current_idx].clone()
+
+        pbar = tqdm(total=N)
+        pbar.update(1)
+
+        for _ in range(N - 1):
+            mmr_scores = lambda_param * scores_tensor - (1 - lambda_param) * max_similarities
+            mmr_scores[selected_mask] = -float('inf')
+
+            next_idx = torch.argmax(mmr_scores).item()
+            next_similarity = max_similarities[next_idx].item()
+
+            # Check threshold: if similarity is too high AND we've already selected min_remained_amount, stop.
+            if len(selected_indices) >= min_remained_amount and next_similarity > similarity_threshold:
+                # Next embedding exceeds similarity threshold—stop here.
+                break
+
+            # Otherwise, select embedding
+            selected_indices.append(next_idx)
+            selected_mask[next_idx] = True
+
+            # Update max similarities
+            max_similarities = torch.maximum(max_similarities, similarity_matrix[next_idx])
+
+            pbar.update(1)
+
+        pbar.close()
+
+        return [indices[idx] for idx in selected_indices]
+
     def _distributed_mmr(self, embeddings, indices, scores, similarity_threshold,
-                         lambda_param, min_remained_amount, batch_size, max_workers):
+                         lambda_param, min_remained_amount, batch_size, max_workers, main_device):
         """
         Distributed MMR filtering across multiple GPUs
         """
@@ -769,52 +830,68 @@ class Retriever:
         chunk_size = total_size // num_gpus
 
         # Prepare queue for results
-        mp.set_start_method('spawn', force=True)
         manager = mp.Manager()
         result_queue = manager.Queue()
 
+        # Prepare data for workers
+        worker_args = []
+        for i in range(num_gpus):
+            chunk_start = i * chunk_size
+            chunk_end = total_size if i == num_gpus - 1 else (i + 1) * chunk_size
+
+            worker_args.append({
+                'gpu_id': i,
+                'embeddings': embeddings[chunk_start:chunk_end],
+                'indices': indices[chunk_start:chunk_end],
+                'scores': scores[chunk_start:chunk_end],
+                'similarity_threshold': similarity_threshold,
+                'lambda_param': lambda_param,
+                'min_remained_amount': max(1, min_remained_amount // num_gpus),
+                'batch_size': batch_size
+            })
+
         # Worker function to process chunk on specific GPU
-        def gpu_worker(gpu_id, chunk_start, chunk_end, result_queue):
+        def gpu_worker(worker_data, result_queue):
             try:
+                import torch
+
                 # Set GPU device
-                torch.cuda.set_device(gpu_id)
+                torch.cuda.set_device(worker_data['gpu_id'])
 
-                # Extract chunk of data
-                chunk_embeddings = embeddings[chunk_start:chunk_end]
-                chunk_indices = indices[chunk_start:chunk_end]
-                chunk_scores = scores[chunk_start:chunk_end]
+                # Ensure PyTorch is using the correct device
+                device = f'cuda:{worker_data["gpu_id"]}'
 
-                # Create a temporary instance for this worker
-                worker_instance = self.__class__()
-                worker_instance.device = f'cuda:{gpu_id}'
+                # Create a temporary class instance
+                from copy import deepcopy
+                worker_instance = deepcopy(self)
+                worker_instance.device = device
 
                 # Run MMR on this chunk
                 chunk_result = worker_instance.mmr_diversity_filter(
-                    chunk_embeddings,
-                    chunk_indices,
-                    chunk_scores,
-                    similarity_threshold,
-                    lambda_param,
-                    min_remained_amount=max(1, min_remained_amount // num_gpus),
-                    batch_size=batch_size
+                    embeddings=worker_data['embeddings'],
+                    indices=worker_data['indices'],
+                    scores=worker_data['scores'],
+                    similarity_threshold=worker_data['similarity_threshold'],
+                    lambda_param=worker_data['lambda_param'],
+                    min_remained_amount=worker_data['min_remained_amount'],
+                    batch_size=worker_data['batch_size']
                 )
 
                 # Put results in queue
                 result_queue.put(chunk_result)
 
             except Exception as e:
-                logger.error(f"GPU {gpu_id} worker error: {e}")
+                import traceback
+                logger.error(f"GPU {worker_data['gpu_id']} worker error: {e}")
+                logger.error(traceback.format_exc())
                 result_queue.put([])
 
         # Spawn processes for each GPU
         processes = []
-        for i in range(num_gpus):
-            chunk_start = i * chunk_size
-            chunk_end = total_size if i == num_gpus - 1 else (i + 1) * chunk_size
-
+        for args in worker_args:
             p = mp.Process(
                 target=gpu_worker,
-                args=(i, chunk_start, chunk_end, result_queue)
+                args=(args, result_queue)
             )
             p.start()
             processes.append(p)
@@ -846,3 +923,83 @@ class Retriever:
             return final_result
 
         return results
+
+    import torch
+    from tqdm import tqdm
+
+    def mmr_incremental_multigpu(self, embeddings, indices, scores, similarity_threshold=0.95,
+                                 lambda_param=0.5, min_remained_amount=None, gpu_devices=None, batch_size=20000,
+                                 device='cuda'):
+
+        if gpu_devices is None:
+            gpu_devices = list(range(torch.cuda.device_count()))
+
+        n_gpus = len(gpu_devices)
+        device_ids = gpu_devices
+
+        embeddings_tensor = torch.tensor(embeddings, dtype=torch.float32)
+        embeddings_tensor = torch.nn.functional.normalize(embeddings_tensor, dim=1)
+        scores_tensor = torch.tensor(scores, dtype=torch.float32)
+
+        N = embeddings_tensor.size(0)
+        selected_mask = torch.zeros(N, dtype=torch.bool)
+        selected_indices = []
+
+        if min_remained_amount is None:
+            min_remained_amount = max(1, int(N * 0.1))
+
+        current_idx = torch.argmax(scores_tensor).item()
+        selected_indices.append(current_idx)
+        selected_mask[current_idx] = True
+
+        max_similarities = torch.zeros(N, dtype=torch.float32)
+
+        pbar = tqdm(total=N)
+        pbar.update(1)
+
+        for _ in range(N - 1):
+            candidate_indices = torch.nonzero(~selected_mask, as_tuple=False).flatten()
+            candidate_scores = scores_tensor[candidate_indices]
+
+            newly_selected_embedding = embeddings_tensor[selected_indices[-1]].unsqueeze(0)
+
+            # Compute similarities incrementally in batches across multiple GPUs
+            similarities = torch.zeros(len(candidate_indices))
+
+            with torch.no_grad():
+                for start in range(0, len(candidate_indices), batch_size * n_gpus):
+                    end = min(start + batch_size * n_gpus, len(candidate_indices))
+                    batch_candidates = candidate_indices[start:end]
+                    split_batches = torch.chunk(batch_candidates, n_gpus)
+
+                    gpu_results = []
+                    for gpu_idx, gpu_batch in enumerate(split_batches):
+                        gpu_device = device_ids[gpu_idx]
+                        batch_embs = embeddings_tensor[gpu_batch].to(f'cuda:{gpu_device}', non_blocking=True)
+                        selected_emb = newly_selected_embedding.to(f'cuda:{gpu_device}', non_blocking=True)
+
+                        sim_batch = torch.mm(batch_embs, selected_emb.T).squeeze()
+                        gpu_results.append(sim_batch.cpu())
+
+                    similarities[start:end] = torch.cat(gpu_results)
+
+            # Update max similarities
+            max_similarities[candidate_indices] = torch.maximum(max_similarities[candidate_indices], similarities)
+
+            # Compute MMR scores
+            mmr_scores = lambda_param * scores_tensor - (1 - lambda_param) * max_similarities
+            mmr_scores[selected_mask] = -float('inf')
+
+            next_idx = torch.argmax(mmr_scores).item()
+            next_similarity = max_similarities[next_idx].item()
+
+            if len(selected_indices) >= min_remained_amount and next_similarity > similarity_threshold:
+                break
+
+            selected_indices.append(next_idx)
+            selected_mask[next_idx] = True
+            pbar.update(1)
+
+        pbar.close()
+        return [indices[idx] for idx in selected_indices]
+

@@ -149,7 +149,7 @@ class CurriculumLearningTrainer(Trainer):
             float: Ratio of retrieved samples to include.
         """
         epoch = self.current_epoch + 1
-        total_epochs = self.total_epochs
+        total_epochs = self.total_epochs - 1
         print('jjjjj', epoch, total_epochs)
         if self.schedule_type == "linear":
             return epoch / total_epochs  # Gradually increase from 0% to 100%

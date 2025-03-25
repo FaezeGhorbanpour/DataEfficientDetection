@@ -296,6 +296,10 @@ class RetrieverArguments:
         default=0.0,
         metadata={"help": "Threshold for the MMR."},
     )
+    lambda_param: float = field(
+        default=0.5,
+        metadata={"help": "Threshold for the MMR."},
+    )
     random_retrieve: bool = field(
         default=False,
         metadata={"help": "Combine retrieved data with training set."}
@@ -623,7 +627,7 @@ def main(
 
         if retriever_args.k == 0:
             import math
-            retriever_args.k = max(math.ceil(3 * retriever_args.num_retrieved / len(embeddings)),
+            retriever_args.k = max(math.ceil(2 * retriever_args.num_retrieved / len(embeddings)),
                                    math.ceil(2000 / len(embeddings)), 2)
         retrieved = None
         if retriever_args.random_retrieve:
@@ -665,7 +669,8 @@ def main(
                 uncertainty_weight=retriever_args.uncertainty_weight,
                 margin_weight=retriever_args.margin_weight,
                 balance_labels=retriever_args.balance_labels,
-                mmr_threshold=retriever_args.mmr_threshold
+                mmr_threshold=retriever_args.mmr_threshold,
+                lambda_param=retriever_args.lambda_param,
             )
             retriever.save_meta_to_file(retrieved, finetuner_args.output_dir)
             logger.info("Retrieved %d instances based on query.", len(retrieved))
@@ -818,16 +823,16 @@ def objective(trial, parsed_args):
 
     # Modify arguments with Optuna suggestions
     # The 4 requested parameters
-    finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
-    finetuner_args.num_train_epochs = trial.suggest_int("num_epochs", 2, 30)
-    finetuner_args.weight_decay = trial.suggest_float("weight_decay", 1e-8, 1e-3, log=True)
-    finetuner_args.max_sequence_length = trial.suggest_categorical("max_sequence_length", [128, 256, 512])
-
-    logger.info(f"Trial {trial.number} parameters: "
-                f"lr={finetuner_args.learning_rate}, "
-                f"epochs={finetuner_args.num_train_epochs}, "
-                f"weight_decay={finetuner_args.weight_decay}, "
-                f"max_seq_len={finetuner_args.max_sequence_length}")
+    # finetuner_args.learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
+    # finetuner_args.num_train_epochs = trial.suggest_int("num_epochs", 2, 30)
+    # finetuner_args.weight_decay = trial.suggest_float("weight_decay", 1e-8, 1e-3, log=True)
+    # finetuner_args.max_sequence_length = trial.suggest_categorical("max_sequence_length", [128, 256, 512])
+    #
+    # logger.info(f"Trial {trial.number} parameters: "
+    #             f"lr={finetuner_args.learning_rate}, "
+    #             f"epochs={finetuner_args.num_train_epochs}, "
+    #             f"weight_decay={finetuner_args.weight_decay}, "
+    #             f"max_seq_len={finetuner_args.max_sequence_length}")
 
     # finetuner_args.batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
     # finetuner_args.dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.5)
@@ -835,6 +840,9 @@ def objective(trial, parsed_args):
     # finetuner_args.use_class_weights = trial.suggest_categorical("use_class_weights", [True, False])
     # finetuner_args.lr_scheduler = trial.suggest_categorical("lr_scheduler",
     #                                                         ["linear", "cosine", "cosine_with_restarts"])
+
+    retriever_args.mmr_threshold = trial.suggest_float("mmr_threshold", 0.0, 1.0)
+    retriever_args.lambda_param = trial.suggest_float("lambda_param", 0.0, 1.0)
 
     # Call main with the modified arguments
     try:
