@@ -843,6 +843,8 @@ def objective(trial, parsed_args):
 
     retriever_args.mmr_threshold = trial.suggest_float("mmr_threshold", 0.0, 1.0)
     retriever_args.lambda_param = trial.suggest_float("lambda_param", 0.0, 1.0)
+    main_args.enable_wandb = False
+    finetuner_args.report_to = []
 
     # Call main with the modified arguments
     try:
