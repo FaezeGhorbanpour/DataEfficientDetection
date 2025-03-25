@@ -2,7 +2,7 @@
 BASE="/mounts/data/proj/faeze/data_efficient_hate"
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="optuna-first"
+FOLDER_NAME="optuna-mmr"
 
 KS=(20 200 2000 20000)
 # Function to process a single dataset
@@ -18,11 +18,16 @@ run_dataset() {
     echo "Starting k: ${k} on GPU: ${gpu}"
 
     local optuna_n_trials
+    local local
     if [ "$k" -lt 9999 ]; then
         optuna_n_trials=30
+        epoch=10
     else
         optuna_n_trials=15
+        epoch=5
     fi
+
+
 
     for split in 20 200 2000; do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/rs3/"
@@ -38,6 +43,7 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
+                --num_train_epochs ${epoch} \
                 --do_fine_tuning\
                 --do_train\
                 --do_eval\
