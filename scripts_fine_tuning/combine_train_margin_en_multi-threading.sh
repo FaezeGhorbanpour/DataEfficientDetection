@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="gahd24_de"
+    lang="de"
+    excluded_datasets=("gahd24_de" "dyn21_en")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -59,6 +59,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -104,7 +105,7 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=4
+    num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do

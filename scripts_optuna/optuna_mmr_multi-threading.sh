@@ -11,19 +11,19 @@ run_dataset() {
     local gpu=$2
 
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
     local optuna_n_trials
     local local
     if [ "$k" -lt 9999 ]; then
-        optuna_n_trials=30
+        optuna_n_trials=20
         epoch=10
     else
-        optuna_n_trials=15
+        optuna_n_trials=10
         epoch=5
     fi
 
@@ -95,10 +95,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=8
+    num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
