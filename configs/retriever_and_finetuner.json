@@ -7,7 +7,7 @@
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
-  "num_retrieved": 200,
+  "num_retrieved": 20000,
   "exclude_datasets": ["bas19_es"],
 
   "dataloader_num_workers": 2,

@@ -598,11 +598,20 @@ class Retriever:
         scores = self._min_max_scale(np.array([-1 * res["score"] for res in results]), )
         embeddings = self._retrieve_vectors(indices)
 
-        selected_idx_original = self.mmr_diversity_filter_fast(embeddings=embeddings, indices=indices, scores=scores,
-                                                           similarity_threshold=similarity_threshold,
-                                                           min_remained_amount=min_remained_amount,
-                                                           lambda_param=lambda_param, device=self.device
-                                                            )
+        try:
+            selected_idx_original = self.mmr_diversity_filter_fast(embeddings=embeddings, indices=indices, scores=scores,
+                                                               similarity_threshold=similarity_threshold,
+                                                               min_remained_amount=min_remained_amount,
+                                                               lambda_param=lambda_param, device=self.device
+                                                                )
+        except:
+            selected_idx_original = self.mmr_diversity_filter_fast(embeddings=embeddings[:-1000],
+                                                                   indices=indices[:-1000],
+                                                                   scores=scores[:-1000],
+                                                                   similarity_threshold=similarity_threshold,
+                                                                   min_remained_amount=min_remained_amount,
+                                                                   lambda_param=lambda_param, device=self.device
+                                                                   )
 
 
         selected_results = [res for res in results if res['index'] in selected_idx_original]
