@@ -20,10 +20,10 @@ run_dataset() {
     local optuna_n_trials
     local local
     if [ "$k" -lt 9999 ]; then
-        optuna_n_trials=30
+        optuna_n_trials=20
         epoch=10
     else
-        optuna_n_trials=15
+        optuna_n_trials=10
         epoch=5
     fi
 

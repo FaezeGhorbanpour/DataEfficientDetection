@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="bas19_es"
-    lang="es"
-    excluded_datasets=("bas19_es")
+    dataset="ous19_fr"
+    lang="fr"
+    excluded_datasets=("ous19_fr")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -49,7 +49,7 @@ run_dataset() {
                 --do_searching \
                 --splits "train" \
                 --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
-                --max_retrieved ${k} \
+                --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --use_curriculum_learning\
@@ -62,6 +62,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \

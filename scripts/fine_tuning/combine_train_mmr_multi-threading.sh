@@ -16,8 +16,8 @@ FOLDER_NAME="mmr"
 #FOLDER_NAME="roberta"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
-#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-KS=(20 200 2000)
+KS=(10000 5000 4000 3000 1000 500 400 300 100 50 40 30)
+#KS=(20000 2000 200 20)
 # 20000)
 # Function to process a single dataset
 run_dataset() {
@@ -32,13 +32,13 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="xdomain_tr"
-    lang="tr"
-    excluded_datasets=("xdomain_tr")
+    dataset="ous19_ar"
+    lang="ar"
+    excluded_datasets=("ous19_ar")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 20 200 2000 1000 500 400 300 100 50 40 30 10; do
+    for split in 10 20 30 40 50 100 200 300 400 500 1000 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -89,7 +89,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=10
+WAIT_TIME=30000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -109,7 +109,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

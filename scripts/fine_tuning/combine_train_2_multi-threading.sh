@@ -16,8 +16,8 @@ FOLDER_NAME="base_setting"
 #FOLDER_NAME="roberta"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
-#KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
-KS=(20 200 2000 20000)
+KS=(30 40 50 100 400 1000 500 200)
+#KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="has21_hi"
-    lang="hi"
-    excluded_datasets=("has21_hi")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -53,14 +53,14 @@ run_dataset() {
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --num_train_epochs ${epoch} \
-		            --do_fine_tuning\
+		--do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
-		            --do_hate_day\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -87,7 +87,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=500
+WAIT_TIME=30000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
