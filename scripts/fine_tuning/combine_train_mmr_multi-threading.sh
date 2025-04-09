@@ -53,13 +53,14 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --mmr_threshold 0.95\
+                --mmr_threshold 0.99\
                 --num_train_epochs ${epoch} \
                 --do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
+                --do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \

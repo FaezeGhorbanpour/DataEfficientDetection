@@ -593,7 +593,6 @@ class Retriever:
 
     def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5):
 
-
         # Check input data
         indices = np.array([res["index"] for res in results])
         scores = self._min_max_scale(np.array([-1 * res["score"] for res in results]), )

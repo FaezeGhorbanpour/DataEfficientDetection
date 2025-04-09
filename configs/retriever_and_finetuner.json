@@ -1,5 +1,5 @@
 {
-  "datasets": ["bas19_es-10-rs1"],
+  "datasets": ["bas19_es-1000-rs1"],
   "languages": ["es"],
   "seed": 0,
   "do_embedding": true,
@@ -7,16 +7,13 @@
   "do_searching": true,
   "splits": ["train"],
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
-  "num_retrieved": 2000,
+  "num_retrieved": 200,
   "exclude_datasets": ["bas19_es"],
 
   "dataloader_num_workers": 2,
-  "use_curriculum_learning": true,
-  "curriculum_schedule": "strict_separate",
-  "remove_unused_columns": false,
 
-  "mmr_threshold": 0.99,
-  "lambda_param": 0.5,
+  "mmr_threshold": 0.50,
+  "lambda_param": 0.40,
 
   "combine_train_set": true,
 
