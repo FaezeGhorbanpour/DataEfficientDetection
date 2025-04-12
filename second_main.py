@@ -282,7 +282,7 @@ class MainArguments:
         metadata={"help": "Wandb project name."}
     )
     wandb_run_name: Optional[str] = field(
-        default=None,
+        default='temp',
         metadata={"help": "Wandb run name."}
     )
     do_first_fine_tuning: bool = field(

@@ -18,11 +18,10 @@ run_dataset() {
 
     dataset="bas19_es"
     lang="es"
-    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000 1000;
+    for split in 2000 1000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             FIRST_OUTPUT_DIR="${BASE}/results/first/${first_dataset}/${split}/${RSS[i]}/"
             SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
