@@ -27,9 +27,7 @@ run_dataset() {
             SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                 --seed ${RSS[i]//rs/} \
-
                 --num_train_epochs 5 \
-
 		            --do_first_fine_tuning\
 		            --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
 		            --first_languages "${first_language}"\
@@ -39,7 +37,6 @@ run_dataset() {
                 --do_hate_check\
 		            --do_hate_day\
                 --output_dir "${FIRST_OUTPUT_DIR}" \
-
                 --do_second_fine_tuning\
                 --second_datasets "${dataset}-${split}-${RSS[i]}"\
                 --second_languages "${lang}"\
@@ -49,8 +46,6 @@ run_dataset() {
                 --do_second_hate_check\
 		            --do_second_hate_day\
                 --second_output_dir "${SECOND_OUTPUT_DIR}" \
-
-
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 32 \
@@ -94,7 +89,7 @@ check_gpu_memory() {
 
 # Main loop
 D=0
-while ["$D" -lt "${#FIRST_DATASETS[@]}" ]; do
+while [ "$D" -lt "${#FIRST_DATASETS[@]}" ]; do
     num_gpus=7
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
