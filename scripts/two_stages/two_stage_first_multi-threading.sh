@@ -22,7 +22,7 @@ run_dataset() {
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 2000;
+    for split in 2000 1000;
         for ((i=0; i<${#RSS[@]}; i++)); do
             FIRST_OUTPUT_DIR="${BASE}/results/first/${first_dataset}/${split}/${RSS[i]}/"
             SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
@@ -33,13 +33,13 @@ run_dataset() {
 
 		            --do_first_fine_tuning\
 		            --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
-		            --first_languages ${first_language}\
+		            --first_languages "${first_language}"\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
 		            --do_hate_day\
-                --output_dir $FIRST_OUTPUT_DIR \
+                --output_dir "${FIRST_OUTPUT_DIR}" \
 
                 --do_second_fine_tuning\
                 --second_datasets "${dataset}-${split}-${RSS[i]}"\
@@ -49,7 +49,7 @@ run_dataset() {
                 --do_second_test\
                 --do_second_hate_check\
 		            --do_second_hate_day\
-                --second_output_dir $SECOND_OUTPUT_DIR \
+                --second_output_dir "${SECOND_OUTPUT_DIR}" \
 
 
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
@@ -61,7 +61,7 @@ run_dataset() {
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
                 --report_to None\
-                --wandb_run_name ${FOLDER_NAME}
+                --wandb_run_name "${FOLDER_NAME}"
 
             for dir in "${OUTPUT_DIR}"check*; do
                 if [ -d "$dir" ]; then # Check if it's a directory
@@ -79,7 +79,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=6000
+WAIT_TIME=10000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -96,7 +96,7 @@ check_gpu_memory() {
 # Main loop
 D=0
 while ["$D" -lt "${#FIRST_DATASETS[@]}" ]; do
-    num_gpus=4
+    num_gpus=7
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
