@@ -408,6 +408,12 @@ def main(
         # wandb.config["log_model"] = False
         logger.info("Wandb initialized.")
 
+
+    if first_finetuner_args.report_to is None or first_finetuner_args.report_to == 'None' or 'None' in first_finetuner_args.report_to:
+        first_finetuner_args.report_to = []
+    elif first_finetuner_args.report_to == 'wandb':
+        first_finetuner_args.report_to = ['wandb']
+
     # Set seed before initializing model.
     set_seed(first_finetuner_args.seed)
 
@@ -604,16 +610,16 @@ def objective(trial, parsed_args):
     first_finetuner_args.max_sequence_length = trial.suggest_categorical("max_sequence_length", [128, 256, 512])
     #
     # logger.info(f"Trial {trial.number} parameters: "
-    #             f"lr={finetuner_args.learning_rate}, "
-    #             f"epochs={finetuner_args.num_train_epochs}, "
-    #             f"weight_decay={finetuner_args.weight_decay}, "
-    #             f"max_seq_len={finetuner_args.max_sequence_length}")
+    #             f"lr={first_finetuner_args.learning_rate}, "
+    #             f"epochs={first_finetuner_args.num_train_epochs}, "
+    #             f"weight_decay={first_finetuner_args.weight_decay}, "
+    #             f"max_seq_len={first_finetuner_args.max_sequence_length}")
 
-    # finetuner_args.batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
-    # finetuner_args.dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.5)
-    # finetuner_args.warmup_ratio = trial.suggest_float("warmup_ratio", 0.0, 0.2)
-    # finetuner_args.use_class_weights = trial.suggest_categorical("use_class_weights", [True, False])
-    # finetuner_args.lr_scheduler = trial.suggest_categorical("lr_scheduler",
+    # first_finetuner_args.batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
+    # first_finetuner_args.dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.5)
+    # first_finetuner_args.warmup_ratio = trial.suggest_float("warmup_ratio", 0.0, 0.2)
+    # first_finetuner_args.use_class_weights = trial.suggest_categorical("use_class_weights", [True, False])
+    # first_finetuner_args.lr_scheduler = trial.suggest_categorical("lr_scheduler",
     #                                                         ["linear", "cosine", "cosine_with_restarts"])
 
     # Call main with the modified arguments
