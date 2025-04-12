@@ -29,13 +29,38 @@ class DataProvider:
                 # if languages:
                 #     ds = ds.filter(lambda example: example.get("language") in languages)
                 if split=='train' and max_samples:
-                    ds = ds.select(range(min(len(ds), max_samples)))
+                    data[split] = ds.select(range(min(len(ds), max_samples)))
             datasets.append({
                 "name": dataset_name,
                 "data": data,
                 "language": languages[i]
             })
         return datasets
+
+    def load_dataset(self, dataset_name, max_samples=None, cache_dir=''):
+        """
+        Load datasets from Hugging Face with optional filtering by language and sample limit.
+        Args:
+            dataset_names (list[str]): List of dataset names to load.
+            languages (list[str]): List of languages to include (e.g., ["en", "fr"]).
+            max_samples (int): Maximum number of samples to load per dataset.
+        Returns:
+            list[dict]: List of loaded datasets with metadata.
+        """
+        try:
+            if '/' in dataset_name:
+                dataset_name_parts = dataset_name.split('/')
+                data = load_dataset(dataset_name_parts[0], dataset_name_parts[1], cache_dir=cache_dir)
+            else:
+                data = load_dataset(dataset_name, cache_dir=cache_dir)
+        except:
+            data = load_dataset('baseline_data', dataset_name, cache_dir=cache_dir)
+
+        for split in data.keys():
+            ds = data[split]
+            if split == 'train' and max_samples:
+                data[split] = ds.select(range(min(len(ds), max_samples)))
+        return data
 
     def convert_to_dataset(self, retrieved_data):
         """
@@ -60,7 +85,7 @@ class DataProvider:
         """
         return {key:[{'text': value['metadata']['text'], 'label': value['metadata']['label']} for value in values] for key, values in retrieved_data.items() }
 
-    def aggregate_splits(self, datasets, just_aggregate=[]):
+    def aggregate_splits(self, datasets, just_aggregate=None):
         splits = set([split for ds in datasets for split in ds])
 
         if just_aggregate:
