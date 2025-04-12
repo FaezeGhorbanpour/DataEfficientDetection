@@ -16,7 +16,7 @@ FOLDER_NAME="base_setting"
 #FOLDER_NAME="roberta"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
-KS=(30 40 50 100 400 1000 500 200)
+KS=(10000 5000 4000 3000 1000 500 400 300 100 50 40 30)
 #KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="bas19_es"
-    lang="es"
-    excluded_datasets=("bas19_es")
+    dataset="san20_it"
+    lang="it"
+    excluded_datasets=("san20_it")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -85,9 +85,9 @@ run_dataset() {
 
 
 # Minimum GPU memory required (in MiB)
-MIN_MEM=8000
+MIN_MEM=6600
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=30000
+WAIT_TIME=15000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
