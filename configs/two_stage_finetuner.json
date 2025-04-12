@@ -1,0 +1,38 @@
+{
+  "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
+
+
+  "per_device_train_batch_size": 32,
+  "per_device_eval_batch_size": 64,
+  "num_train_epochs": 5,
+  "max_seq_length": 256,
+  "seed": 0,
+
+
+  "do_first_fine_tuning": true,
+  "first_datasets": ["dyn21_en-2000-rs2"],
+  "first_languages": ["en"],
+  "do_train": true,
+  "do_eval": true,
+  "do_test": true,
+  "do_hate_check": true,
+  "do_hate_day": true,
+  "output_dir": "/mounts/data/proj/faeze/transferability_hate/results/first/dyn21_en/2000/rs2/",
+
+
+  "do_second_fine_tuning": true,
+  "second_datasets": ["ous19_ar-2000-rs2"],
+  "second_languages": ["ar"],
+  "do_second_train": true,
+  "do_second_eval": true,
+  "do_second_test": true,
+  "do_second_hate_check": true,
+  "do_second_hate_day": true,
+  "second_output_dir": "/mounts/data/proj/faeze/transferability_hate/results/second/ous19_ar/dyn21_en/2000/rs2/",
+
+
+  "cache_dir": "/mounts/data/proj/faeze/transferability_hate/cache/",
+  "logging_dir": "/mounts/data/proj/faeze/transferability_hate/logs/",
+  "overwrite_output_dir": true,
+  "wandb_run_name": ""
+}

@@ -1,30 +1,20 @@
 #!/bin/bash
-BASE="/mounts/data/proj/faeze/data_efficient_hate"
+BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-#DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
-#LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+FIRST_DATASETS=("dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en" 'bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' )
+FIRST_LANGUAGES=("en" "en" "en" "en" "en" "en" 'es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="base_setting"
 
-
-KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
-KS=(30 40 50 100 400 1000 500 200)
-#KS=(20 200 2000 20000)
 # Function to process a single dataset
 run_dataset() {
-    local k=$1
-    local gpu=$2
+    local first_dataset=$1
+    local first_language=$2
+    local gpu=$3
 
-    # Determine epoch based on k
-    local epoch
-    if [ "$k" -lt 9999 ]; then
-        epoch=10
-    else
-        epoch=5
-    fi
 
     dataset="bas19_es"
     lang="es"
@@ -32,34 +22,41 @@ run_dataset() {
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 20 200 2000 1000 500 400 300 100 50 40 30 10; do
+    for split in 2000;
         for ((i=0; i<${#RSS[@]}; i++)); do
-            OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
-            CUDA_VISIBLE_DEVICES=${gpu} python main.py \
-                --datasets "${dataset}-${split}-${RSS[i]}" \
-                --languages "${lang}" \
+            FIRST_OUTPUT_DIR="${BASE}/results/first/${first_dataset}/${split}/${RSS[i]}/"
+            SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
+            CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                 --seed ${RSS[i]//rs/} \
-                --do_embedding \
-                --embedder_model_name_or_path "m3" \
-                --do_searching \
-                --splits "train" \
-                --index_path "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/" \
-                --num_retrieved ${k} \
-                --exclude_datasets ${excluded_datasets[@]} \
-                --combine_train_set\
-                --num_train_epochs ${epoch} \
-		            --do_fine_tuning\
+
+                --num_train_epochs 5 \
+
+		            --do_first_fine_tuning\
+		            --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
+		            --first_languages ${first_language}\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
 		            --do_hate_day\
+                --output_dir $FIRST_OUTPUT_DIR \
+
+                --do_second_fine_tuning\
+                --second_datasets "${dataset}-${split}-${RSS[i]}"\
+                --second_languages "${lang}"\
+                --do_second_train\
+                --do_second_eval\
+                --do_second_test\
+                --do_second_hate_check\
+		            --do_second_hate_day\
+                --second_output_dir $SECOND_OUTPUT_DIR \
+
+
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                --per_device_train_batch_size 16 \
+                --per_device_train_batch_size 32 \
                 --per_device_eval_batch_size 64 \
-                --max_seq_length 128 \
-                --output_dir $OUTPUT_DIR \
+                --max_seq_length 256 \
                 --cache_dir "${BASE}/cache/" \
                 --logging_dir "${BASE}/logs/" \
                 --overwrite_output_dir \
@@ -82,7 +79,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=30000
+WAIT_TIME=6000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -97,8 +94,8 @@ check_gpu_memory() {
 }
 
 # Main loop
-K=0
-while [ "$K" -lt "${#KS[@]}" ]; do
+D=0
+while ["$D" -lt "${#FIRST_DATASETS[@]}" ]; do
     num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
@@ -107,10 +104,10 @@ while [ "$K" -lt "${#KS[@]}" ]; do
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
-            run_dataset "${KS[$K]}" "$available_gpu" &
+            run_dataset "${FIRST_DATASETS[$D]}" "${FIRST_LANGUAGES[$D]}" "$available_gpu" &
             sleep 30
-            K=$((K + 1)) # Increment K only when a GPU is assigned
-            if [ "$K" -ge "${#KS[@]}" ]; then
+            D=$((D + 1)) # Increment D only when a GPU is assigned
+            if [ "$D" -ge "${#FIRST_DATASETS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
             fi
         fi
@@ -123,4 +120,4 @@ done
 
 wait
 
-echo "All K processed!"
+echo "All FIRST DATASETS processed!"

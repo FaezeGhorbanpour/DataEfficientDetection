@@ -1,3 +1,5 @@
+import shutil
+
 import torch
 import logging
 import os, json
@@ -32,9 +34,9 @@ class FineTuner:
         self.model_name = config.finetuner_model_name_or_path
         self.tokenizer_name = config.finetuner_tokenizer_name_or_path if config.finetuner_tokenizer_name_or_path != '' else self.model_name
         self.fine_tune_method = config.fine_tune_method
-        self.retrieval_loss_weight = config.retrieval_loss_weight
-        self.do_early_stopping = config.do_early_stopping
-        self.use_step_trainer = config.use_step_trainer
+        self.retrieval_loss_weight = getattr(config, 'retrieval_loss_weight', None)
+        self.do_early_stopping = getattr(config, 'do_early_stopping', None)
+        self.use_step_trainer = getattr(config, 'use_step_trainer', None)
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
@@ -126,7 +128,7 @@ class FineTuner:
                 compute_metrics=self.compute_metrics,
                 class_weights=class_weights
             )
-        elif self.retrieval_loss_weight < 1:
+        elif self.retrieval_loss_weight and self.retrieval_loss_weight < 1:
 
             logger.info("** USING RETRIEVAL-WEIGHTED LOSS **")
 
@@ -140,7 +142,7 @@ class FineTuner:
                 data_collator=data_collator,
                 retrieval_loss_weight=self.retrieval_loss_weight,
             )
-        elif  self.config.use_curriculum_learning:
+        elif self.config.use_curriculum_learning:
             logger.info("** USING CURRICULUM LEARNING **")
 
             data_collator = RetrievalWeightedDataCollator(tokenizer=self.tokenizer)
@@ -264,12 +266,22 @@ class FineTuner:
 
         return results
 
-    def save_model(self,):
+    def save_model(self):
+        # The best checkpoint is stored in `output_dir/checkpoint-xxxx` if load_best_model_at_end=True
         output_dir = self.config.output_dir
-        model_path = os.path.join(output_dir, "checkpoint-retrieval-finetuner")
-        self.model.save_pretrained(model_path)
-        self.tokenizer.save_pretrained(model_path)
-        return model_path
+        best_model_path = self.trainer.state.best_model_checkpoint  # This gives you the best checkpoint path
+
+        if best_model_path is None:
+            raise ValueError("No best model checkpoint found. Make sure `load_best_model_at_end=True` was set.")
+
+        save_path = os.path.join(output_dir, "the_best_checkpoint")
+
+        # Copy the best model files to a new directory
+        if os.path.exists(save_path):
+            shutil.rmtree(save_path)
+        shutil.copytree(best_model_path, save_path)
+
+        return save_path
 
 
 class RetrievalWeightedDataCollator(DataCollatorWithPadding):
