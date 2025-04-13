@@ -430,6 +430,10 @@ def main(
             main_args.do_first_fine_tuning = False
             first_fine_tuning_model_path = os.path.join(first_finetuner_args.output_dir, "the_best_checkpoint")
 
+    if main_args.enable_wandb:
+        wandb.config.update(first_finetuner_args, allow_val_change=True)
+        wandb.config.update(first_data_args, allow_val_change=True)
+
     if main_args.do_first_fine_tuning:
         # Step 1: Load first datasets
         logger.info(f"Loading datasets: {first_data_args.first_datasets} ...")
@@ -449,10 +453,6 @@ def main(
                 max_samples=first_data_args.max_samples
             )
         logger.info("First datasets loaded.")
-
-        if main_args.enable_wandb:
-            wandb.config.update(first_finetuner_args, allow_val_change=True)
-            wandb.config.update(first_data_args, allow_val_change=True)
 
         first_tuner = FineTuner(first_finetuner_args)
         logger.info("Retrieval fine-tuning the model: %s", first_finetuner_args.finetuner_model_name_or_path)
@@ -508,6 +508,10 @@ def main(
             print(f"Error: The file {file_path} exist. Aborting the run.")
             main_args.do_second_fine_tuning = False
 
+    if main_args.enable_wandb:
+        wandb.config.update(second_finetuner_args, allow_val_change=True)
+        wandb.config.update(second_data_args, allow_val_change=True)
+
     # Step 2: Fine-tune the model
     if main_args.do_second_fine_tuning:
         logger.info(f"Loading datasets: {second_data_args.second_datasets} ...")
@@ -527,10 +531,6 @@ def main(
             )
         logger.info("Second datasets loaded.")
 
-
-        if main_args.enable_wandb:
-            wandb.config.update(second_finetuner_args, allow_val_change=True)
-            wandb.config.update(second_data_args, allow_val_change=True)
 
         second_finetuner_args = copy_finetuner_args(second_finetuner_args, first_finetuner_args)
         if first_fine_tuning_model_path:
