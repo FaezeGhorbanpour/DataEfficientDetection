@@ -7,7 +7,7 @@ LANGUAGES=("en" "en" "en" "en" "en" "en" "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr'
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="base_setting"
+FOLDER_NAME="xlmt-base"
 
 # Function to process a single dataset
 run_dataset() {
@@ -16,14 +16,15 @@ run_dataset() {
     local gpu=$3
 
 
-    echo "Starting first dataset: ${first_dataset} on GPU: ${gpu}"
+    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
+
     for ((d=0; d<${#DATASETS[@]}; d++)); do
       first_dataset=$DATASETS[d]
       first_language=$LANGUAGES[d]
       for split in 2000; do
           for ((i=0; i<${#RSS[@]}; i++)); do
-              FIRST_OUTPUT_DIR="${BASE}/results/first/${first_dataset}/${split}/${RSS[i]}/"
-              SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
+              FIRST_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/first/${first_dataset}/${split}/${RSS[i]}/"
+              SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
               CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                   --seed ${RSS[i]//rs/} \
                   --num_train_epochs 5 \
@@ -54,7 +55,7 @@ run_dataset() {
                   --logging_dir "${BASE}/logs/" \
                   --overwrite_output_dir \
                   --report_to None\
-                  --wandb_run_name "${FOLDER_NAME}"
+                  --wandb_run_name "${FOLDER_NAME}-${first_dataset}-${dataset}"
 
               for dir in "${OUTPUT_DIR}"check*; do
                   if [ -d "$dir" ]; then # Check if it's a directory
