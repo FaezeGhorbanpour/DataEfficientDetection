@@ -8,7 +8,7 @@ RSS=(rs5 rs4 rs3 rs2 rs1)
 GPUS=(0 1 2 3 4 5 6 7) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="only_english_2"
+FOLDER_NAME="only_english_again"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -35,9 +35,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_ar"
-    lang="ar"
-    excluded_datasets=("ous19_ar")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -62,6 +62,7 @@ run_dataset() {
                 --do_eval\
                 --do_test\
 		--do_hate_check\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
 		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
@@ -105,10 +106,10 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=2
+    num_gpus=8
      #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

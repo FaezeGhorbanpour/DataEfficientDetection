@@ -2,8 +2,8 @@
 BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-FIRST_DATASETS=("dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en" 'bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' )
-FIRST_LANGUAGES=("en" "en" "en" "en" "en" "en" 'es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+FIRST_DATASETS=("dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en" "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' )
+FIRST_LANGUAGES=("en" "en" "en" "en" "en" "en" "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
@@ -16,12 +16,12 @@ run_dataset() {
     local gpu=$3
 
 
-    dataset="bas19_es"
-    lang="es"
+    dataset="has21_hi"
+    lang="hi"
 
-    echo "Starting k: ${k} on GPU: ${gpu}"
+    echo "Starting first dataset: ${first_dataset} on GPU: ${gpu}"
 
-    for split in 2000 1000; do
+    for split in 2000; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             FIRST_OUTPUT_DIR="${BASE}/results/first/${first_dataset}/${split}/${RSS[i]}/"
             SECOND_OUTPUT_DIR="${BASE}/results/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
@@ -73,7 +73,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=10000
+WAIT_TIME=5000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -90,7 +90,7 @@ check_gpu_memory() {
 # Main loop
 D=0
 while [ "$D" -lt "${#FIRST_DATASETS[@]}" ]; do
-    num_gpus=7
+    num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
