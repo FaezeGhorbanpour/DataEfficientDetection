@@ -19,8 +19,8 @@ run_dataset() {
     echo "Starting dataset: ${dataset} on GPU: ${gpu}"
 
     for ((d=0; d<${#DATASETS[@]}; d++)); do
-      first_dataset=$DATASETS[d]
-      first_language=$LANGUAGES[d]
+      first_dataset=${DATASETS[d]}
+      first_language=${LANGUAGES[d]}
       for split in 2000; do
           for ((i=0; i<${#RSS[@]}; i++)); do
               FIRST_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/first/${first_dataset}/${split}/${RSS[i]}/"
@@ -74,7 +74,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=70000
+WAIT_TIME=35000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
