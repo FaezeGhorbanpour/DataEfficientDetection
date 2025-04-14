@@ -74,7 +74,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=5000
+WAIT_TIME=70000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
