@@ -634,6 +634,8 @@ def main(
                                                 unique_word_criteria_weight=retriever_args.unique_word_criteria_weight,
                                                 cluster_criteria_weight=retriever_args.cluster_criteria_weight,
                                                 balance_labels=retriever_args.balance_labels,)
+            retriever.save_meta_to_file(retrieved, finetuner_args.output_dir)
+            logger.info("Retrieved %d instances based on query.", len(retrieved))
         elif retriever_args.retrieve_per_instance:
             retrieved = dict()
             for i in range(embeddings.shape[0]):
