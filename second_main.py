@@ -424,7 +424,7 @@ def main(
     #########################################################################
     first_fine_tuning_model_path = ''
     if main_args.do_first_fine_tuning:
-        file_path = os.path.join(first_finetuner_args.output_dir, "evaluation_results.json")
+        file_path = os.path.join(first_finetuner_args.output_dir, "the_best_checkpoint", "pytorch_model.bin")
         if os.path.exists(file_path):
             print(f"Error: The file {file_path} exist. Aborting the first run.")
             main_args.do_first_fine_tuning = False
