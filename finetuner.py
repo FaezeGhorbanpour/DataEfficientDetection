@@ -267,19 +267,37 @@ class FineTuner:
         return results
 
     def save_model(self):
-        # The best checkpoint is stored in `output_dir/checkpoint-xxxx` if load_best_model_at_end=True
+        import os
+        import shutil
+        from distutils.dir_util import copy_tree
+
         output_dir = self.config.output_dir
-        best_model_path = self.trainer.state.best_model_checkpoint  # This gives you the best checkpoint path
+        best_model_path = self.trainer.state.best_model_checkpoint
 
         if best_model_path is None:
             raise ValueError("No best model checkpoint found. Make sure `load_best_model_at_end=True` was set.")
 
         save_path = os.path.join(output_dir, "the_best_checkpoint")
 
-        # Copy the best model files to a new directory
-        if os.path.exists(save_path):
-            shutil.rmtree(save_path)
-        shutil.copytree(best_model_path, save_path)
+        # Make sure the directory exists
+        os.makedirs(save_path, exist_ok=True)
+
+        # Copy all files from the best checkpoint directory, overwriting any existing files
+        copy_tree(best_model_path, save_path)
+
+        # Verify that the expected model files exist after copying
+        expected_files = ["pytorch_model.bin", "model.safetensors", "tf_model.h5",
+                          "model.ckpt.index", "flax_model.msgpack"]
+
+        found_any = False
+        for file in expected_files:
+            if os.path.exists(os.path.join(save_path, file)):
+                found_any = True
+                print(f"Successfully saved {file}")
+
+        if not found_any:
+            print("Warning: None of the expected model files were found in the source directory.")
+            print(f"Source directory contents: {os.listdir(best_model_path)}")
 
         return save_path
 
