@@ -491,7 +491,11 @@ def main(
                 wandb.log(results)
             logger.info("Finetune-based inference on hate-day metrics: %s", results)
 
-        first_fine_tuning_model_path = first_tuner.save_model()
+        try:
+            first_fine_tuning_model_path = first_tuner.save_model()
+        except:
+            logger.info("Error in saving the best checkpoint : (")
+
 
         # Free GPU memory by deleting the model and calling garbage collection
         del first_tuner.model
