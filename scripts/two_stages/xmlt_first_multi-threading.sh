@@ -2,8 +2,8 @@
 BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-DATASETS=("dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en" "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' )
-LANGUAGES=("en" "en" "en" "en" "en" "en" "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
+DATASETS=( "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr'  "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en")
+LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en")
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
@@ -58,6 +58,13 @@ run_dataset() {
                   --wandb_run_name "${FOLDER_NAME}-${first_dataset}-${dataset}"
 
               for dir in "${OUTPUT_DIR}"check*; do
+                  if [ -d "$dir" ]; then # Check if it's a directory
+                      rm -rf "$dir"
+                      echo "Deleted: $dir"
+                  fi
+              done
+
+              for dir in "${SECOND_OUTPUT_DIR}"check*; do
                   if [ -d "$dir" ]; then # Check if it's a directory
                       rm -rf "$dir"
                       echo "Deleted: $dir"
