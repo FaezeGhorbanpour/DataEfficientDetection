@@ -685,8 +685,8 @@ def main(
     if main_args.do_searching and (main_args.do_fine_tuning or main_args.do_retrieval_tuning):
         # Convert retrieved data to dataset format
         retrieved_dataset = data_provider.convert_to_dataset(retrieved)
+        dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
         if retrieval_tuner_args.combine_train_set:
-            dataset = data_provider.aggregate_splits([dataset['data'] for dataset in datasets])
             dataset = data_provider.combine_new_dataset(dataset, retrieved_dataset,
                                                         repeat=finetuner_args.repeat_target_train_set)
     elif not main_args.do_searching and (main_args.do_fine_tuning and retrieval_tuner_args.combine_train_set):
