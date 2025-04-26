@@ -10,9 +10,9 @@ from transformers import (
     AutoTokenizer,
     AutoConfig,
     Trainer,
-    DataCollator, DefaultDataCollator, DataCollatorWithPadding, EarlyStoppingCallback,
+    DataCollator, DefaultDataCollator, DataCollatorWithPadding, EarlyStoppingCallback, AutoModelForSeq2SeqLM,
 )
-from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig
+from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig, TaskType
 from datasets import Dataset
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, f1_score
@@ -43,7 +43,10 @@ class FineTuner:
 
         # Configure and load the model
         model_config = AutoConfig.from_pretrained(self.model_name, num_labels=config.num_labels)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=model_config)
+        if 't5' in self.model_name or 't0' in self.model_name:
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name, config=model_config)
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=model_config)
 
 
         logger.info("Starting training process.")
@@ -58,6 +61,7 @@ class FineTuner:
 
         # Apply PEFT if specified
         if self.fine_tune_method in ["lora", "prefix_tuning", "soft_prompt", "compactor"]:
+            logger.info("Directing to peft config to be applied.")
             self._apply_peft(self.fine_tune_method, config.peft_config)
 
     def _apply_peft(self, fine_tune_method, peft_config):
@@ -65,16 +69,23 @@ class FineTuner:
         Apply Parameter-Efficient Fine-Tuning (PEFT) to the model.
         """
         logger.info(f"Applying {fine_tune_method} fine-tuning.")
-        peft_config['task_type'] = 'SEQ_CLS'
+        task_type = TaskType.SEQ_2_SEQ_LM
+        peft_config['task_type'] = task_type
         if fine_tune_method == "lora":
-            config = LoraConfig(task_type="SEQ_CLS", inference_mode=False, r=8, lora_alpha=16, lora_dropout=0.1)
+            logger.info("PEFT method: LoRA")
+            config = LoraConfig(task_type=task_type, inference_mode=False, r=8, lora_alpha=16, lora_dropout=0.1)
         elif fine_tune_method == "prefix_tuning":
-            config = PrefixTuningConfig(task_type="SEQ_CLS", num_virtual_tokens=10)
+            logger.info("PEFT method: Prefix tuning")
+            config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=10)
         elif fine_tune_method == "soft_prompt":
-            config = PromptEncoderConfig(task_type="SEQ_CLS", num_virtual_tokens=10)
+            logger.info("PEFT method: Soft prompt tuning")
+            config = PromptEncoderConfig(task_type=task_type, num_virtual_tokens=10)
         else:
+            logger.info(f"Unsupported PEFT method: {fine_tune_method}, facing error and exiting. Please check the config file and try again.")
             raise ValueError(f"Unsupported PEFT method: {fine_tune_method}")
         self.model = get_peft_model(self.model, config)
+
+        logger.info("PEFT model initialized.")
 
     def prepare_data(self, data):
         """
