@@ -21,6 +21,27 @@ from trainers import WeightedTrainer, RetrievalWeightedTrainer, CurriculumLearni
 
 logger = logging.getLogger(__name__)
 
+instruction_translations = {
+    "en": "Is this comment hateful?",
+    "es": "¿Es este comentario de odio?",
+    "hi": "क्या यह टिप्पणी घृणास्पद है?",
+    "it": "Questo commento è offensivo?",
+    "de": "Ist dieser Kommentar hasserfüllt?",
+    "ar": "هل هذا التعليق يحض على الكراهية؟",
+    "tr": "Bu yorum nefret dolu mu?",
+    "pt": "Este comentário é odioso?",
+}
+
+label_translations = {
+    "en": {0: "no", 1: "yes"},
+    "es": {0: "no", 1: "sí"},
+    "hi": {0: "नहीं", 1: "हाँ"},
+    "it": {0: "no", 1: "sì"},
+    "de": {0: "nein", 1: "ja"},
+    "ar": {0: "لا", 1: "نعم"},
+    "tr": {0: "hayır", 1: "evet"},
+    "pt": {0: "não", 1: "sim"},
+}
 
 class FineTuner:
     def __init__(self, config):
@@ -44,8 +65,10 @@ class FineTuner:
         # Configure and load the model
         model_config = AutoConfig.from_pretrained(self.model_name, num_labels=config.num_labels)
         if 't5' in self.model_name or 't0' in self.model_name:
+            self.config.model_type = "encoder_decoder"
             self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name, config=model_config)
         else:
+            self.config.model_type = "encoder"
             self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=model_config)
 
 
@@ -96,14 +119,47 @@ class FineTuner:
             dict: Tokenized dataset ready for training.
         """
         # Tokenize the dataset using the provided tokenizer
-        encodings = self.tokenizer(data["text"], truncation=True, padding=True, max_length=self.config.max_seq_length)
-        dataset = Dataset.from_dict(encodings)
-        dataset = dataset.add_column("label", data["label"])
+        if self.config.model_type == "encoder_decoder":
+            languages = [t for t in data["language"]]
+            instructions = [instruction_translations.get(lang, instruction_translations["en"]) for lang in languages]
+            formatted_inputs = [f"{instr} {text}" for instr, text in zip(instructions, data["text"])]
+            labels_text = [label_translations.get(lang, label_translations["en"])[label] for lang, label in zip(languages, data["label"])]
+
+            inputs = self.tokenizer(
+                formatted_inputs,
+                truncation=True,
+                padding="max_length",
+                max_length=self.config.max_seq_length,
+                return_tensors="pt"
+            )
+            targets = self.tokenizer(
+                labels_text,
+                truncation=True,
+                padding="max_length",
+                max_length=5,
+                return_tensors="pt"
+            )
+
+            dataset = {
+                "input_ids": inputs["input_ids"].tolist(),
+                "attention_mask": inputs["attention_mask"].tolist(),
+                "labels": targets["input_ids"].tolist()
+            }
+        else:
+            encodings = self.tokenizer(
+                data["text"],
+                truncation=True,
+                padding=True,
+                max_length=self.config.max_seq_length
+            )
+            dataset = {k: v for k, v in encodings.items()}
+            dataset["labels"] = data["label"]
+
         if 'source' in data.features:
-            dataset = dataset.add_column("source", data["source"])
+            dataset["source"] = data["source"]
         if 'score' in data.features:
-            dataset = dataset.add_column("score", data["score"])
-        return dataset
+            dataset["score"] = data["score"]
+        return Dataset.from_dict(dataset)
 
     def calculate_class_weights(self, labels):
         """
@@ -238,18 +294,25 @@ class FineTuner:
         return logits, labels
 
     def compute_metrics(self, eval_pred):
-        """
-        Compute classification metrics (accuracy, precision, recall, F1-score).
-        """
         logits, labels = eval_pred
-        if isinstance(logits, tuple):
-            predictions = logits[0].argmax(axis=-1)
+
+        if self.config.model_type in ["encoder_decoder", "causal_lm"]:
+            # decode predictions and labels
+            preds = np.argmax(logits, axis=-1)
+            preds = preds[:, 0] if preds.ndim > 1 else preds
+            labels = labels[:, 0] if labels.ndim > 1 else labels
         else:
-            predictions = logits.argmax(axis=-1)
-        precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average="weighted", zero_division=0)
-        f1_macro = f1_score(labels, predictions, average="macro", zero_division=0)
-        accuracy = accuracy_score(labels, predictions)
+            if isinstance(logits, tuple):
+                predictions = logits[0].argmax(axis=-1)
+            else:
+                predictions = logits.argmax(axis=-1)
+            preds = predictions
+
+        precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average="weighted", zero_division=0)
+        f1_macro = f1_score(labels, preds, average="macro", zero_division=0)
+        accuracy = accuracy_score(labels, preds)
         results = {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
+
         if self.save_more:
             self.eval_epoch += 1
             self.save(results, f"eval_{self.eval_epoch}_results.json")

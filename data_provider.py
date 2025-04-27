@@ -71,9 +71,10 @@ class DataProvider:
             datasets.Dataset: Hugging Face Dataset object.
         """
         sentences = [item["metadata"]["text"] for item in retrieved_data]
+        languages = [item["metadata"]["language"] for item in retrieved_data]
         labels = [item["metadata"].get("label", None) for item in retrieved_data]
         scores = [item.get("score", None) for item in retrieved_data]
-        return Dataset.from_dict({"text": sentences, "label": labels, "score": scores})
+        return Dataset.from_dict({"text": sentences, "label": labels, "score": scores, "language": languages})
 
     def extract_text_and_label(self, retrieved_data):
         """
@@ -83,22 +84,32 @@ class DataProvider:
         Returns:
             datasets.Dataset: Hugging Face Dataset object.
         """
-        return {key:[{'text': value['metadata']['text'], 'label': value['metadata']['label']} for value in values] for key, values in retrieved_data.items() }
+        return {key:[{'text': value['metadata']['text'], 'label': value['metadata']['label']}
+                     for value in values] for key, values in retrieved_data.items() }
 
     def aggregate_splits(self, datasets, just_aggregate=None):
-        splits = set([split for ds in datasets for split in ds])
+        data = [dataset['data'] for dataset in datasets]
+        languages = [dataset['language'] for dataset in datasets]
+        splits = set(split for ds in data for split in ds)
 
-        if just_aggregate:
-            return DatasetDict({
-                split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
-                if split in just_aggregate else datasets[-1][split]
-                for split in splits
-            })
-        else:
-            return DatasetDict({
-                split: concatenate_datasets([ds[split] for ds in datasets if split in ds])
-                for split in splits
-            })
+        output = {}
+
+        for split in splits:
+            combined = []
+            for ds, lang in zip(data, languages):
+                if split in ds:
+                    # Add a new column for language
+                    ds_split = ds[split].add_column("language", [lang] * len(ds[split]))
+                    combined.append(ds_split)
+
+            if combined:
+                if just_aggregate and split not in just_aggregate:
+                    # If not aggregating, just take the last dataset's split
+                    output[split] = combined[-1]
+                else:
+                    output[split] = concatenate_datasets(combined)
+
+        return DatasetDict(output)
 
     def combine_new_dataset(self, dataset, retrieved_data, repeat=1):
         # Add IDs and source information to the new dataset
