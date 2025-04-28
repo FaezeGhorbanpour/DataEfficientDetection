@@ -264,8 +264,9 @@ class Retriever:
             k = k * 2
             num_search += 1
 
+        results = results[:num_retrieved*3]
         if mmr_threshold > 0:
-            results = self.mmr_wraper(results[:num_retrieved*3], similarity_threshold=mmr_threshold, lambda_param=lambda_param,
+            results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=lambda_param,
                                                 min_remained_amount=num_retrieved)
 
             logger.info(f"Total results after MMR: {len(results)} with mmr threshold: {mmr_threshold}")
