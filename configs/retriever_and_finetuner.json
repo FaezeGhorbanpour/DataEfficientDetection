@@ -9,15 +9,13 @@
   "index_path": "/mounts/data/proj/faeze/data_efficient_hate/models/retriever/all_multilingual_with_m3/",
   "num_retrieved": 200,
   "exclude_datasets": ["bas19_es"],
-  "gradient_accumulation_steps": 2,
+  "gradient_accumulation_steps": 1,
   "combine_train_set": true,
   "per_device_train_batch_size": 16,
   "per_device_eval_batch_size": 16,
-  "learning_rate": 5e-3,
-  "warmup_ratio": 0.1,
 
   "do_fine_tuning": true,
-  "num_train_epochs": 100,
+  "num_train_epochs": 5,
 
   "do_train": true,
   "do_eval": true,
@@ -26,9 +24,9 @@
   "do_hate_day": true,
   "report_to": "wandb",
 
-  "finetuner_model_name_or_path": "google/mt5-small",
+  "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
 
-  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/temp/mt5-1/",
+  "output_dir": "/mounts/data/proj/faeze/data_efficient_hate/models/retrieval_finetuner/temp/default/",
   "cache_dir": "/mounts/data/proj/faeze/data_efficient_hate/cache/",
   "logging_dir": "/mounts/data/proj/faeze/data_efficient_hate/logs/",
   "wandb_run_name": "retrieval_fine_tuning",

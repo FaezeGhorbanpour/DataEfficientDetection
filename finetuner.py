@@ -33,6 +33,7 @@ instruction_translations = {
     "ar": "هل هذا التعليق يحض على الكراهية؟",
     "tr": "Bu yorum nefret dolu mu?",
     "pt": "Este comentário é odioso?",
+    "fr": "Ce commentaire est-il haineux?",
 }
 
 label_translations = {
@@ -44,6 +45,7 @@ label_translations = {
     "ar": {0: "لا", 1: "نعم"},
     "tr": {0: "hayır", 1: "evet"},
     "pt": {0: "não", 1: "sim"},
+    "fr": {0: "non", 1: "oui"},
 }
 
 class FineTuner:
@@ -281,7 +283,7 @@ class FineTuner:
                 train_dataset=train_data,
                 eval_dataset=eval_data,
                 compute_metrics=self.compute_metrics,
-                callbacks = [EarlyStoppingCallback(early_stopping_patience=25)] if self.do_early_stopping else None,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=10)] if self.do_early_stopping else None,
             )
 
 
