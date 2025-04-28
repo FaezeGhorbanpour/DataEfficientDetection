@@ -27,11 +27,12 @@ run_dataset() {
               SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
               CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                   --seed ${RSS[i]//rs/} \
-                  --num_train_epochs 5 \
+                  --num_train_epochs 100 \
+                  --learning_rate 5e-3\
+                  --warmup_ratio 0.1\
                   --do_first_fine_tuning\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
-		  --fine_tune_method "lora"\
                   --do_train\
                   --do_eval\
                   --do_test\
@@ -50,7 +51,7 @@ run_dataset() {
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                   --per_device_train_batch_size 16 \
-                  --per_device_eval_batch_size 64 \
+                  --per_device_eval_batch_size 16 \
                   --gradient_accumulation_steps 2\
                   --max_seq_length 200 \
                   --cache_dir "${BASE}/cache/" \

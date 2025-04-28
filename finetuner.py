@@ -1,3 +1,4 @@
+import abc
 import shutil
 
 import torch
@@ -10,7 +11,9 @@ from transformers import (
     AutoTokenizer,
     AutoConfig,
     Trainer,
-    DataCollator, DefaultDataCollator, DataCollatorWithPadding, EarlyStoppingCallback, AutoModelForSeq2SeqLM,
+    DataCollatorWithPadding, EarlyStoppingCallback,
+    AutoModelForSeq2SeqLM,
+    Seq2SeqTrainingArguments, Seq2SeqTrainer
 )
 from peft import LoraConfig, get_peft_model, PrefixTuningConfig, PromptEncoderConfig, TaskType
 from datasets import Dataset
@@ -110,56 +113,66 @@ class FineTuner:
 
         logger.info("PEFT model initialized.")
 
+
     def prepare_data(self, data):
-        """
-        Prepare data from the DataProvider for training and evaluation.
-        Args:
-            data (Dataset): Hugging Face dataset with text and labels.
-        Returns:
-            dict: Tokenized dataset ready for training.
-        """
-        # Tokenize the dataset using the provided tokenizer
-        if self.config.model_type == "encoder_decoder":
-            languages = [t for t in data["language"]]
+        if self.config.model_type in ["encoder_decoder", "causal_lm"]:
+            logger.info("Preparing data for encoder-decoder or causal language model.")
+            languages = data["language"]  # Directly use existing languages (no detection)
+
             instructions = [instruction_translations.get(lang, instruction_translations["en"]) for lang in languages]
             formatted_inputs = [f"{instr} {text}" for instr, text in zip(instructions, data["text"])]
-            labels_text = [label_translations.get(lang, label_translations["en"])[label] for lang, label in zip(languages, data["label"])]
+            labels_text = [label_translations.get(lang, label_translations["en"])[label] for lang, label in
+                           zip(languages, data["label"])]
 
             inputs = self.tokenizer(
                 formatted_inputs,
                 truncation=True,
                 padding="max_length",
-                max_length=self.config.max_seq_length,
-                return_tensors="pt"
+                max_length=self.config.max_seq_length
             )
+
             targets = self.tokenizer(
                 labels_text,
                 truncation=True,
                 padding="max_length",
-                max_length=5,
-                return_tensors="pt"
+                max_length=5
             )
 
-            dataset = {
-                "input_ids": inputs["input_ids"].tolist(),
-                "attention_mask": inputs["attention_mask"].tolist(),
-                "labels": targets["input_ids"].tolist()
-            }
+            # Correctly mask padding tokens
+            input_ids = torch.tensor(targets["input_ids"])
+            input_ids[input_ids == self.tokenizer.pad_token_id] = -100
+            targets["input_ids"] = input_ids.tolist()
+
+            dataset = Dataset.from_dict({
+                "input_ids": inputs["input_ids"],
+                "attention_mask": inputs["attention_mask"],
+                "labels": targets["input_ids"],
+            })
+            dataset = dataset.add_column("language", languages)
+
         else:
+            logger.info("Preparing data for encoder-only model.")
             encodings = self.tokenizer(
                 data["text"],
                 truncation=True,
-                padding=True,
+                padding="max_length",
                 max_length=self.config.max_seq_length
             )
-            dataset = {k: v for k, v in encodings.items()}
-            dataset["labels"] = data["label"]
 
-        if 'source' in data.features:
-            dataset["source"] = data["source"]
-        if 'score' in data.features:
-            dataset["score"] = data["score"]
-        return Dataset.from_dict(dataset)
+            dataset = Dataset.from_dict({
+                "input_ids": encodings["input_ids"],
+                "attention_mask": encodings["attention_mask"],
+                "labels": data["label"],
+            })
+            dataset = dataset.add_column("language", data["language"])
+
+        if not self.config.remove_unused_columns and 'source' in data.features:
+            dataset = dataset.add_column("source", data["source"])
+        if not self.config.remove_unused_columns and 'score' in data.features:
+            dataset = dataset.add_column("score", data["score"])
+
+        logger.info("Data preparation completed.")
+        return dataset
 
     def calculate_class_weights(self, labels):
         """
@@ -250,6 +263,28 @@ class FineTuner:
                 compute_metrics=self.compute_metrics,
                 callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] if self.do_early_stopping else None,
             )
+        elif self.config.model_type in ["encoder_decoder", "causal_lm"]:
+
+            logger.info("** USING SEQ2SEQ Trainer**")
+
+            seq2seq_valid_keys = set(Seq2SeqTrainingArguments.__dataclass_fields__.keys())
+            filtered_config = {k: v for k, v in self.config.to_dict().items() if k in seq2seq_valid_keys}
+            config = Seq2SeqTrainingArguments(**filtered_config)
+
+            config.predict_with_generate = True
+            config.generation_max_length = 5
+            config.generation_num_beams = 1
+
+            self.trainer = Seq2SeqTrainer(
+                model=self.model,
+                args=config,
+                train_dataset=train_data,
+                eval_dataset=eval_data,
+                compute_metrics=self.compute_metrics,
+                callbacks = [EarlyStoppingCallback(early_stopping_patience=25)] if self.do_early_stopping else None,
+            )
+
+
         else:
 
             logger.info("** USING STANDARD UNWEIGHTED LOSS**")
@@ -294,23 +329,34 @@ class FineTuner:
         return logits, labels
 
     def compute_metrics(self, eval_pred):
-        logits, labels = eval_pred
+
 
         if self.config.model_type in ["encoder_decoder", "causal_lm"]:
-            # decode predictions and labels
-            preds = np.argmax(logits, axis=-1)
-            preds = preds[:, 0] if preds.ndim > 1 else preds
-            labels = labels[:, 0] if labels.ndim > 1 else labels
+            preds, labels = eval_pred
+
+            post_processor = PostProcessor(self.tokenizer, True)
+            decoded_preds, decoded_labels = post_processor.process(preds, labels,)
+
+            # Map decoded text to binary labels
+            preds_binary = [
+                1 if p.strip().lower() in ["yes", "hate", "sí", "sì", "نعم", "ja", "evet", "sim", "हाँ"] else 0 for p in
+                decoded_preds]
+            labels_binary = [
+                1 if l.strip().lower() in ["yes", "hate", "sí", "sì", "نعم", "ja", "evet", "sim", "हाँ"] else 0 for l in
+                decoded_labels]
+
         else:
+            logits, labels = eval_pred
             if isinstance(logits, tuple):
                 predictions = logits[0].argmax(axis=-1)
             else:
                 predictions = logits.argmax(axis=-1)
-            preds = predictions
+            preds_binary = predictions
+            labels_binary = labels
 
-        precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average="weighted", zero_division=0)
-        f1_macro = f1_score(labels, preds, average="macro", zero_division=0)
-        accuracy = accuracy_score(labels, preds)
+        precision, recall, f1, _ = precision_recall_fscore_support(labels_binary, preds_binary, average="weighted", zero_division=0)
+        f1_macro = f1_score(labels_binary, preds_binary, average="macro", zero_division=0)
+        accuracy = accuracy_score(labels_binary, preds_binary)
         results = {"accuracy": accuracy, "f1-macro": f1_macro, "precision": precision, "recall": recall, "f1-weighted": f1}
 
         if self.save_more:
@@ -381,6 +427,7 @@ class RetrievalWeightedDataCollator(DataCollatorWithPadding):
         # Extract 'source' and 'score' values for each instance
         sources = [f.pop("source") for f in features]  # Keeps per-instance source
         scores = [f.pop("score") for f in features]  # Keeps per-instance score
+        languages = [f.pop("language") for f in features]  # Keeps per-instance score
 
         # Tokenize normally using the parent collator
         batch = super().__call__(features)
@@ -392,3 +439,23 @@ class RetrievalWeightedDataCollator(DataCollatorWithPadding):
         batch["score"] = torch.tensor(scores, dtype=torch.float)
 
         return batch
+
+class PostProcessor(abc.ABC):
+    """Postprocess the predictions and labels to make them suitable for
+    evaluation."""
+    def __init__(self, tokenizer, ignore_pad_token_for_loss):
+       self.tokenizer = tokenizer
+       self.ignore_pad_token_for_loss = ignore_pad_token_for_loss
+
+    def process(self, preds, labels):
+        if isinstance(preds, tuple):
+            preds = preds[0]
+        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
+        if self.ignore_pad_token_for_loss:
+            # Replace -100 in the labels as we can't decode them.
+            labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+        # Some simple post-processing
+        decoded_preds = [pred.strip() for pred in decoded_preds]
+        decoded_labels = [label.strip() for label in decoded_labels]
+        return decoded_preds, decoded_labels

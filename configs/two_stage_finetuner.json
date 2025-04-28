@@ -1,12 +1,13 @@
 {
-  "finetuner_model_name_or_path": "cardiffnlp/twitter-xlm-roberta-base",
+  "finetuner_model_name_or_path": "google/mt5-small",
 
 
-  "per_device_train_batch_size": 32,
-  "per_device_eval_batch_size": 64,
-  "num_train_epochs": 5,
+  "per_device_train_batch_size": 16,
+  "per_device_eval_batch_size": 32,
+  "num_train_epochs": 50,
   "max_seq_length": 256,
   "seed": 0,
+  "gradient_accumulation_steps": 2,
 
 
   "do_first_fine_tuning": true,
