@@ -18,7 +18,7 @@ FOLDER_NAME="only_english_again"
 
 #KS=(20 30 40 50 100 200 300 400)
 KS=(2000 3000 4000 5000 10000 20000 500 1000 20 30 40 50 100 200 300 400)
-KS=(20 200 2000 20000)
+KS=(20000 2000 200 20)
 
 # Function to process a single dataset
 run_dataset() {
@@ -35,9 +35,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="bas19_es"
-    lang="es"
-    excluded_datasets=("bas19_es")
+    dataset="gahd24_de"
+    lang="de"
+    excluded_datasets=("gahd24_de" "dyn21_en")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 

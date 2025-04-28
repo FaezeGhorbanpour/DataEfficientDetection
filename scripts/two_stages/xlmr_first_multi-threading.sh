@@ -3,11 +3,13 @@ BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
 DATASETS=( "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr'  "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en")
+#DATASETS=('bas19_es' 'xdomain_tr' 'gahd24_de')
 LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en")
+#LANGUAGES=('es' 'tr' 'de')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="xlmt-base"
+MODEL_NAME="FacebookAI/xlm-roberta-base"
+FOLDER_NAME="xlmr-base"
 
 # Function to process a single dataset
 run_dataset() {
@@ -81,7 +83,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=35000
+WAIT_TIME=15000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {

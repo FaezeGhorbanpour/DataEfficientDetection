@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="mmr=0.95"
+FOLDER_NAME="mmr-again"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -17,8 +17,8 @@ FOLDER_NAME="mmr=0.95"
 
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 KS=(10000 5000 4000 3000 1000 500 400 300 100 50 40 30)
-#KS=(20000 2000 200 20)
-KS=(20000)
+KS=(20000 2000 200 20)
+#KS=(20000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -53,7 +53,7 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --mmr_threshold 0.95\
+                --mmr_threshold 0.99\
                 --num_train_epochs ${epoch} \
                 --do_fine_tuning\
                 --do_train\
@@ -109,7 +109,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=1; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

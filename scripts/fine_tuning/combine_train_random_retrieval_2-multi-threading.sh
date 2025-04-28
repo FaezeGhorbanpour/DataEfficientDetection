@@ -34,8 +34,8 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="san20_it"
-    lang="it"
+    dataset="xdomain_tr"
+    lang="tr"
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 

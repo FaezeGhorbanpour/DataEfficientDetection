@@ -13,6 +13,7 @@ FOLDER_NAME="base_setting"
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 KS=(30 40 50 100 300 400 500 1000 3000 4000 5000 10000)
 #KS=(20 200 2000 20000)
+KS=(30 40 400 500 1000)
 # Function to process a single dataset
 run_dataset() {
     local k=$1

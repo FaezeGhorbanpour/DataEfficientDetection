@@ -8,7 +8,7 @@ RSS=(rs1 rs2 rs3 rs4 rs5)
 GPUS=(0 1 2) # Adjust based on available GPUs
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="two-phases"
+FOLDER_NAME="two-phases_2"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -18,6 +18,7 @@ FOLDER_NAME="two-phases"
 
 KS=(20 30 40 50 100 200 300 400 500 1000 2000 3000 4000 5000 10000 20000)
 #KS=(4000 5000 10000 20000)
+KS=(20 200 2000 20000)
 
 # Function to process a single dataset
 run_dataset() {
@@ -26,10 +27,10 @@ run_dataset() {
 
     # Determine epoch based on k
     local epoch
-    if [ "$k" -lt 10000 ]; then
-        epoch=5
+    if [ "$k" -lt 9999 ]; then
+        epoch=10
     else
-        epoch=3
+        epoch=5
     fi
 
     dataset="ous19_ar"
@@ -56,7 +57,7 @@ run_dataset() {
                 --retrieval_do_train \
                 --retrieval_do_test \
                 --do_fine_tuning \
-                --num_train_epochs 5 \
+                --num_train_epochs 10 \
                 --do_train\
                 --do_eval\
                 --do_test\
@@ -104,7 +105,7 @@ check_gpu_memory() {
 # Main loop
 K=0
 while [ "$K" -lt "${#KS[@]}" ]; do
-    num_gpus=5
+    num_gpus=4
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
     for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do

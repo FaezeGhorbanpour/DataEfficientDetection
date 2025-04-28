@@ -2,16 +2,12 @@
 BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-#DATASETS=("bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' )
-DATASETS=("dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "bas19_es" "gahd24_de")
-DATASETS=("xdomain_en" "implicit_en" "bas19_es" "gahd24_de" "xdomain_tr")
-#LANGUAGES=("es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' )
-LANGUAGES=("en" "en" "en" "en" "en" "es" "de")
-LANGUAGES=("en" "en" "es" "de" "tr")
+DATASETS=("bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "bas19_es" "gahd24_de")
+LANGUAGES=("es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "es" "de")
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="microsoft/mdeberta-v3-base"
-FOLDER_NAME="mdeberta-base"
+MODEL_NAME="google/mt5-small"
+FOLDER_NAME="mt5-small"
 
 # Function to process a single dataset
 run_dataset() {
@@ -35,6 +31,7 @@ run_dataset() {
                   --do_first_fine_tuning\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
+		  --fine_tune_method "lora"\
                   --do_train\
                   --do_eval\
                   --do_test\
@@ -105,7 +102,7 @@ while [ "$D" -lt "${#DATASETS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=5; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
