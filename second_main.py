@@ -449,6 +449,7 @@ def main(
         else:
             first_dataset = data_provider.load_dataset(
                 dataset_name=first_data_args.first_datasets[0],
+                language=first_data_args.first_languages[0],
                 cache_dir=first_data_args.dataset_cache_dir,
                 max_samples=first_data_args.max_samples
             )
@@ -530,6 +531,7 @@ def main(
         else:
             second_dataset = data_provider.load_dataset(
                 dataset_name=second_data_args.second_datasets[0],
+                language=first_data_args.second_languages[0],
                 cache_dir=second_data_args.second_dataset_cache_dir,
                 max_samples=second_data_args.second_max_samples
             )

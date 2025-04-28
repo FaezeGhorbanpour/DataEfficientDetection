@@ -37,7 +37,7 @@ class DataProvider:
             })
         return datasets
 
-    def load_dataset(self, dataset_name, max_samples=None, cache_dir=''):
+    def load_dataset(self, dataset_name, language, max_samples=None, cache_dir=''):
         """
         Load datasets from Hugging Face with optional filtering by language and sample limit.
         Args:
@@ -60,6 +60,7 @@ class DataProvider:
             ds = data[split]
             if split == 'train' and max_samples:
                 data[split] = ds.select(range(min(len(ds), max_samples)))
+            data[split] = data[split].add_column("language", [language] * len(data[split]))
         return data
 
     def convert_to_dataset(self, retrieved_data):
