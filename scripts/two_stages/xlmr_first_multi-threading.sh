@@ -13,16 +13,16 @@ FOLDER_NAME="xlmr-base"
 
 # Function to process a single dataset
 run_dataset() {
-    local dataset=$1
-    local language=$2
+    local first_dataset=$1
+    local first_language=$2
     local gpu=$3
 
 
-    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
+    echo "Starting dataset: ${first_dataset} on GPU: ${gpu}"
 
     for ((d=0; d<${#DATASETS[@]}; d++)); do
-      first_dataset=${DATASETS[d]}
-      first_language=${LANGUAGES[d]}
+      dataset=${DATASETS[d]}
+      language=${LANGUAGES[d]}
       for split in 2000; do
           for ((i=0; i<${#RSS[@]}; i++)); do
               FIRST_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/first/${first_dataset}/${split}/${RSS[i]}/"

@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="en-margin=0.4"
+FOLDER_NAME="en-margin=0.4-again"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -31,9 +31,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="gahd24_de"
-    lang="de"
-    excluded_datasets=("gahd24_de" "dyn21_en")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 

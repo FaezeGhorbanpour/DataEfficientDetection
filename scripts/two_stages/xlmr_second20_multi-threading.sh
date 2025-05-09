@@ -2,34 +2,34 @@
 BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-DATASETS=("bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "bas19_es" "gahd24_de")
-LANGUAGES=("es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "es" "de")
+DATASETS=( "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr'  "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en")
+#DATASETS=('bas19_es' 'xdomain_tr' 'gahd24_de')
+LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en")
+#LANGUAGES=('es' 'tr' 'de')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="google/mt5-small"
-FOLDER_NAME="mt5-small"
+MODEL_NAME="FacebookAI/xlm-roberta-base"
+FOLDER_NAME="xlmr-second=20"
 
 # Function to process a single dataset
 run_dataset() {
-    local dataset=$1
-    local language=$2
+    local first_dataset=$1
+    local first_language=$2
     local gpu=$3
 
 
-    echo "Starting dataset: ${dataset} on GPU: ${gpu}"
+    echo "Starting dataset: ${first_dataset} on GPU: ${gpu}"
 
     for ((d=0; d<${#DATASETS[@]}; d++)); do
-      first_dataset=${DATASETS[d]}
-      first_language=${LANGUAGES[d]}
+      dataset=${DATASETS[d]}
+      language=${LANGUAGES[d]}
       for split in 2000; do
           for ((i=0; i<${#RSS[@]}; i++)); do
               FIRST_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/first/${first_dataset}/${split}/${RSS[i]}/"
-              SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
+              SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/20/${RSS[i]}/"
               CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                   --seed ${RSS[i]//rs/} \
-                  --num_train_epochs 100 \
-                  --learning_rate 5e-3\
-                  --warmup_ratio 0.1\
+                  --num_train_epochs 5 \
                   --do_first_fine_tuning\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
@@ -40,8 +40,8 @@ run_dataset() {
                   --do_hate_day\
                   --output_dir "${FIRST_OUTPUT_DIR}" \
                   --do_second_fine_tuning\
-                  --second_datasets "${dataset}-${split}-${RSS[i]}"\
-                  --second_languages "${lang}"\
+                  --second_datasets "${dataset}-20-${RSS[i]}"\
+                  --second_languages "${language}"\
                   --do_second_train\
                   --do_second_eval\
                   --do_second_test\
@@ -50,10 +50,9 @@ run_dataset() {
                   --second_output_dir "${SECOND_OUTPUT_DIR}" \
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                  --per_device_train_batch_size 16 \
-                  --per_device_eval_batch_size 16 \
-                  --gradient_accumulation_steps 2\
-                  --max_seq_length 200 \
+                  --per_device_train_batch_size 32 \
+                  --per_device_eval_batch_size 32 \
+                  --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
                   --overwrite_output_dir \
@@ -66,6 +65,7 @@ run_dataset() {
                       echo "Deleted: $dir"
                   fi
               done
+
               for dir in "${SECOND_OUTPUT_DIR}"check*; do
                   if [ -d "$dir" ]; then # Check if it's a directory
                       rm -rf "$dir"
@@ -83,7 +83,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=35000
+WAIT_TIME=15000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -109,7 +109,7 @@ while [ "$D" -lt "${#DATASETS[@]}" ]; do
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${DATASETS[$D]}" "${LANGUAGES[$D]}" "$available_gpu" &
-            sleep 700
+            sleep 30
             D=$((D + 1)) # Increment D only when a GPU is assigned
             if [ "$D" -ge "${#DATASETS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
