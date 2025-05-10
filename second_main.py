@@ -339,10 +339,10 @@ def copy_finetuner_args(second_finetuner_args, first_finetuner_args):
 
     # Conditional assignments
     if second_finetuner_args.second_fine_tune_method:
-        finetuner_args_copy.num_train_epochs = second_finetuner_args.second_fine_tune_method
+        finetuner_args_copy.fine_tune_method = second_finetuner_args.second_fine_tune_method
 
     if second_finetuner_args.second_peft_config:
-        finetuner_args_copy.num_train_epochs = second_finetuner_args.second_peft_config
+        finetuner_args_copy.peft_config = second_finetuner_args.second_peft_config
 
     if second_finetuner_args.second_num_train_epochs:
         finetuner_args_copy.num_train_epochs = second_finetuner_args.second_num_train_epochs
@@ -363,7 +363,7 @@ def copy_finetuner_args(second_finetuner_args, first_finetuner_args):
         finetuner_args_copy.output_dir = second_finetuner_args.second_output_dir
 
     if second_finetuner_args.do_second_early_stopping:
-        finetuner_args_copy.output_dir = second_finetuner_args.do_second_early_stopping
+        finetuner_args_copy.do_early_stopping = second_finetuner_args.do_second_early_stopping
 
     return finetuner_args_copy
 
