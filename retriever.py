@@ -81,7 +81,7 @@ class Retriever:
         if self.normalize_index:
             faiss.normalize_L2(embeddings)
 
-        if mmr_threshold > 0:
+        if mmr_threshold < 1:
             # Construct initial result list
             indices = [i for i in range(len(embeddings))]
             scores = [1 for _ in range(len(embeddings))]
@@ -155,7 +155,7 @@ class Retriever:
             # logger.info(f"Total unique results after deduplication: {len(results)}")
 
             # Apply MMR if threshold is provided
-            if mmr_threshold > 0.0:
+            if mmr_threshold < 1:
                 results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, min_remained_amount=k, lambda_param=0.5)
 
             retrieval_number *= 2
@@ -509,7 +509,7 @@ class Retriever:
         logger.info(f"Total unique results after deduplication: {len(results)}")
 
         # Apply MMR if threshold is provided
-        if mmr_threshold > 0.0:
+        if mmr_threshold < 1:
             results = self.mmr_wraper(results, similarity_threshold=mmr_threshold, lambda_param=0.5,
                                       min_remained_amount=num_retrieved)
 
@@ -592,7 +592,7 @@ class Retriever:
         logger.info("Index loaded successfully.")
 
 
-    def mmr_wraper(self, results, similarity_threshold=0.95, min_remained_amount=None, lambda_param=0.5):
+    def mmr_wraper(self, results, similarity_threshold=0.99, min_remained_amount=None, lambda_param=0.5):
 
         # Check input data
         indices = np.array([res["index"] for res in results])
@@ -763,7 +763,7 @@ class Retriever:
 
     def mmr_diversity_filter_fast(self, embeddings, indices, scores, similarity_threshold=0.99,
                                   lambda_param=0.5, min_remained_amount=None, device='cuda'):
-        if similarity_threshold == 0.0 or len(embeddings) == 0:
+        if similarity_threshold >= 1 or len(embeddings) == 0:
             return indices
 
         if min_remained_amount is None:

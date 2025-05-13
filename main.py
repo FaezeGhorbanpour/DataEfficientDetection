@@ -293,7 +293,7 @@ class RetrieverArguments:
         metadata={"help": "Balance the retrieved embeddings."},
     )
     mmr_threshold: float = field(
-        default=0.0,
+        default=1,
         metadata={"help": "Threshold for the MMR."},
     )
     lambda_param: float = field(
