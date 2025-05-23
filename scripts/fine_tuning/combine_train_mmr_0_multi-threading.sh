@@ -7,7 +7,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
-FOLDER_NAME="mmr-again"
+FOLDER_NAME="mmr-treshhold=0"
 
 #MODEL_NAME="microsoft/mdeberta-v3-base"
 #FOLDER_NAME="mdeberta"
@@ -32,9 +32,9 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="has21_hi"
-    lang="hi"
-    excluded_datasets=("has21_hi")
+    dataset="ous19_ar"
+    lang="ar"
+    excluded_datasets=("ous19_ar")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
@@ -53,7 +53,7 @@ run_dataset() {
                 --num_retrieved ${k} \
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
-                --mmr_threshold 0.99\
+                --mmr_threshold 0\
                 --num_train_epochs ${epoch} \
                 --do_fine_tuning\
                 --do_train\
@@ -109,7 +109,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=4; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

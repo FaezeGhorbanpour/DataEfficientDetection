@@ -8,8 +8,8 @@ LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en
 #LANGUAGES=('es' 'tr' 'de')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="FacebookAI/xlm-roberta-base"
-FOLDER_NAME="xlmr-early-stopping-2"
+MODEL_NAME="FacebookAI/xlm-roberta-large"
+FOLDER_NAME="xlmr-large-early-stopping-2"
 
 # Function to process a single dataset
 run_dataset() {
@@ -52,9 +52,9 @@ run_dataset() {
                   --second_output_dir "${SECOND_OUTPUT_DIR}" \
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                  --per_device_train_batch_size 8 \
-                  --per_device_eval_batch_size 8 \
-		                --gradient_accumulation_steps 4\
+                  --per_device_train_batch_size 2 \
+                  --per_device_eval_batch_size 2 \
+		                --gradient_accumulation_steps 16\
                   --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \

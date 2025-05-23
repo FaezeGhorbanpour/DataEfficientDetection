@@ -4,7 +4,7 @@ BASE="/mounts/data/proj/faeze/data_efficient_hate"
 # Configuration
 #DATASETS=('bas19_es' 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr')
 #LANGUAGES=('es' 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr')
-RSS=(rs1 rs2 rs3 rs4 rs5)
+RSS=(rs5 rs4 rs3 rs2 rs1)
 
 MODEL_NAME="cardiffnlp/twitter-xlm-roberta-base"
 FOLDER_NAME="base_setting"
@@ -13,7 +13,8 @@ FOLDER_NAME="base_setting"
 KS=(20000 10000 5000 4000 3000 2000 1000 500 400 300 200 100 50 40 30 20 10)
 KS=(30 40 50 100 300 400 500 1000 3000 4000 5000 10000)
 #KS=(20 200 2000 20000)
-KS=(30 40 400 500 1000)
+KS=(100000 50000 40000 30000)
+KS=(10)
 # Function to process a single dataset
 run_dataset() {
     local k=$1
@@ -27,13 +28,13 @@ run_dataset() {
         epoch=5
     fi
 
-    dataset="ous19_fr"
-    lang="fr"
-    excluded_datasets=("ous19_fr")
+    dataset="bas19_es"
+    lang="es"
+    excluded_datasets=("bas19_es")
 
     echo "Starting k: ${k} on GPU: ${gpu}"
 
-    for split in 10 30 40 50 100 300 400 500 1000 2000 20 200; do
+    for split in 2000 1000 500 400 300 200 100 50 40 30 20 10; do
         for ((i=0; i<${#RSS[@]}; i++)); do
             OUTPUT_DIR="${BASE}/models/retrieval_finetuner/${FOLDER_NAME}/${dataset}/${split}/${k}/${RSS[i]}/"
             CUDA_VISIBLE_DEVICES=${gpu} python main.py \
@@ -49,14 +50,14 @@ run_dataset() {
                 --exclude_datasets ${excluded_datasets[@]} \
                 --combine_train_set\
                 --num_train_epochs ${epoch} \
-		            --do_fine_tuning\
+		--do_fine_tuning\
                 --do_train\
                 --do_eval\
                 --do_test\
                 --do_hate_check\
-		            --do_hate_day\
+		--do_hate_day\
                 --finetuner_model_name_or_path "${MODEL_NAME}" \
-		            --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
+		--finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
                 --per_device_train_batch_size 16 \
                 --per_device_eval_batch_size 64 \
                 --max_seq_length 128 \
@@ -103,7 +104,7 @@ while [ "$K" -lt "${#KS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=6; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then

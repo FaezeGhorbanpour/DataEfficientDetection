@@ -8,8 +8,8 @@ LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en
 #LANGUAGES=('es' 'tr' 'de')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="FacebookAI/xlm-roberta-base"
-FOLDER_NAME="xlmr-early-stopping-2"
+MODEL_NAME="google-bert/bert-base-multilingual-cased"
+FOLDER_NAME="mbert-base"
 
 # Function to process a single dataset
 run_dataset() {
@@ -40,10 +40,8 @@ run_dataset() {
                   --do_hate_day\
                   --output_dir "${FIRST_OUTPUT_DIR}" \
                   --do_second_fine_tuning\
-		              --do_second_early_stopping\
-		              --second_num_train_epochs 50\
                   --second_datasets "${dataset}-${split}-${RSS[i]}"\
-                  --second_languages "${language}"\
+                  --second_languages "${lang}"\
                   --do_second_train\
                   --do_second_eval\
                   --do_second_test\
@@ -52,9 +50,9 @@ run_dataset() {
                   --second_output_dir "${SECOND_OUTPUT_DIR}" \
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                  --per_device_train_batch_size 8 \
-                  --per_device_eval_batch_size 8 \
-		                --gradient_accumulation_steps 4\
+		  --gradient_accumulation_steps 2\
+                  --per_device_train_batch_size 16 \
+                  --per_device_eval_batch_size 16 \
                   --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
@@ -86,7 +84,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=15000
+WAIT_TIME=5000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -112,7 +110,7 @@ while [ "$D" -lt "${#DATASETS[@]}" ]; do
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${DATASETS[$D]}" "${LANGUAGES[$D]}" "$available_gpu" &
-            
+            sleep 30
             D=$((D + 1)) # Increment D only when a GPU is assigned
             if [ "$D" -ge "${#DATASETS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed

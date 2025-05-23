@@ -9,7 +9,7 @@ LANGUAGES=("es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en"
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
 MODEL_NAME="microsoft/mdeberta-v3-base"
-FOLDER_NAME="mdeberta-early-stopping"
+FOLDER_NAME="mdeberta-early-stopping-2"
 
 # Function to process a single dataset
 run_dataset() {
@@ -55,7 +55,7 @@ run_dataset() {
                   --per_device_train_batch_size 8 \
                   --per_device_eval_batch_size 8 \
                   --gradient_accumulation_steps 4\
-                  --max_seq_length 256 \
+                  --max_seq_length 200 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
                   --overwrite_output_dir \

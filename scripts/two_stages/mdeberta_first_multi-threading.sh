@@ -50,10 +50,10 @@ run_dataset() {
                   --second_output_dir "${SECOND_OUTPUT_DIR}" \
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-                  --per_device_train_batch_size 16 \
-                  --per_device_eval_batch_size 64 \
-                  --gradient_accumulation_steps 2\
-                  --max_seq_length 200 \
+                  --per_device_train_batch_size 8 \
+                  --per_device_eval_batch_size 8 \
+                  --gradient_accumulation_steps 4\
+                  --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
                   --overwrite_output_dir \
