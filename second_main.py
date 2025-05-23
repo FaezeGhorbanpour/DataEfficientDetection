@@ -262,10 +262,6 @@ class SecondFineTunerArguments:
         default=False,
         metadata={"help": "Set true to test the FineTuner."}
     )
-    combine_train_set: bool = field(
-        default=False,
-        metadata={"help": "Combine retrieved data with training set."}
-    )
     second_output_dir: str = field(
         default='',
         metadata={'help': ''}
@@ -296,6 +292,10 @@ class MainArguments:
     do_second_fine_tuning: bool = field(
         default=False,
         metadata={"help": "Run the fine-tuning step."}
+    )
+    combine_train_set: bool = field(
+        default=False,
+        metadata={"help": "Combine retrieved data with training set."}
     )
     enable_wandb: bool = field(
         default=True,
