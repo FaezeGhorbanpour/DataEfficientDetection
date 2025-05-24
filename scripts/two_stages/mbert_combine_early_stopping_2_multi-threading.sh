@@ -29,7 +29,7 @@ run_dataset() {
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
                   --combine_train_set\
-                  --do_eval 0\
+                  --do_evaluation 0\
                   --do_second_fine_tuning\
 		              --do_second_early_stopping\
 		              --second_num_train_epochs 50\

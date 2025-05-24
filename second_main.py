@@ -130,7 +130,7 @@ class FirstFineTunerArguments(TrainingArguments):
         default=False,
         metadata={"help": "Set true to train the FineTuner."}
     )
-    do_eval: bool = field(
+    do_evaluation: bool = field(
         default=False,
         metadata={"help": "Set true to train the FineTuner."}
     )
@@ -331,7 +331,7 @@ def copy_finetuner_args(second_finetuner_args, first_finetuner_args):
 
     # Direct assignments
     finetuner_args_copy.do_train = second_finetuner_args.do_second_train
-    finetuner_args_copy.do_eval = second_finetuner_args.do_second_eval
+    finetuner_args_copy.do_evaluation = second_finetuner_args.do_second_eval
     finetuner_args_copy.do_test = second_finetuner_args.do_second_test
     finetuner_args_copy.do_hate_check = second_finetuner_args.do_second_hate_check
     finetuner_args_copy.do_hate_day = second_finetuner_args.do_second_hate_day
@@ -476,7 +476,7 @@ def main(
             )
             logger.info("First fine-tuning completed.")
 
-        if first_finetuner_args.do_eval:
+        if first_finetuner_args.do_evaluation:
             results = first_tuner.evaluate(first_dataset['validation'], save_results=True, key='validation',
                                           metric_key_prefix='validation')
             if main_args.enable_wandb:
@@ -569,7 +569,7 @@ def main(
 
             logger.info("Second Fine-tuning completed.")
 
-        if second_finetuner_args.do_eval:
+        if second_finetuner_args.do_evaluation:
             results = second_tuner.evaluate(second_dataset['validation'], save_results=True, key='validation',
                                           metric_key_prefix='validation')
             if main_args.enable_wandb:

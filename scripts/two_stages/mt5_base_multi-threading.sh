@@ -36,7 +36,7 @@ run_dataset() {
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
                   --do_train\
-                  --do_eval\
+                  --do_evaluation\
                   --do_test\
                   --do_hate_check\
                   --do_hate_day\
