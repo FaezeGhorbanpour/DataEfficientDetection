@@ -105,7 +105,10 @@ class DataProvider:
             for ds, lang in zip(data, languages):
                 if split in ds:
                     # Add a new column for language
-                    ds_split = ds[split].add_column("language", [lang] * len(ds[split]))
+                    if 'language' not in ds[split].features:
+                        ds_split = ds[split].add_column("language", [lang] * len(ds[split]))
+                    else:
+                        ds_split = ds[split]
                     combined.append(ds_split)
 
             if combined:
