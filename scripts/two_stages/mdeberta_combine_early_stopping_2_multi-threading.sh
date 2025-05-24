@@ -27,8 +27,7 @@ run_dataset() {
               SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
               CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                   --seed ${RSS[i]//rs/} \
-                  --num_train_epochs 5 \
-                  --do_first_fine_tuning\
+                  --do_eval 0\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
                   --combine_train_set\
@@ -48,7 +47,7 @@ run_dataset() {
                   --per_device_train_batch_size 8 \
                   --per_device_eval_batch_size 8 \
                   --gradient_accumulation_steps 4\
-                  --max_seq_length 200 \
+                  --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
                   --overwrite_output_dir \

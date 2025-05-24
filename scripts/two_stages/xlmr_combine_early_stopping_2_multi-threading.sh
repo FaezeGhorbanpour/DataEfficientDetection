@@ -28,11 +28,10 @@ run_dataset() {
               SECOND_OUTPUT_DIR="${BASE}/results/${FOLDER_NAME}/second/${dataset}/${first_dataset}/${split}/${RSS[i]}/"
               CUDA_VISIBLE_DEVICES=${gpu} python second_main.py \
                   --seed ${RSS[i]//rs/} \
-                  --num_train_epochs 5 \
-                  --do_first_fine_tuning\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
                   --combine_train_set\
+                  --do_eval 0\
                   --do_second_fine_tuning\
 		              --do_second_early_stopping\
 		              --second_num_train_epochs 50\
