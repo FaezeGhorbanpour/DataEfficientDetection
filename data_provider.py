@@ -92,11 +92,11 @@ class DataProvider:
         if 'data' in datasets[0]:
             data = [dataset['data'] for dataset in datasets]
             languages = [dataset['language'] for dataset in datasets]
-            splits = set(split for ds in data for split in ds)
         else:
             data = datasets
-            languages = [data['language']['train'][0] for data in datasets]
-            splits = set(split for ds in data for split in ds)
+            languages = [data['train']['language'][0] for data in datasets]
+
+        splits = set(split for ds in data for split in ds)
 
         output = {}
 
