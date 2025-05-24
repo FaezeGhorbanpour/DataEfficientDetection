@@ -3,11 +3,13 @@ BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
 DATASETS=( "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr'  "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en")
+#DATASETS=('bas19_es' 'xdomain_tr' 'gahd24_de')
 LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en")
+#LANGUAGES=('es' 'tr' 'de')
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="google-bert/bert-base-multilingual-cased"
-FOLDER_NAME="mbert-combine"
+MODEL_NAME="FacebookAI/xlm-roberta-base"
+FOLDER_NAME="xlmr-combine"
 
 # Function to process a single dataset
 run_dataset() {

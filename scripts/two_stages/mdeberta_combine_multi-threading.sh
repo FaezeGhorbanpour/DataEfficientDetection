@@ -2,12 +2,12 @@
 BASE="/mounts/data/proj/faeze/transferability_hate"
 
 # Configuration
-DATASETS=( "bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr'  "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "xdomain_en")
-LANGUAGES=( "es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "en")
+DATASETS=("bas19_es" 'for19_pt' 'has21_hi' 'ous19_ar' 'ous19_fr' 'san20_it' 'gahd24_de' 'xdomain_tr' "dyn21_en" "fou18_en" "ken20_en" "xplain_en" "implicit_en" "bas19_es" "gahd24_de")
+LANGUAGES=("es" 'pt' 'hi' 'ar' 'fr' 'it' 'de' 'tr' "en" "en" "en" "en" "en" "es" "de")
 RSS=(rs1 rs2 rs3 rs4 rs5)
 
-MODEL_NAME="google-bert/bert-base-multilingual-cased"
-FOLDER_NAME="mbert-combine"
+MODEL_NAME="microsoft/mdeberta-v3-base"
+FOLDER_NAME="mdeberta-combine"
 
 # Function to process a single dataset
 run_dataset() {
@@ -42,9 +42,9 @@ run_dataset() {
                   --second_output_dir "${SECOND_OUTPUT_DIR}" \
                   --finetuner_model_name_or_path "${MODEL_NAME}" \
                   --finetuner_tokenizer_name_or_path "${MODEL_NAME}"\
-		              --gradient_accumulation_steps 2\
-                  --per_device_train_batch_size 16 \
-                  --per_device_eval_batch_size 16 \
+                  --per_device_train_batch_size 8 \
+                  --per_device_eval_batch_size 8 \
+                  --gradient_accumulation_steps 4\
                   --max_seq_length 256 \
                   --cache_dir "${BASE}/cache/" \
                   --logging_dir "${BASE}/logs/" \
@@ -58,7 +58,6 @@ run_dataset() {
                       echo "Deleted: $dir"
                   fi
               done
-
               for dir in "${SECOND_OUTPUT_DIR}"check*; do
                   if [ -d "$dir" ]; then # Check if it's a directory
                       rm -rf "$dir"
@@ -76,7 +75,7 @@ run_dataset() {
 # Minimum GPU memory required (in MiB)
 MIN_MEM=8000
 # Time to wait before rechecking (in seconds)
-WAIT_TIME=5000
+WAIT_TIME=35000
 
 # Function to check available memory on a GPU
 check_gpu_memory() {
@@ -96,13 +95,13 @@ while [ "$D" -lt "${#DATASETS[@]}" ]; do
     num_gpus=8
 #$(nvidia-smi --list-gpus | wc -l) # Get the total number of GPUs
 
-    for ((gpu_id=0; gpu_id<num_gpus; gpu_id++)); do
+    for ((gpu_id=5; gpu_id<num_gpus; gpu_id++)); do
         available_gpu=$(check_gpu_memory $gpu_id)
 
         if [ "$available_gpu" -ge 0 ]; then
             echo "GPU $available_gpu has enough memory. Starting Python script..."
             run_dataset "${DATASETS[$D]}" "${LANGUAGES[$D]}" "$available_gpu" &
-            sleep 30
+            sleep 700
             D=$((D + 1)) # Increment D only when a GPU is assigned
             if [ "$D" -ge "${#DATASETS[@]}" ]; then
                 break # Exit the loop when all datasets have been processed
