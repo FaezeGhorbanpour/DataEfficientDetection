@@ -91,13 +91,12 @@ class DataProvider:
     def aggregate_splits(self, datasets, just_aggregate=None):
         if 'data' in datasets[0]:
             data = [dataset['data'] for dataset in datasets]
+            languages = [dataset['language'] for dataset in datasets]
+            splits = set(split for ds in data for split in ds)
         else:
             data = datasets
-        if 'language' in datasets[0]:
-            languages = [dataset['language'] for dataset in datasets]
-        else:
-            languages = [data['language'][0] for data in datasets]
-        splits = set(split for ds in data for split in ds)
+            languages = [data['language']['train'][0] for data in datasets]
+            splits = set(split for ds in data for split in ds)
 
         output = {}
 

@@ -549,7 +549,7 @@ def main(
         logger.info("Second datasets loaded.")
 
         if main_args.combine_train_set:
-            second_dataset = data_provider.aggregate_splits([first_dataset['train'], second_dataset['train']],
+            second_dataset = data_provider.aggregate_splits([first_dataset, second_dataset],
                                                             just_aggregate=['train'])
 
         second_finetuner_args = copy_finetuner_args(second_finetuner_args, first_finetuner_args)
