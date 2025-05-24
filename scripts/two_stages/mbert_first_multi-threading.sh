@@ -41,7 +41,7 @@ run_dataset() {
                   --output_dir "${FIRST_OUTPUT_DIR}" \
                   --do_second_fine_tuning\
                   --second_datasets "${dataset}-${split}-${RSS[i]}"\
-                  --second_languages "${lang}"\
+                  --second_languages "${language}"\
                   --do_second_train\
                   --do_second_eval\
                   --do_second_test\

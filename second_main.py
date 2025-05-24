@@ -445,7 +445,7 @@ def main(
         wandb.config.update(first_finetuner_args, allow_val_change=True)
         wandb.config.update(first_data_args, allow_val_change=True)
 
-    if main_args.do_first_fine_tuning:
+    if main_args.do_first_fine_tuning or main_args.combine_train_set:
         # Step 1: Load first datasets
         logger.info(f"Loading datasets: {first_data_args.first_datasets} ...")
 
@@ -548,6 +548,9 @@ def main(
             )
         logger.info("Second datasets loaded.")
 
+        if main_args.combine_train_set:
+            second_dataset = data_provider.aggregate_splits([first_dataset['train'], second_dataset['train']],
+                                                            just_aggregate=['train'])
 
         second_finetuner_args = copy_finetuner_args(second_finetuner_args, first_finetuner_args)
         if first_fine_tuning_model_path:
