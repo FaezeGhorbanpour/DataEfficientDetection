@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
-# import umap
+import umap
 import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
@@ -329,7 +329,7 @@ class Embedder:
             metadata_df,
             x="x",
             y="y",
-            color="language",
+            color="dataset_name",
             hover_data=["dataset_name", "language", "id"],
             title=plot_title,
         )

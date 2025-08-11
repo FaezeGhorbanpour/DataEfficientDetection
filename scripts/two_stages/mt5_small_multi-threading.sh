@@ -30,7 +30,7 @@ run_dataset() {
                   --num_train_epochs 100 \
                   --learning_rate 5e-3\
                   --warmup_ratio 0.1\
-		  --do_early_stopping\
+		              --do_early_stopping\
                   --do_first_fine_tuning\
                   --first_datasets "${first_dataset}-${split}-${RSS[i]}"\
                   --first_languages "${first_language}"\
